@@ -6,26 +6,27 @@ const nextConfig = {
   },
   reactStrictMode: true,
   async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
     return [
       {
-        source: '/products/:path*',
-        destination: 'http://localhost:3001/products/:path*',
+        source: '/api/products/:path*',
+        destination: `${apiUrl}/products/:path*`,
       },
       {
-        source: '/users/:path*',
-        destination: 'http://localhost:3001/users/:path*',
+        source: '/api/users/:path*',
+        destination: `${apiUrl}/users/:path*`,
       },
       {
-        source: '/orders/:path*',
-        destination: 'http://localhost:3001/orders/:path*',
+        source: '/api/orders/:path*',
+        destination: `${apiUrl}/orders/:path*`,
       },
       {
-        source: '/promo/:path*',
-        destination: 'http://localhost:3001/promo/:path*',
+        source: '/api/promo/:path*',
+        destination: `${apiUrl}/promo/:path*`,
       },
       {
-        source: '/payment/:path*',
-        destination: 'http://localhost:3001/payment/:path*',
+        source: '/api/payment/:path*',
+        destination: `${apiUrl}/payment/:path*`,
       },
     ]
   },

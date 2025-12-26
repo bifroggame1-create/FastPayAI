@@ -1,15 +1,15 @@
 import axios from 'axios'
 import { Product, User, Order } from '@/types'
 
-// Use relative URL to go through Next.js proxy (configured in next.config.js)
-// This ensures API calls work both locally and through ngrok/production
-const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+// Use backend URL from environment variable, fallback to local dev server
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: false,
 })
 
 export const productsApi = {
