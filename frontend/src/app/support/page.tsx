@@ -85,7 +85,7 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
-      <Header title="Поддержка" showBack onBack={() => router.push('/')} showNavButtons={false} />
+      <Header title="Поддержка" showBack onBack={() => router.back()} showNavButtons={false} />
 
       <div className="px-4 py-4 space-y-6">
         {/* Quick Actions */}

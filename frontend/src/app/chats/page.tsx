@@ -75,7 +75,7 @@ export default function ChatsPage() {
   if (!selectedChat) {
     return (
       <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
-        <Header title="Чаты" showBack onBack={() => router.push('/')} showNavButtons={false} />
+        <Header title="Чаты" showBack onBack={() => router.back()} showNavButtons={false} />
 
         <div className="px-4 py-4">
           {chats.length === 0 ? (
