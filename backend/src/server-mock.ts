@@ -883,7 +883,10 @@ const mockPromoCodes = [
 
 async function start() {
   try {
-    await fastify.register(cors, { origin: process.env.FRONTEND_URL || 'http://localhost:3000' })
+    await fastify.register(cors, {
+      origin: true, // Allow all origins for Telegram Mini App
+      credentials: true
+    })
 
     fastify.get('/products', async (request) => {
       const { category, condition, search } = request.query as any
