@@ -9,8 +9,8 @@ import logging
 # Загрузка переменных окружения
 load_dotenv()
 
-BOT_TOKEN = os.getenv('BOT_TOKEN')
-WEB_APP_URL = os.getenv('WEB_APP_URL')
+BOT_TOKEN = os.getenv('BOT_TOKEN', '8374538997:AAHe-J7hR0NJYtyafNNCA5Khz9YkdjQHvV4')
+WEB_APP_URL = os.getenv('WEB_APP_URL', 'https://fast-pay-ai-rnul.vercel.app/')
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
