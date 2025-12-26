@@ -832,9 +832,9 @@ const mockUsers = [
     joinedAt: '2025-01-15',
     isAdmin: true,
     referralCode: 'FASTPAY1301',
-    referralCount: 247,
+    referralCount: 0,
     bonusBalance: 0,
-    stats: { rating: 5.0, reviewsCount: 1679, ordersCount: 1679, returnsCount: 3 }
+    stats: { rating: 5.0, reviewsCount: 0, ordersCount: 0, returnsCount: 0 }
   },
   {
     id: 'dev_user',
