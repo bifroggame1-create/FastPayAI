@@ -241,11 +241,11 @@ function CheckoutContent() {
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 flex items-center justify-center">
+                <div className="w-10 h-10 flex items-center justify-center rounded-lg overflow-hidden">
                   <img
-                    src="/payment-icons/cryptobot.svg"
+                    src="/payment-icons/cryptobot.jpg"
                     alt="CryptoBot"
-                    className="w-10 h-10 object-contain"
+                    className="w-10 h-10 object-cover"
                   />
                 </div>
                 <div>
@@ -298,11 +298,11 @@ function CheckoutContent() {
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 flex items-center justify-center">
+                <div className="w-10 h-10 flex items-center justify-center rounded-lg overflow-hidden">
                   <img
-                    src="/payment-icons/sbppayment.svg"
+                    src="/payment-icons/sbp.webp"
                     alt="СБП"
-                    className="w-10 h-10 object-contain"
+                    className="w-10 h-10 object-cover"
                   />
                 </div>
                 <div>
