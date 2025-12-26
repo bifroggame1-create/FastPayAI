@@ -1,8 +1,8 @@
 import axios from 'axios'
 import { Product, User, Order } from '@/types'
 
-// Use backend URL from environment variable, fallback to local dev server
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+// Use backend URL from environment variable, fallback to production Render URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com'
 
 const api = axios.create({
   baseURL: API_URL,
