@@ -1,0 +1,119 @@
+import os
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton, MenuButtonWebApp
+from dotenv import load_dotenv
+import asyncio
+import logging
+
+# Загрузка переменных окружения
+load_dotenv()
+
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+WEB_APP_URL = os.getenv('WEB_APP_URL')
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Инициализация бота и диспетчера
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+
+
+@dp.message(Command('start'))
+async def cmd_start(message: types.Message):
+    """Обработчик команды /start"""
+
+    # Создаем клавиатуру с кнопкой Web App
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🛍 Открыть магазин",
+                    web_app=WebAppInfo(url=WEB_APP_URL)
+                )
+            ]
+        ]
+    )
+
+    welcome_text = (
+        f"👋 Привет, {message.from_user.first_name}!\n\n"
+        "🚀 Добро пожаловать в FastPay - магазин цифровых товаров!\n\n"
+        "🤖 AI Подписки (Claude, ChatGPT, Gemini, Midjourney)\n"
+        "🔐 VPN Сервисы (NordVPN)\n"
+        "🎵 Стриминг (Spotify Premium)\n"
+        "🎮 Игры и валюта (Roblox, игровые ключи)\n"
+        "💻 Программное обеспечение (Adobe)\n"
+        "📚 Образование (Coursera)\n\n"
+        "✨ Мгновенная доставка • Гарантия • Лучшие цены\n\n"
+        "Нажмите на кнопку ниже, чтобы открыть каталог 👇"
+    )
+
+    await message.answer(welcome_text, reply_markup=keyboard)
+
+
+@dp.message(Command('help'))
+async def cmd_help(message: types.Message):
+    """Обработчик команды /help"""
+    help_text = (
+        "📱 <b>Как пользоваться магазином:</b>\n\n"
+        "1️⃣ Нажмите кнопку «Открыть магазин»\n"
+        "2️⃣ Выберите категорию товаров\n"
+        "3️⃣ Просмотрите каталог\n"
+        "4️⃣ Добавьте понравившиеся товары в избранное ❤️\n"
+        "5️⃣ Перейдите к покупке\n\n"
+        "<b>Команды бота:</b>\n"
+        "/start - Открыть магазин\n"
+        "/help - Показать эту справку\n"
+        "/shop - Быстрый доступ к магазину\n"
+    )
+
+    await message.answer(help_text, parse_mode='HTML')
+
+
+@dp.message(Command('shop'))
+async def cmd_shop(message: types.Message):
+    """Обработчик команды /shop - быстрый доступ к магазину"""
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🛍 Открыть магазин",
+                    web_app=WebAppInfo(url=WEB_APP_URL)
+                )
+            ]
+        ]
+    )
+
+    await message.answer("Нажмите на кнопку для открытия магазина:", reply_markup=keyboard)
+
+
+async def set_menu_button():
+    """Устанавливаем кнопку меню как Web App"""
+    try:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="🛍 Магазин",
+                web_app=WebAppInfo(url=WEB_APP_URL)
+            )
+        )
+        logger.info("✅ Кнопка меню успешно установлена")
+    except Exception as e:
+        logger.error(f"❌ Ошибка при установке кнопки меню: {e}")
+
+
+async def main():
+    """Главная функция запуска бота"""
+    logger.info("🚀 Бот запускается...")
+
+    # Устанавливаем кнопку меню
+    await set_menu_button()
+
+    # Запускаем polling
+    logger.info("✅ Бот успешно запущен!")
+    await dp.start_polling(bot)
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
