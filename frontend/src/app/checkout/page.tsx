@@ -265,22 +265,24 @@ function CheckoutContent() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSelectedCrypto('TON')}
-                    className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all ${
+                    className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
                       selectedCrypto === 'TON'
                         ? 'border-accent-cyan bg-accent-cyan/10 text-accent-cyan font-semibold'
                         : 'border-light-border dark:border-dark-border text-light-text dark:text-dark-text'
                     }`}
                   >
+                    <img src="/payment-icons/ton.svg" alt="TON" className="w-6 h-6" />
                     TON
                   </button>
                   <button
                     onClick={() => setSelectedCrypto('USDT')}
-                    className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all ${
+                    className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
                       selectedCrypto === 'USDT'
                         ? 'border-accent-cyan bg-accent-cyan/10 text-accent-cyan font-semibold'
                         : 'border-light-border dark:border-dark-border text-light-text dark:text-dark-text'
                     }`}
                   >
+                    <img src="/payment-icons/usdt.svg" alt="USDT" className="w-6 h-6" />
                     USDT
                   </button>
                 </div>

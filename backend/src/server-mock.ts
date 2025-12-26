@@ -18,7 +18,7 @@ const mockProducts = [
     images: ['/brands/claude.webp'],
     condition: 'new',
     category: 'ai-subscriptions',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 ВОЗМОЖНОСТИ CLAUDE PRO НА 25.12.2025:
 ➖ Claude 3.5 Sonnet — самая мощная модель 🔥
@@ -57,7 +57,7 @@ const mockProducts = [
     images: ['/brands/openai.webp'],
     condition: 'new',
     category: 'ai-subscriptions',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 АКТУАЛЬНЫЕ МОДУЛИ В ПОДПИСКЕ PLUS НА 25.12.2025:
 ➖ GPT-5.2 — флагман 🔥
@@ -100,7 +100,7 @@ const mockProducts = [
     images: ['/brands/gemini.webp'],
     condition: 'new',
     category: 'ai-subscriptions',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 5.0,
     description: `🟢 ВОЗМОЖНОСТИ GEMINI ADVANCED:
 ➖ Gemini Ultra — самая мощная модель Google 🔥
@@ -138,7 +138,7 @@ const mockProducts = [
     images: ['/brands/nord.webp'],
     condition: 'new',
     category: 'vpn',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 ВОЗМОЖНОСТИ NORDVPN PREMIUM:
 ➖ 6000+ серверов в 60+ странах 🔥
@@ -179,7 +179,7 @@ const mockProducts = [
     images: ['/brands/spotify.webp'],
     condition: 'new',
     category: 'streaming',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.8,
     description: `🟢 SPOTIFY PREMIUM НА 25.12.2025:
 ➖ Без рекламы — только музыка 🔥
@@ -219,7 +219,7 @@ const mockProducts = [
     images: ['https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500'],
     condition: 'new',
     category: 'gaming',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 ROBLOX ROBUX — ИГРОВАЯ ВАЛЮТА:
 ➖ Мгновенное пополнение — до 5 минут 🔥
@@ -260,7 +260,7 @@ const mockProducts = [
     images: ['/brands/adobe.webp'],
     condition: 'new',
     category: 'software',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 5.0,
     description: `🟢 ADOBE CREATIVE CLOUD ALL APPS:
 ➖ 20+ профессиональных приложений 🔥
@@ -301,7 +301,7 @@ const mockProducts = [
     images: ['/products/coursera.jpg'],
     condition: 'new',
     category: 'education',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 COURSERA PLUS НА 25.12.2025:
 ➖ 7000+ курсов от ведущих университетов 🔥
@@ -342,7 +342,7 @@ const mockProducts = [
     images: ['/products/midjourney.png'],
     condition: 'new',
     category: 'ai-subscriptions',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 MIDJOURNEY — AI ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ:
 ➖ Создание изображений по текстовому описанию 🔥
@@ -383,7 +383,7 @@ const mockProducts = [
     images: ['/brands/Platstation.webp'],
     condition: 'new',
     category: 'gaming',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 PLAYSTATION PLUS НА 25.12.2025:
 ➖ Essential — базовые функции + бесплатные игры 🔥
@@ -425,7 +425,7 @@ const mockProducts = [
     images: ['/brands/apple.webp'],
     condition: 'new',
     category: 'streaming',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 APPLE MUSIC НА 25.12.2025:
 ➖ 100+ миллионов треков без рекламы 🔥
@@ -467,7 +467,7 @@ const mockProducts = [
     images: ['/brands/perp.webp'],
     condition: 'new',
     category: 'ai-subscriptions',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.8,
     description: `🟢 PERPLEXITY PRO НА 25.12.2025:
 ➖ AI-поисковик нового поколения 🔥
@@ -508,7 +508,7 @@ const mockProducts = [
     images: ['/brands/steam.webp'],
     condition: 'new',
     category: 'gaming',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 5.0,
     description: `🟢 ПОПОЛНЕНИЕ STEAM КОШЕЛЬКА:
 ➖ Мгновенное пополнение баланса 🔥
@@ -549,7 +549,7 @@ const mockProducts = [
     images: ['/brands/xbox.webp'],
     condition: 'new',
     category: 'gaming',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 XBOX GAME PASS ULTIMATE НА 25.12.2025:
 ➖ 500+ игр на консоль, ПК и облако 🔥
@@ -590,7 +590,7 @@ const mockProducts = [
     images: ['/products/youtube.webp'],
     condition: 'new',
     category: 'streaming',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 YOUTUBE PREMIUM НА 26.12.2025:
 ➖ Без рекламы — никаких прерываний 🔥
@@ -631,7 +631,7 @@ const mockProducts = [
     images: ['/products/netflix.webp'],
     condition: 'new',
     category: 'streaming',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.8,
     description: `🟢 NETFLIX PREMIUM НА 26.12.2025:
 ➖ 4K Ultra HD + HDR качество 🔥
@@ -671,7 +671,7 @@ const mockProducts = [
     images: ['/products/discord.webp'],
     condition: 'new',
     category: 'gaming',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 DISCORD NITRO НА 26.12.2025:
 ➖ Кастомные эмодзи везде 🔥
@@ -710,7 +710,7 @@ const mockProducts = [
     images: ['/products/microsoft365.webp'],
     condition: 'new',
     category: 'software',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 5.0,
     description: `🟢 MICROSOFT 365 НА 26.12.2025:
 ➖ Word, Excel, PowerPoint, Outlook 🔥
@@ -748,7 +748,7 @@ const mockProducts = [
     images: ['/products/canva.webp'],
     condition: 'new',
     category: 'software',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 4.9,
     description: `🟢 CANVA PRO НА 26.12.2025:
 ➖ 100+ миллионов шаблонов и элементов 🔥
@@ -789,7 +789,7 @@ const mockProducts = [
     images: ['/products/github.webp'],
     condition: 'new',
     category: 'ai-subscriptions',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0 },
     rating: 5.0,
     description: `🟢 GITHUB COPILOT НА 26.12.2025:
 ➖ AI-автодополнение кода в реальном времени 🔥
