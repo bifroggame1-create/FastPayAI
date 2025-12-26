@@ -88,4 +88,39 @@ export const paymentApi = {
   },
 }
 
+export const adminApi = {
+  // Products
+  createProduct: async (product: any) => {
+    const { data } = await api.post('/admin/products', product)
+    return data
+  },
+
+  updateProduct: async (id: string, updates: any) => {
+    const { data } = await api.put(`/admin/products/${id}`, updates)
+    return data
+  },
+
+  deleteProduct: async (id: string) => {
+    const { data } = await api.delete(`/admin/products/${id}`)
+    return data
+  },
+
+  // Sellers
+  getSellers: async () => {
+    const { data } = await api.get('/admin/sellers')
+    return data
+  },
+
+  // Promo
+  getPromoCodes: async () => {
+    const { data } = await api.get('/admin/promo')
+    return data
+  },
+
+  createPromoCode: async (promo: any) => {
+    const { data } = await api.post('/admin/promo', promo)
+    return data
+  },
+}
+
 export default api

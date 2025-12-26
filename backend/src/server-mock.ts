@@ -909,6 +909,55 @@ async function start() {
       return mockProducts.filter(p => favoriteIds.includes(p._id))
     })
 
+    // Admin API - Create product
+    fastify.post('/admin/products', async (request) => {
+      const product = request.body as any
+      const newProduct = {
+        ...product,
+        _id: product._id || String(Date.now()),
+        createdAt: product.createdAt || new Date().toISOString(),
+        inStock: true
+      }
+      mockProducts.unshift(newProduct)
+      return { success: true, product: newProduct }
+    })
+
+    // Admin API - Update product
+    fastify.put('/admin/products/:id', async (request) => {
+      const { id } = request.params as any
+      const updates = request.body as any
+      const index = mockProducts.findIndex(p => p._id === id)
+      if (index === -1) return { success: false, error: 'Product not found' }
+      mockProducts[index] = { ...mockProducts[index], ...updates }
+      return { success: true, product: mockProducts[index] }
+    })
+
+    // Admin API - Delete product
+    fastify.delete('/admin/products/:id', async (request) => {
+      const { id } = request.params as any
+      const index = mockProducts.findIndex(p => p._id === id)
+      if (index === -1) return { success: false, error: 'Product not found' }
+      mockProducts.splice(index, 1)
+      return { success: true }
+    })
+
+    // Admin API - Get all sellers
+    fastify.get('/admin/sellers', async () => {
+      const sellers = [...new Map(mockProducts.map(p => [p.seller.id, p.seller])).values()]
+      return sellers
+    })
+
+    // Admin API - Promo codes
+    fastify.get('/admin/promo', async () => {
+      return mockPromoCodes
+    })
+
+    fastify.post('/admin/promo', async (request) => {
+      const promo = request.body as any
+      mockPromoCodes.push(promo)
+      return { success: true, promo }
+    })
+
     fastify.get('/users/:id', async (request) => {
       const { id } = request.params as any
       const user = mockUsers.find(u => u.id === id)
