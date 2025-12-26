@@ -827,13 +827,14 @@ const mockUsers = [
     id: '1301598469',
     username: 'fastpay',
     name: 'FastPay',
-    avatar: 'https://i.pravatar.cc/150?u=1301598469',
+    avatar: '/fastpay-avatar.png',
+    isVerified: true,
     joinedAt: '2025-01-15',
     isAdmin: true,
     referralCode: 'FASTPAY1301',
     referralCount: 247,
     bonusBalance: 0,
-    stats: { rating: 5.0, reviewsCount: 0, ordersCount: 0, returnsCount: 0 }
+    stats: { rating: 5.0, reviewsCount: 1679, ordersCount: 1679, returnsCount: 3 }
   },
   {
     id: 'dev_user',
