@@ -18,7 +18,7 @@ const mockProducts = [
     images: ['/brands/claude.webp'],
     condition: 'new',
     category: 'ai-subscriptions',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://i.pravatar.cc/150?u=1301598469', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
     rating: 4.9,
     description: `🟢 ВОЗМОЖНОСТИ CLAUDE PRO НА 25.12.2025:
 ➖ Claude 3.5 Sonnet — самая мощная модель 🔥
@@ -57,7 +57,7 @@ const mockProducts = [
     images: ['/brands/openai.webp'],
     condition: 'new',
     category: 'ai-subscriptions',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://i.pravatar.cc/150?u=1301598469', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
     rating: 4.9,
     description: `🟢 АКТУАЛЬНЫЕ МОДУЛИ В ПОДПИСКЕ PLUS НА 25.12.2025:
 ➖ GPT-5.2 — флагман 🔥
@@ -100,7 +100,7 @@ const mockProducts = [
     images: ['/brands/gemini.webp'],
     condition: 'new',
     category: 'ai-subscriptions',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://i.pravatar.cc/150?u=1301598469', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
     rating: 5.0,
     description: `🟢 ВОЗМОЖНОСТИ GEMINI ADVANCED:
 ➖ Gemini Ultra — самая мощная модель Google 🔥
@@ -138,7 +138,7 @@ const mockProducts = [
     images: ['/brands/nord.webp'],
     condition: 'new',
     category: 'vpn',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://i.pravatar.cc/150?u=1301598469', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
     rating: 4.9,
     description: `🟢 ВОЗМОЖНОСТИ NORDVPN PREMIUM:
 ➖ 6000+ серверов в 60+ странах 🔥
@@ -179,7 +179,7 @@ const mockProducts = [
     images: ['/brands/spotify.webp'],
     condition: 'new',
     category: 'streaming',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://i.pravatar.cc/150?u=1301598469', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
     rating: 4.8,
     description: `🟢 SPOTIFY PREMIUM НА 25.12.2025:
 ➖ Без рекламы — только музыка 🔥
@@ -219,7 +219,7 @@ const mockProducts = [
     images: ['https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500'],
     condition: 'new',
     category: 'gaming',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://i.pravatar.cc/150?u=1301598469', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
     rating: 4.9,
     description: `🟢 ROBLOX ROBUX — ИГРОВАЯ ВАЛЮТА:
 ➖ Мгновенное пополнение — до 5 минут 🔥
@@ -260,7 +260,7 @@ const mockProducts = [
     images: ['/brands/adobe.webp'],
     condition: 'new',
     category: 'software',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://i.pravatar.cc/150?u=1301598469', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
     rating: 5.0,
     description: `🟢 ADOBE CREATIVE CLOUD ALL APPS:
 ➖ 20+ профессиональных приложений 🔥
@@ -301,7 +301,7 @@ const mockProducts = [
     images: ['http://localhost:3000/products/coursera.jpg'],
     condition: 'new',
     category: 'education',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://i.pravatar.cc/150?u=1301598469', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
     rating: 4.9,
     description: `🟢 COURSERA PLUS НА 25.12.2025:
 ➖ 7000+ курсов от ведущих университетов 🔥
@@ -342,7 +342,7 @@ const mockProducts = [
     images: ['http://localhost:3000/products/midjourney.png'],
     condition: 'new',
     category: 'ai-subscriptions',
-    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://i.pravatar.cc/150?u=1301598469', rating: 5.0 },
+    seller: { id: '1301598469', name: 'FastPay', avatar: 'https://fast-pay-ai.vercel.app/logo.svg', rating: 5.0 },
     rating: 4.9,
     description: `🟢 MIDJOURNEY — AI ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ:
 ➖ Создание изображений по текстовому описанию 🔥
