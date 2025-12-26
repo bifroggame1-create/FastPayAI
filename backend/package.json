@@ -1,21 +1,18 @@
 {
   "name": "ayden-market-backend",
   "version": "1.0.0",
-  "main": "dist/server.js",
+  "main": "dist/server-mock.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "dev:mock": "ts-node-dev --respawn --transpile-only src/server-mock.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "seed": "ts-node-dev src/utils/seed.ts"
+    "build": "npx tsc --skipLibCheck src/server-mock.ts src/cryptobot.ts --outDir dist --esModuleInterop --module commonjs --target es2020 --resolveJsonModule",
+    "start": "node dist/server-mock.js"
   },
   "dependencies": {
     "@fastify/cors": "^8.5.0",
-    "@fastify/mongodb": "^8.0.0",
     "axios": "^1.13.2",
     "dotenv": "^16.3.1",
-    "fastify": "^4.25.1",
-    "mongodb": "^6.3.0"
+    "fastify": "^4.25.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
