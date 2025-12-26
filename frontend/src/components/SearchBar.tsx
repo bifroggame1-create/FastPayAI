@@ -16,7 +16,7 @@ export default function SearchBar() {
           <img
             src="/logo.svg"
             alt="FastPay"
-            className="h-12 w-auto object-contain flex-shrink-0"
+            className="h-16 w-auto object-contain flex-shrink-0"
           />
 
           {/* Catalog Button */}
