@@ -2,6 +2,7 @@
 
 import { useAppStore } from '@/lib/store'
 import { useEffect } from 'react'
+import { t } from '@/lib/i18n'
 
 interface LanguageCurrencyModalProps {
   isOpen: boolean
@@ -47,7 +48,7 @@ export default function LanguageCurrencyModal({ isOpen, onClose }: LanguageCurre
       <div className="relative bg-light-card dark:bg-dark-card rounded-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto border border-light-border dark:border-dark-border">
         {/* Header */}
         <div className="sticky top-0 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-dark-border px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-light-text dark:text-dark-text">Настройки</h2>
+          <h2 className="text-xl font-semibold text-light-text dark:text-dark-text">{t('settingsTitle', language)}</h2>
           <button
             onClick={onClose}
             className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text"
@@ -63,7 +64,7 @@ export default function LanguageCurrencyModal({ isOpen, onClose }: LanguageCurre
           {/* Language Section */}
           <div>
             <h3 className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-3">
-              Язык / Language
+              {t('language', language)}
             </h3>
             <div className="space-y-2">
               {languages.map((lang) => (
@@ -91,7 +92,7 @@ export default function LanguageCurrencyModal({ isOpen, onClose }: LanguageCurre
           {/* Currency Section */}
           <div>
             <h3 className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-3">
-              Валюта / Currency
+              {t('currency', language)}
             </h3>
             <div className="space-y-2">
               {currencies.map((curr) => (

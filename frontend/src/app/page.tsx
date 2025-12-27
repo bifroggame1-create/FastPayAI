@@ -11,11 +11,12 @@ import PopularServices from '@/components/PopularServices'
 import { Product } from '@/types'
 import { productsApi } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
+import { t } from '@/lib/i18n'
 
 export default function MarketPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
-  const { selectedCategory, searchQuery } = useAppStore()
+  const { selectedCategory, searchQuery, language } = useAppStore()
 
   useEffect(() => {
     loadProducts()
@@ -49,7 +50,7 @@ export default function MarketPage() {
 
       <div id="products-section" className="px-4 py-4">
         <h2 className="text-lg font-semibold mb-4 text-light-text dark:text-dark-text">
-          Специально для тебя <span className="text-light-text-secondary dark:text-dark-text-secondary text-base">{products.length}</span>
+          {t('forYou', language)} <span className="text-light-text-secondary dark:text-dark-text-secondary text-base">{products.length}</span>
         </h2>
 
         {loading ? (
@@ -66,7 +67,7 @@ export default function MarketPage() {
 
         {!loading && products.length === 0 && (
           <div className="text-center py-20">
-            <p className="text-light-text-secondary dark:text-dark-text-secondary">Товары не найдены</p>
+            <p className="text-light-text-secondary dark:text-dark-text-secondary">{t('noProducts', language)}</p>
           </div>
         )}
       </div>

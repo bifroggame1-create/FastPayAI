@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useAppStore } from '@/lib/store'
 import { useState } from 'react'
 import LanguageCurrencyModal from './LanguageCurrencyModal'
+import { t } from '@/lib/i18n'
 
 interface HeaderProps {
   title?: string
@@ -15,7 +16,7 @@ interface HeaderProps {
 }
 
 export default function Header({ title, logo, showBack, onBack, rightAction, showNavButtons = true }: HeaderProps) {
-  const { unreadChats } = useAppStore()
+  const { unreadChats, language } = useAppStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   return (
@@ -62,7 +63,7 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                <span className="hidden sm:inline">Поддержка</span>
+                <span className="hidden sm:inline">{t('support', language)}</span>
               </Link>
               <Link
                 href="/chats"
@@ -71,7 +72,7 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                <span className="hidden sm:inline">Чаты</span>
+                <span className="hidden sm:inline">{t('chats', language)}</span>
                 {unreadChats > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                     {unreadChats > 9 ? '9+' : unreadChats}

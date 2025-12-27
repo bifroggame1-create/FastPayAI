@@ -4,9 +4,10 @@ import { useAppStore } from '@/lib/store'
 import { useState, useEffect, useRef } from 'react'
 import CatalogModal from './CatalogModal'
 import api from '@/lib/api'
+import { t } from '@/lib/i18n'
 
 export default function SearchBar() {
-  const { searchQuery, setSearchQuery } = useAppStore()
+  const { searchQuery, setSearchQuery, language } = useAppStore()
   const [isCatalogOpen, setIsCatalogOpen] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -90,7 +91,7 @@ export default function SearchBar() {
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M4 4h7v7H4V4zm0 9h7v7H4v-7zm9-9h7v7h-7V4zm0 9h7v7h-7v-7z" />
             </svg>
-            <span className="hidden sm:inline">Каталог</span>
+            <span className="hidden sm:inline">{t('catalog', language)}</span>
           </button>
 
           {/* Search Input */}
@@ -101,7 +102,7 @@ export default function SearchBar() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-              placeholder="Поиск: Claude, GPT, Клауд..."
+              placeholder={t('searchPlaceholder', language)}
               className="w-full bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3 pr-10 rounded-lg border border-light-border dark:border-dark-border focus:outline-none focus:ring-2 focus:ring-accent-cyan"
             />
             <svg

@@ -1,19 +1,20 @@
 'use client'
 
 import { useAppStore } from '@/lib/store'
+import { t } from '@/lib/i18n'
 
 const categories = [
-  { id: 'all', name: 'Все' },
-  { id: 'ai-subscriptions', name: 'AI Подписки' },
-  { id: 'vpn', name: 'VPN' },
-  { id: 'streaming', name: 'Стриминг' },
-  { id: 'gaming', name: 'Игры' },
-  { id: 'software', name: 'ПО' },
-  { id: 'education', name: 'Обучение' },
+  { id: 'all', nameKey: 'all' as const },
+  { id: 'ai-subscriptions', nameKey: 'ai' as const },
+  { id: 'vpn', nameKey: 'vpn' as const },
+  { id: 'streaming', nameKey: 'streaming' as const },
+  { id: 'gaming', nameKey: 'gaming' as const },
+  { id: 'software', nameKey: 'software' as const },
+  { id: 'education', nameKey: 'other' as const },
 ]
 
 export default function CategoryFilter() {
-  const { selectedCategory, setSelectedCategory } = useAppStore()
+  const { selectedCategory, setSelectedCategory, language } = useAppStore()
 
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-3">
@@ -32,7 +33,7 @@ export default function CategoryFilter() {
               : 'bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border'
           }`}
         >
-          {category.name}
+          {t(category.nameKey, language)}
         </button>
       ))}
     </div>

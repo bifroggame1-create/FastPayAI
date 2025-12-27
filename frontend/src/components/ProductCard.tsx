@@ -3,8 +3,10 @@
 import { Product } from '@/types'
 import { useAppStore } from '@/lib/store'
 import { format } from 'date-fns/format'
-import { ru } from 'date-fns/locale/ru'
+import { ru, enUS } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
+import { formatPrice } from '@/lib/currency'
+import { t } from '@/lib/i18n'
 
 interface ProductCardProps {
   product: Product
@@ -13,7 +15,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onClick }: ProductCardProps) {
   const router = useRouter()
-  const { toggleFavorite, isFavorite } = useAppStore()
+  const { toggleFavorite, isFavorite, language, currency } = useAppStore()
   const favorite = isFavorite(product._id)
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -59,14 +61,14 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         </button>
         {product.condition === 'new' && (
           <div className="absolute top-3 left-3 bg-black/80 dark:bg-dark-bg/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-white">
-            Гарантия
+            {t('guarantee', language)}
           </div>
         )}
       </div>
 
       <div className="p-4">
         <h3 className="text-base font-medium mb-1 text-light-text dark:text-dark-text line-clamp-2">{product.name}</h3>
-        <p className="text-xl font-bold mb-3 text-light-text dark:text-dark-text">{product.price.toLocaleString('ru-RU')} ₽</p>
+        <p className="text-xl font-bold mb-3 text-light-text dark:text-dark-text">{formatPrice(product.price, currency)}</p>
 
         <div className="flex items-center gap-2 mb-2">
           <img
@@ -84,7 +86,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         </div>
 
         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3">
-          {format(new Date(product.createdAt), 'd MMMM в HH:mm', { locale: ru })}
+          {format(new Date(product.createdAt), 'd MMMM в HH:mm', { locale: language === 'ru' ? ru : enUS })}
         </p>
 
         {/* Buy Button */}
@@ -95,7 +97,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           }}
           className="w-full bg-accent-cyan hover:bg-accent-cyan/90 text-white font-medium py-2.5 rounded-lg transition-colors"
         >
-          Купить
+          {t('buy', language)}
         </button>
       </div>
     </div>
