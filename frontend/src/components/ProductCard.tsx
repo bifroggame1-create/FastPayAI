@@ -65,7 +65,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       </div>
 
       <div className="p-4">
-        <h3 className="text-base font-medium mb-1 text-light-text dark:text-dark-text">{product.name}</h3>
+        <h3 className="text-base font-medium mb-1 text-light-text dark:text-dark-text line-clamp-2">{product.name}</h3>
         <p className="text-xl font-bold mb-3 text-light-text dark:text-dark-text">{product.price.toLocaleString('ru-RU')} ₽</p>
 
         <div className="flex items-center gap-2 mb-2">
@@ -74,8 +74,8 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
             alt={product.seller.name}
             className="w-6 h-6 rounded-full"
           />
-          <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{product.seller.name}</span>
-          <div className="flex items-center gap-1">
+          <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{product.seller.name}</span>
+          <div className="flex items-center gap-1 flex-shrink-0">
             <svg className="w-4 h-4 text-yellow-500 fill-current" viewBox="0 0 20 20">
               <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
             </svg>
@@ -83,9 +83,20 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           </div>
         </div>
 
-        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3">
           {format(new Date(product.createdAt), 'd MMMM в HH:mm', { locale: ru })}
         </p>
+
+        {/* Buy Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            router.push(`/checkout?productId=${product._id}`)
+          }}
+          className="w-full bg-accent-cyan hover:bg-accent-cyan/90 text-white font-medium py-2.5 rounded-lg transition-colors"
+        >
+          Купить
+        </button>
       </div>
     </div>
   )

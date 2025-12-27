@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useAppStore } from '@/lib/store'
+import { useState } from 'react'
+import LanguageCurrencyModal from './LanguageCurrencyModal'
 
 interface HeaderProps {
   title?: string
@@ -14,6 +16,7 @@ interface HeaderProps {
 
 export default function Header({ title, logo, showBack, onBack, rightAction, showNavButtons = true }: HeaderProps) {
   const { unreadChats } = useAppStore()
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   return (
     <header className="sticky top-0 z-50 bg-light-card dark:bg-dark-bg border-b border-light-border dark:border-dark-border px-4 py-3">
@@ -75,11 +78,21 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
                   </span>
                 )}
               </Link>
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-light-bg dark:bg-dark-card border border-light-border dark:border-dark-border text-sm text-light-text dark:text-dark-text hover:border-accent-cyan transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                </svg>
+              </button>
             </>
           )}
           {rightAction}
         </div>
       </div>
+
+      <LanguageCurrencyModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </header>
   )
 }

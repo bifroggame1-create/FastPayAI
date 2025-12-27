@@ -31,6 +31,8 @@ interface AppState {
   selectedFilter: 'all' | 'new' | 'used'
   searchQuery: string
   theme: 'light' | 'dark'
+  language: 'ru' | 'en'
+  currency: 'RUB' | 'USD' | 'EUR'
 
   // Chats
   chats: Chat[]
@@ -43,6 +45,8 @@ interface AppState {
   setSelectedFilter: (filter: 'all' | 'new' | 'used') => void
   setSearchQuery: (query: string) => void
   toggleTheme: () => void
+  setLanguage: (language: 'ru' | 'en') => void
+  setCurrency: (currency: 'RUB' | 'USD' | 'EUR') => void
   isFavorite: (productId: string) => boolean
 
   // Chat actions
@@ -61,6 +65,8 @@ export const useAppStore = create<AppState>()(
       selectedFilter: 'all',
       searchQuery: '',
       theme: 'dark',
+      language: 'ru',
+      currency: 'RUB',
       chats: [],
       messages: [],
       unreadChats: 0,
@@ -87,6 +93,10 @@ export const useAppStore = create<AppState>()(
         }
         return { theme: newTheme }
       }),
+
+      setLanguage: (language) => set({ language }),
+
+      setCurrency: (currency) => set({ currency }),
 
       isFavorite: (productId) => get().favorites.includes(productId),
 
@@ -168,6 +178,8 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         favorites: state.favorites,
         theme: state.theme,
+        language: state.language,
+        currency: state.currency,
         chats: state.chats,
         messages: state.messages
       })
