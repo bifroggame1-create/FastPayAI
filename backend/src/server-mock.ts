@@ -1126,6 +1126,18 @@ async function start() {
       try {
         const { amount, description, productId, variantId, asset } = request.body as any
 
+        console.log('Payment request:', { amount, description, productId, variantId, asset })
+
+        // Check if CryptoBot token is configured
+        if (!process.env.CRYPTOBOT_TOKEN) {
+          console.error('CRYPTOBOT_TOKEN is not configured')
+          reply.code(500)
+          return {
+            success: false,
+            error: 'Payment system not configured. Please contact support.'
+          }
+        }
+
         // Convert RUB amount to crypto
         const cryptoAsset = (asset || 'USDT') as CryptoAsset
         const cryptoAmount = convertRubToCrypto(amount, cryptoAsset)

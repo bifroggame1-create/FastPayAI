@@ -44,6 +44,12 @@ export class CryptoBotAPI {
 
   private async makeRequest(method: string, endpoint: string, data?: any) {
     try {
+      console.log(`CryptoBot API Request: ${method} ${endpoint}`, data)
+
+      if (!this.token) {
+        throw new Error('CryptoBot token is not configured')
+      }
+
       const response = await axios({
         method,
         url: `${this.apiUrl}${endpoint}`,
@@ -54,13 +60,21 @@ export class CryptoBotAPI {
         data,
       })
 
+      console.log('CryptoBot API Response:', response.data)
+
       if (response.data.ok) {
         return response.data.result
       } else {
-        throw new Error(response.data.error?.name || 'CryptoBot API error')
+        const errorMsg = response.data.error?.name || 'CryptoBot API error'
+        console.error('CryptoBot API returned error:', response.data.error)
+        throw new Error(errorMsg)
       }
     } catch (error: any) {
-      console.error('CryptoBot API error:', error.response?.data || error.message)
+      console.error('CryptoBot API error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      })
       throw error
     }
   }
