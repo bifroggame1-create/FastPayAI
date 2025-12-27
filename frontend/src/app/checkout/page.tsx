@@ -92,22 +92,20 @@ function CheckoutContent() {
           ? `${product.name} - ${selectedVariant.name}`
           : product.name
 
-        console.log('Creating invoice with params:', {
-          amount: finalPrice,
-          productId: product._id,
-          variantId: selectedVariant?.id,
-          asset: selectedCrypto,
-        })
-
-        const response = await paymentApi.createInvoice({
+        const invoiceParams = {
           amount: finalPrice,
           description: `Оплата: ${productName}`,
           productId: product._id,
           variantId: selectedVariant?.id,
           asset: selectedCrypto,
-        })
+        }
 
-        console.log('Invoice response:', response)
+        console.log('[FastPay] Creating invoice:', invoiceParams)
+        console.log('[FastPay] Using API URL:', process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com')
+
+        const response = await paymentApi.createInvoice(invoiceParams)
+
+        console.log('[FastPay] Invoice response:', response)
 
         if (response.success && response.invoice) {
           // Открываем ссылку на оплату в Telegram
