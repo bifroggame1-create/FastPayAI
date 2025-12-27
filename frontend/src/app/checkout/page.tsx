@@ -92,6 +92,13 @@ function CheckoutContent() {
           ? `${product.name} - ${selectedVariant.name}`
           : product.name
 
+        console.log('Creating invoice with params:', {
+          amount: finalPrice,
+          productId: product._id,
+          variantId: selectedVariant?.id,
+          asset: selectedCrypto,
+        })
+
         const response = await paymentApi.createInvoice({
           amount: finalPrice,
           description: `Оплата: ${productName}`,
@@ -99,6 +106,8 @@ function CheckoutContent() {
           variantId: selectedVariant?.id,
           asset: selectedCrypto,
         })
+
+        console.log('Invoice response:', response)
 
         if (response.success && response.invoice) {
           // Открываем ссылку на оплату в Telegram
@@ -109,11 +118,26 @@ function CheckoutContent() {
             window.open(response.invoice.payUrl, '_blank')
           }
         } else {
-          alert('Ошибка создания инвойса: ' + (response.error || 'Неизвестная ошибка'))
+          const errorMsg = response.error || 'Неизвестная ошибка'
+          const details = response.details ? `\n\nДетали: ${JSON.stringify(response.details)}` : ''
+          alert('Ошибка создания платежа:\n' + errorMsg + details)
         }
       } catch (error: any) {
         console.error('Checkout error:', error)
-        alert('Ошибка при создании платежа: ' + (error.message || 'Неизвестная ошибка'))
+        let errorMessage = 'Ошибка при создании платежа'
+
+        if (error.response?.data?.error) {
+          errorMessage = error.response.data.error
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+
+        // Show detailed error for debugging
+        if (error.response?.data?.details) {
+          errorMessage += '\n\nДетали: ' + JSON.stringify(error.response.data.details)
+        }
+
+        alert(errorMessage)
       } finally {
         setLoading(false)
       }

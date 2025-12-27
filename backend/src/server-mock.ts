@@ -1121,12 +1121,48 @@ async function start() {
       return mockPromoCodes.filter(p => p.isActive)
     })
 
+    // Test endpoint to check CryptoBot connection
+    fastify.get('/payment/test-cryptobot', async (request, reply) => {
+      try {
+        if (!process.env.CRYPTOBOT_TOKEN) {
+          return {
+            success: false,
+            error: 'CRYPTOBOT_TOKEN not configured',
+            configured: false
+          }
+        }
+
+        const me = await cryptoBot.getMe()
+        return {
+          success: true,
+          configured: true,
+          bot_info: me
+        }
+      } catch (error: any) {
+        console.error('CryptoBot test failed:', error)
+        return {
+          success: false,
+          error: error.message,
+          details: error.response?.data
+        }
+      }
+    })
+
     // CryptoBot Payment endpoints
     fastify.post('/payment/create-invoice', async (request, reply) => {
       try {
         const { amount, description, productId, variantId, asset } = request.body as any
 
-        console.log('Payment request:', { amount, description, productId, variantId, asset })
+        console.log('Payment request received:', { amount, description, productId, variantId, asset })
+
+        // Validate inputs
+        if (!amount || amount <= 0) {
+          reply.code(400)
+          return {
+            success: false,
+            error: 'Invalid amount'
+          }
+        }
 
         // Check if CryptoBot token is configured
         if (!process.env.CRYPTOBOT_TOKEN) {
@@ -1134,27 +1170,41 @@ async function start() {
           reply.code(500)
           return {
             success: false,
-            error: 'Payment system not configured. Please contact support.'
+            error: 'Payment system not configured. Please add CRYPTOBOT_TOKEN to environment variables.'
           }
         }
 
         // Convert RUB amount to crypto (markup already applied on frontend)
         const cryptoAsset = (asset || 'USDT') as CryptoAsset
-        const cryptoAmount = convertRubToCrypto(amount, cryptoAsset)
 
-        console.log(`Creating invoice: ${amount} RUB = ${cryptoAmount} ${cryptoAsset}`)
+        let cryptoAmount: string
+        try {
+          cryptoAmount = convertRubToCrypto(amount, cryptoAsset)
+          console.log(`Converted: ${amount} RUB = ${cryptoAmount} ${cryptoAsset}`)
+        } catch (conversionError: any) {
+          console.error('Currency conversion failed:', conversionError)
+          reply.code(400)
+          return {
+            success: false,
+            error: `Currency conversion failed: ${conversionError.message}`
+          }
+        }
 
+        // Create invoice
+        console.log('Creating CryptoBot invoice...')
         const invoice = await cryptoBot.createInvoice({
           asset: cryptoAsset,
-          amount: cryptoAmount, // Will be converted to string in CryptoBotAPI
+          amount: cryptoAmount,
           description: description || 'Оплата заказа FastPay',
           paid_btn_name: 'callback',
           paid_btn_url: `${process.env.FRONTEND_URL}/payment/success`,
           payload: JSON.stringify({ productId, variantId }),
           allow_comments: false,
           allow_anonymous: true,
-          expires_in: 3600, // 1 hour expiration
+          expires_in: 3600,
         })
+
+        console.log('Invoice created successfully:', invoice.invoice_id)
 
         return {
           success: true,
@@ -1168,9 +1218,17 @@ async function start() {
           }
         }
       } catch (error: any) {
-        console.error('Error creating invoice:', error)
+        console.error('Error creating invoice:', {
+          message: error.message,
+          response: error.response?.data,
+          stack: error.stack
+        })
         reply.code(500)
-        return { success: false, error: error.message || 'Failed to create invoice' }
+        return {
+          success: false,
+          error: error.message || 'Failed to create invoice',
+          details: error.response?.data || undefined
+        }
       }
     })
 
