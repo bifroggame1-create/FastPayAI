@@ -38,8 +38,32 @@ export class CryptoBotAPI {
   private apiUrl: string
 
   constructor(token?: string) {
-    this.token = token || CRYPTOBOT_TOKEN || ''
+    // Clean token - remove quotes, spaces, newlines
+    const rawToken = token || CRYPTOBOT_TOKEN || ''
+    this.token = rawToken.trim().replace(/['"]/g, '').replace(/\r?\n/g, '')
     this.apiUrl = CRYPTOBOT_API_URL
+
+    // Validate token format (should be like: 12345:ABCDEF...)
+    if (this.token && !/^\d+:[A-Za-z0-9_-]+$/.test(this.token)) {
+      console.warn('⚠️ CryptoBot token format looks invalid. Expected format: 12345:ABCDEF...')
+      console.warn('Token issues detected:', {
+        hasQuotes: rawToken !== rawToken.replace(/['"]/g, ''),
+        hasSpaces: rawToken !== rawToken.trim(),
+        hasNewlines: rawToken !== rawToken.replace(/\r?\n/g, ''),
+        invalidChars: this.token.match(/[^0-9:A-Za-z_-]/g),
+      })
+    }
+
+    // Log token info for debugging (first 10 chars only for security)
+    if (this.token) {
+      console.log('✅ CryptoBot token initialized:', {
+        length: this.token.length,
+        preview: this.token.substring(0, 10) + '...',
+        formatValid: /^\d+:[A-Za-z0-9_-]+$/.test(this.token),
+      })
+    } else {
+      console.error('❌ CryptoBot token is empty or not configured')
+    }
   }
 
   private async makeRequest(method: string, endpoint: string, data?: any) {
