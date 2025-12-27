@@ -30,7 +30,8 @@ const BRAND_TRANSLATIONS: Record<string, string[]> = {
   'discord': ['дискорд', 'discord'],
   'youtube': ['ютуб', 'ютьюб', 'youtube'],
   'adobe': ['адоб', 'адобе', 'adobe'],
-  'nordvpn': ['нордвпн', 'nordvpn'],
+  'vless': ['влесс', 'vless'],
+  'shadowsocks': ['шадоусокс', 'shadowsocks'],
   'copilot': ['копилот', 'copilot'],
   'roblox': ['роблокс', 'roblox']
 }

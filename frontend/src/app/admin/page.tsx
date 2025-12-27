@@ -783,7 +783,7 @@ function ProductEditor({
                 className="w-full px-4 py-3 rounded-xl bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text"
               >
                 <option value="ai-subscriptions">AI Подписки</option>
-                <option value="vpn">VPN</option>
+                <option value="vpn">VLESS + Shadowsocks</option>
                 <option value="streaming">Стриминг</option>
                 <option value="gaming">Игры</option>
                 <option value="software">Софт</option>

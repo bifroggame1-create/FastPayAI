@@ -16,7 +16,7 @@ export const translations = {
     // Categories
     all: 'Все',
     ai: 'AI сервисы',
-    vpn: 'VPN',
+    vpn: 'VLESS + Shadowsocks',
     streaming: 'Стриминг',
     gaming: 'Игры',
     software: 'Софт',
@@ -71,7 +71,7 @@ export const translations = {
     // Categories
     all: 'All',
     ai: 'AI Services',
-    vpn: 'VPN',
+    vpn: 'VLESS + Shadowsocks',
     streaming: 'Streaming',
     gaming: 'Games',
     software: 'Software',

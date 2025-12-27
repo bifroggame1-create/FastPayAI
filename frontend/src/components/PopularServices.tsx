@@ -10,7 +10,7 @@ const popularServices = [
   { id: 'ai-subscriptions', name: 'Claude AI', image: '/brands/claude.webp' },
   { id: 'ai-subscriptions', name: 'ChatGPT', image: '/brands/openai.webp' },
   { id: 'streaming', name: 'Spotify', image: '/brands/spotify.webp' },
-  { id: 'vpn', name: 'NordVPN', image: '/brands/nord.webp' },
+  { id: 'vpn', name: 'VLESS конфиг', image: '/brands/nord.webp' },
   { id: 'software', name: 'Adobe', image: '/brands/adobe.webp' },
   { id: 'ai-subscriptions', name: 'Gemini', image: '/brands/gemini.webp' },
 ]
