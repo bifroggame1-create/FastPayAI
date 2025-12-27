@@ -1,9 +1,8 @@
 import axios from 'axios'
-import dotenv from 'dotenv'
-
-dotenv.config()
 
 const CRYPTOBOT_API_URL = 'https://pay.crypt.bot/api'
+
+// Token will be loaded from environment variables by dotenv in server-mock.ts
 const CRYPTOBOT_TOKEN = process.env.CRYPTOBOT_TOKEN
 
 interface CreateInvoiceParams {

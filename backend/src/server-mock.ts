@@ -1,12 +1,29 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import dotenv from 'dotenv'
+import path from 'path'
+
+// CRITICAL: Load environment variables FIRST, before any other imports that use them!
+// In production (Render), environment variables are set in the dashboard
+dotenv.config({ path: path.join(__dirname, '../.env') })
+
+// NOW import modules that depend on environment variables
 import { cryptoBot } from './cryptobot'
 import { loadProducts, saveProducts, loadPromoCodes, savePromoCodes } from './dataStore'
 import { searchProducts, getSearchSuggestions } from './searchUtils'
 import { convertRubToCrypto, CryptoAsset } from './cryptoConverter'
 
-dotenv.config()
+// Log environment configuration on startup
+console.log('='.repeat(60))
+console.log('🚀 FastPay Backend Starting...')
+console.log('='.repeat(60))
+console.log('Environment variables loaded:')
+console.log('  PORT:', process.env.PORT || '3001')
+console.log('  HOST:', process.env.HOST || '0.0.0.0')
+console.log('  FRONTEND_URL:', process.env.FRONTEND_URL || 'not set')
+console.log('  MONGODB_URI:', process.env.MONGODB_URI ? '✅ Set' : '❌ Not set')
+console.log('  CRYPTOBOT_TOKEN:', process.env.CRYPTOBOT_TOKEN ? `✅ Set (${process.env.CRYPTOBOT_TOKEN.substring(0, 10)}...)` : '❌ NOT SET - PAYMENT WILL NOT WORK!')
+console.log('='.repeat(60))
 
 const fastify = Fastify({
   logger: true,
@@ -1164,16 +1181,6 @@ async function start() {
           }
         }
 
-        // Check if CryptoBot token is configured
-        if (!process.env.CRYPTOBOT_TOKEN) {
-          console.error('CRYPTOBOT_TOKEN is not configured')
-          reply.code(500)
-          return {
-            success: false,
-            error: 'Payment system not configured. Please add CRYPTOBOT_TOKEN to environment variables.'
-          }
-        }
-
         // Convert RUB amount to crypto (markup already applied on frontend)
         const cryptoAsset = (asset || 'USDT') as CryptoAsset
 
@@ -1218,11 +1225,27 @@ async function start() {
           }
         }
       } catch (error: any) {
-        console.error('Error creating invoice:', {
+        console.error('❌ Error creating invoice:', {
           message: error.message,
           response: error.response?.data,
-          stack: error.stack
+          stack: error.stack,
+          cryptobotTokenSet: !!process.env.CRYPTOBOT_TOKEN
         })
+
+        // Check if error is due to missing token
+        if (!process.env.CRYPTOBOT_TOKEN || error.message?.includes('token')) {
+          reply.code(500)
+          return {
+            success: false,
+            error: 'Payment system not configured. Please add CRYPTOBOT_TOKEN to environment variables on Render dashboard.',
+            details: {
+              hint: 'Go to Render → Your Service → Environment → Add CRYPTOBOT_TOKEN',
+              tokenPresent: !!process.env.CRYPTOBOT_TOKEN,
+              originalError: error.message
+            }
+          }
+        }
+
         reply.code(500)
         return {
           success: false,
