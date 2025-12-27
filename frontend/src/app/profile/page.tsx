@@ -163,7 +163,28 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="text-center mt-8 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+        {/* Legal Links */}
+        <div className="flex items-center justify-center gap-4 mt-8 mb-4">
+          <a
+            href="https://telegra.ph/Politika-konfidencialnosti-08-15-17"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors"
+          >
+            Политика конфиденциальности
+          </a>
+          <span className="text-light-text-secondary dark:text-dark-text-secondary">•</span>
+          <a
+            href="https://telegra.ph/Polzovatelskoe-soglashenie-08-15-10"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors"
+          >
+            Пользовательское соглашение
+          </a>
+        </div>
+
+        <div className="text-center text-sm text-light-text-secondary dark:text-dark-text-secondary">
           by <span className="text-accent-cyan">@CheffDev</span> with &lt;3
         </div>
       </div>

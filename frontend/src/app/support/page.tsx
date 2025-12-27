@@ -161,6 +161,27 @@ export default function SupportPage() {
             <p>Среднее время ответа: 15 минут</p>
           </div>
         </div>
+
+        {/* Legal Links */}
+        <div className="flex items-center justify-center gap-4 mt-4 pb-2">
+          <a
+            href="https://telegra.ph/Politika-konfidencialnosti-08-15-17"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors"
+          >
+            Политика конфиденциальности
+          </a>
+          <span className="text-light-text-secondary dark:text-dark-text-secondary">•</span>
+          <a
+            href="https://telegra.ph/Polzovatelskoe-soglashenie-08-15-10"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors"
+          >
+            Пользовательское соглашение
+          </a>
+        </div>
       </div>
 
       {/* Contact Form Modal */}
