@@ -2,6 +2,7 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import dotenv from 'dotenv'
 import { cryptoBot } from './cryptobot'
+import { loadProducts, saveProducts, loadPromoCodes, savePromoCodes } from './dataStore'
 
 dotenv.config()
 
@@ -10,7 +11,7 @@ const fastify = Fastify({
 })
 
 // Сокращенная версия - первые 10 товаров
-const mockProducts = [
+const defaultProducts = [
   {
     _id: '1',
     name: 'Claude AI Pro',
@@ -848,7 +849,7 @@ const mockUsers = [
   },
 ]
 
-const mockPromoCodes = [
+const defaultPromoCodes = [
   {
     code: 'WELCOME10',
     discountType: 'percentage',
@@ -881,6 +882,19 @@ const mockPromoCodes = [
     description: 'Скидка 500₽ на заказ от 3000₽'
   },
 ]
+
+// Load data from storage or use defaults
+let mockProducts = loadProducts()
+if (mockProducts.length === 0) {
+  mockProducts = defaultProducts
+  saveProducts(mockProducts)
+}
+
+let mockPromoCodes = loadPromoCodes()
+if (mockPromoCodes.length === 0) {
+  mockPromoCodes = defaultPromoCodes
+  savePromoCodes(mockPromoCodes)
+}
 
 async function start() {
   try {
@@ -920,6 +934,7 @@ async function start() {
         inStock: true
       }
       mockProducts.unshift(newProduct)
+      saveProducts(mockProducts)
       return { success: true, product: newProduct }
     })
 
@@ -930,6 +945,7 @@ async function start() {
       const index = mockProducts.findIndex(p => p._id === id)
       if (index === -1) return { success: false, error: 'Product not found' }
       mockProducts[index] = { ...mockProducts[index], ...updates }
+      saveProducts(mockProducts)
       return { success: true, product: mockProducts[index] }
     })
 
@@ -939,6 +955,7 @@ async function start() {
       const index = mockProducts.findIndex(p => p._id === id)
       if (index === -1) return { success: false, error: 'Product not found' }
       mockProducts.splice(index, 1)
+      saveProducts(mockProducts)
       return { success: true }
     })
 
@@ -961,6 +978,7 @@ async function start() {
       } else {
         mockPromoCodes.push(promo)
       }
+      savePromoCodes(mockPromoCodes)
       return { success: true, promo }
     })
 
@@ -970,6 +988,7 @@ async function start() {
       const index = mockPromoCodes.findIndex(p => p.code === code)
       if (index === -1) return { success: false, error: 'Promo code not found' }
       mockPromoCodes[index] = { ...mockPromoCodes[index], ...updates }
+      savePromoCodes(mockPromoCodes)
       return { success: true, promo: mockPromoCodes[index] }
     })
 
@@ -978,6 +997,7 @@ async function start() {
       const index = mockPromoCodes.findIndex(p => p.code === code)
       if (index === -1) return { success: false, error: 'Promo code not found' }
       mockPromoCodes.splice(index, 1)
+      savePromoCodes(mockPromoCodes)
       return { success: true }
     })
 
@@ -990,6 +1010,7 @@ async function start() {
           p.seller = seller
         }
       })
+      saveProducts(mockProducts)
       return { success: true, seller }
     })
 
@@ -1005,6 +1026,7 @@ async function start() {
         }
       })
       if (!updated) return { success: false, error: 'Seller not found' }
+      saveProducts(mockProducts)
       return { success: true, seller: updates }
     })
 
