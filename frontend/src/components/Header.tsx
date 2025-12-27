@@ -16,7 +16,7 @@ interface HeaderProps {
 }
 
 export default function Header({ title, logo, showBack, onBack, rightAction, showNavButtons = true }: HeaderProps) {
-  const { unreadChats, language } = useAppStore()
+  const { unreadChats, language, currency } = useAppStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   return (

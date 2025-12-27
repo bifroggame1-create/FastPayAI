@@ -35,11 +35,6 @@ export const translations = {
     settings: 'Настройки',
     logout: 'Выйти',
 
-    // Checkout
-    checkout: 'Оформление заказа',
-    totalPrice: 'Итого',
-    pay: 'Оплатить',
-
     // Common
     seller: 'Продавец',
     contactSeller: 'Связаться с продавцом',
@@ -57,6 +52,8 @@ export const translations = {
 
     // Checkout
     checkout: 'Оформление заказа',
+    totalPrice: 'Итого',
+    pay: 'Оплатить',
     yourOrder: 'Ваш заказ',
     promoCode: 'Промокод',
     enterPromo: 'Введите промокод',
@@ -112,11 +109,6 @@ export const translations = {
     settings: 'Settings',
     logout: 'Logout',
 
-    // Checkout
-    checkout: 'Checkout',
-    totalPrice: 'Total',
-    pay: 'Pay',
-
     // Common
     seller: 'Seller',
     contactSeller: 'Contact Seller',
@@ -134,6 +126,8 @@ export const translations = {
 
     // Checkout
     checkout: 'Checkout',
+    totalPrice: 'Total',
+    pay: 'Pay',
     yourOrder: 'Your Order',
     promoCode: 'Promo Code',
     enterPromo: 'Enter promo code',
