@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import { cryptoBot } from './cryptobot'
 import { loadProducts, saveProducts, loadPromoCodes, savePromoCodes } from './dataStore'
 import { searchProducts, getSearchSuggestions } from './searchUtils'
+import { convertRubToCrypto, CryptoAsset } from './cryptoConverter'
 
 dotenv.config()
 
@@ -1125,15 +1126,22 @@ async function start() {
       try {
         const { amount, description, productId, variantId, asset } = request.body as any
 
+        // Convert RUB amount to crypto
+        const cryptoAsset = (asset || 'USDT') as CryptoAsset
+        const cryptoAmount = convertRubToCrypto(amount, cryptoAsset)
+
+        console.log(`Creating invoice: ${amount} RUB = ${cryptoAmount} ${cryptoAsset}`)
+
         const invoice = await cryptoBot.createInvoice({
-          asset: asset || 'USDT', // TON, USDT, BTC, etc.
-          amount: amount,
+          asset: cryptoAsset,
+          amount: cryptoAmount, // Will be converted to string in CryptoBotAPI
           description: description || 'Оплата заказа FastPay',
           paid_btn_name: 'callback',
           paid_btn_url: `${process.env.FRONTEND_URL}/payment/success`,
           payload: JSON.stringify({ productId, variantId }),
           allow_comments: false,
           allow_anonymous: true,
+          expires_in: 3600, // 1 hour expiration
         })
 
         return {
@@ -1183,6 +1191,49 @@ async function start() {
         console.error('Error getting balance:', error)
         reply.code(500)
         return { success: false, error: error.message || 'Failed to get balance' }
+      }
+    })
+
+    // Webhook endpoint for CryptoBot payments
+    fastify.post('/payment/webhook', async (request, reply) => {
+      try {
+        const signature = request.headers['crypto-pay-api-signature'] as string
+        const body = request.body as any
+
+        console.log('Received webhook:', body)
+
+        // TODO: Verify signature for security
+        // const crypto = require('crypto')
+        // const hash = crypto.createHmac('sha256', crypto.createHash('sha256').update(CRYPTOBOT_TOKEN).digest())
+        //   .update(JSON.stringify(body))
+        //   .digest('hex')
+        // if (hash !== signature) {
+        //   reply.code(401)
+        //   return { error: 'Invalid signature' }
+        // }
+
+        if (body.update_type === 'invoice_paid') {
+          const invoice = body.payload
+          const payload = JSON.parse(invoice.payload || '{}')
+
+          console.log(`Payment received for invoice ${invoice.invoice_id}:`, {
+            amount: invoice.amount,
+            asset: invoice.asset,
+            productId: payload.productId,
+            variantId: payload.variantId,
+          })
+
+          // TODO: Here you would:
+          // 1. Save the payment to database
+          // 2. Send the product/service to the user
+          // 3. Send notification to user via Telegram bot
+        }
+
+        return { success: true }
+      } catch (error: any) {
+        console.error('Webhook error:', error)
+        reply.code(500)
+        return { error: error.message }
       }
     })
 

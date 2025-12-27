@@ -8,13 +8,14 @@ const CRYPTOBOT_TOKEN = process.env.CRYPTOBOT_TOKEN
 
 interface CreateInvoiceParams {
   asset: string // Currency code (USDT, TON, BTC, etc.)
-  amount: number
+  amount: string | number // Amount as string or number (will be converted to string)
   description?: string
   paid_btn_name?: 'viewItem' | 'openChannel' | 'openBot' | 'callback'
   paid_btn_url?: string
   payload?: string
   allow_comments?: boolean
   allow_anonymous?: boolean
+  expires_in?: number // Invoice expiration time in seconds (1-2678400)
 }
 
 interface Invoice {
@@ -65,7 +66,12 @@ export class CryptoBotAPI {
   }
 
   async createInvoice(params: CreateInvoiceParams): Promise<Invoice> {
-    return this.makeRequest('POST', '/createInvoice', params)
+    // Ensure amount is a string
+    const requestParams = {
+      ...params,
+      amount: String(params.amount),
+    }
+    return this.makeRequest('POST', '/createInvoice', requestParams)
   }
 
   async getInvoice(invoiceId: number): Promise<Invoice> {

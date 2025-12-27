@@ -54,6 +54,28 @@ export const translations = {
     // Main page
     forYou: 'Специально для тебя',
     noProducts: 'Товары не найдены',
+
+    // Checkout
+    checkout: 'Оформление заказа',
+    yourOrder: 'Ваш заказ',
+    promoCode: 'Промокод',
+    enterPromo: 'Введите промокод',
+    apply: 'Применить',
+    discount: 'Скидка',
+    bonusBalance: 'Бонусный баланс',
+    available: 'Доступно',
+    canUse: 'Можно использовать до',
+    forThisOrder: 'для этого заказа',
+    paymentMethod: 'Способ оплаты',
+    selectCrypto: 'Выберите криптовалюту',
+    productPrice: 'Цена товара',
+    promoDiscount: 'Скидка по промокоду',
+    total: 'Итого',
+    proceedToPayment: 'Перейти к оплате',
+    securePayment: 'Безопасная оплата через защищённое соединение',
+    qrCodeSBP: 'QR код СБП',
+    fastPaymentSystem: 'Система быстрых платежей',
+    bankCard: 'Банковская карта',
   },
   en: {
     // Header
@@ -109,6 +131,28 @@ export const translations = {
     // Main page
     forYou: 'For You',
     noProducts: 'No products found',
+
+    // Checkout
+    checkout: 'Checkout',
+    yourOrder: 'Your Order',
+    promoCode: 'Promo Code',
+    enterPromo: 'Enter promo code',
+    apply: 'Apply',
+    discount: 'Discount',
+    bonusBalance: 'Bonus Balance',
+    available: 'Available',
+    canUse: 'Can use up to',
+    forThisOrder: 'for this order',
+    paymentMethod: 'Payment Method',
+    selectCrypto: 'Select cryptocurrency',
+    productPrice: 'Product Price',
+    promoDiscount: 'Promo Discount',
+    total: 'Total',
+    proceedToPayment: 'Proceed to Payment',
+    securePayment: 'Secure payment via encrypted connection',
+    qrCodeSBP: 'QR Code SBP',
+    fastPaymentSystem: 'Fast Payment System',
+    bankCard: 'Bank Card',
   }
 }
 

@@ -6,11 +6,14 @@ import Header from '@/components/Header'
 import { Product, ProductVariant } from '@/types'
 import { productsApi, promoApi, paymentApi } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
+import { formatPrice } from '@/lib/currency'
+import { formatCryptoAmount } from '@/lib/cryptoConverter'
+import { t } from '@/lib/i18n'
 
 function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user } = useAppStore()
+  const { user, language, currency } = useAppStore()
 
   const [product, setProduct] = useState<Product | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
@@ -146,7 +149,7 @@ function CheckoutContent() {
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-32">
       <Header
-        title="Оформление заказа"
+        title={t('checkout', language)}
         showBack
         onBack={() => router.back()}
       />
@@ -155,7 +158,7 @@ function CheckoutContent() {
         {/* Order Summary */}
         <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 border border-light-border dark:border-dark-border">
           <h2 className="text-lg font-semibold mb-4 text-light-text dark:text-dark-text">
-            Ваш заказ
+            {t('yourOrder', language)}
           </h2>
 
           <div className="flex gap-4 mb-4">
@@ -174,8 +177,13 @@ function CheckoutContent() {
                 </p>
               )}
               <p className="text-accent-cyan font-bold mt-1">
-                {basePrice.toLocaleString('ru-RU')} ₽
+                {formatPrice(basePrice, currency)}
               </p>
+              {paymentMethod === 'cryptobot' && (
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                  ≈ {formatCryptoAmount(basePrice, selectedCrypto)}
+                </p>
+              )}
             </div>
           </div>
         </div>
