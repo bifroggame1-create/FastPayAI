@@ -45,3 +45,6 @@ out/
 
 # Debug
 .pnpm-debug.log*
+
+# Data (persistent storage)
+backend/data/
