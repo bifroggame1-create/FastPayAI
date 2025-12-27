@@ -3,6 +3,7 @@ import cors from '@fastify/cors'
 import dotenv from 'dotenv'
 import { cryptoBot } from './cryptobot'
 import { loadProducts, saveProducts, loadPromoCodes, savePromoCodes } from './dataStore'
+import { searchProducts, getSearchSuggestions } from './searchUtils'
 
 dotenv.config()
 
@@ -908,8 +909,14 @@ async function start() {
       let filtered = [...mockProducts]
       if (category && category !== 'all') filtered = filtered.filter(p => p.category === category)
       if (condition && condition !== 'all') filtered = filtered.filter(p => p.condition === condition)
-      if (search) filtered = filtered.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+      if (search) filtered = searchProducts(filtered, search)
       return filtered
+    })
+
+    // Search suggestions endpoint
+    fastify.get('/products/search/suggestions', async (request) => {
+      const { query } = request.query as any
+      return getSearchSuggestions(mockProducts, query || '', 10)
     })
 
     fastify.get('/products/:id', async (request) => {
