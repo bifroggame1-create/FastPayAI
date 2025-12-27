@@ -18,7 +18,7 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
   return (
     <header className="sticky top-0 z-50 bg-light-card dark:bg-dark-bg border-b border-light-border dark:border-dark-border px-4 py-3">
       <div className="flex items-center justify-between relative">
-        {/* Left side - Back button or Nav buttons */}
+        {/* Left side - Back button */}
         <div className="flex items-center gap-2">
           {showBack ? (
             <button
@@ -29,7 +29,28 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-          ) : showNavButtons ? (
+          ) : (
+            <div className="w-20" />
+          )}
+        </div>
+
+        {/* Center - Logo or Title */}
+        <div className="flex-1 flex items-center justify-center">
+          {logo && (
+            <img
+              src={logo}
+              alt="FastPay"
+              className="h-12 w-auto object-contain [mix-blend-mode:multiply] dark:[mix-blend-mode:screen]"
+            />
+          )}
+          {title && !logo && (
+            <h1 className="text-xl font-semibold text-light-text dark:text-dark-text">{title}</h1>
+          )}
+        </div>
+
+        {/* Right side - Support, Chat buttons and Actions */}
+        <div className="flex items-center gap-2 justify-end">
+          {showNavButtons && (
             <>
               <Link
                 href="/support"
@@ -55,27 +76,7 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
                 )}
               </Link>
             </>
-          ) : (
-            <div className="w-20" />
           )}
-        </div>
-
-        {/* Center - Logo or Title */}
-        <div className="flex-1 flex items-center justify-center">
-          {logo && (
-            <img
-              src={logo}
-              alt="FastPay"
-              className="h-12 w-auto object-contain [mix-blend-mode:multiply] dark:[mix-blend-mode:screen]"
-            />
-          )}
-          {title && !logo && (
-            <h1 className="text-xl font-semibold text-light-text dark:text-dark-text">{title}</h1>
-          )}
-        </div>
-
-        {/* Right side - Actions */}
-        <div className="w-20 flex justify-end">
           {rightAction}
         </div>
       </div>

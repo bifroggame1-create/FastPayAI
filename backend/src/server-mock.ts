@@ -1108,6 +1108,45 @@ async function start() {
       }
     })
 
+    // Chat API
+    fastify.post('/chats/create', async (request, reply) => {
+      try {
+        const { buyerId, sellerId, productId, productName } = request.body as any
+
+        if (!buyerId || !sellerId || !productId) {
+          reply.code(400)
+          return { success: false, error: 'Missing required fields' }
+        }
+
+        const seller = mockProducts.find(p => p._id === productId)?.seller
+        if (!seller) {
+          reply.code(404)
+          return { success: false, error: 'Seller not found' }
+        }
+
+        // Create a unique chat ID based on buyer, seller and product
+        const chatId = `chat-${buyerId}-${sellerId}-${productId}`
+
+        const chat = {
+          id: chatId,
+          type: 'seller',
+          title: `${seller.name} - ${productName}`,
+          avatar: seller.avatar,
+          lastMessage: null,
+          lastMessageTime: new Date().toISOString(),
+          unread: 0,
+          sellerId: sellerId,
+          productId: productId
+        }
+
+        return { success: true, chat }
+      } catch (error: any) {
+        console.error('Error creating chat:', error)
+        reply.code(500)
+        return { success: false, error: error.message || 'Failed to create chat' }
+      }
+    })
+
     fastify.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString(), mode: 'mock-digital' }))
 
     const port = parseInt(process.env.PORT || '3001')

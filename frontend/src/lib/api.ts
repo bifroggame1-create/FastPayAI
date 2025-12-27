@@ -123,4 +123,16 @@ export const adminApi = {
   },
 }
 
+export const chatApi = {
+  createChat: async (params: {
+    buyerId: string
+    sellerId: string
+    productId: string
+    productName: string
+  }) => {
+    const { data } = await api.post('/chats/create', params)
+    return data
+  },
+}
+
 export default api

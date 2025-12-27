@@ -6,8 +6,9 @@ import Header from '@/components/Header'
 import ProductCard from '@/components/ProductCard'
 import BottomNav from '@/components/BottomNav'
 import { Product, ProductVariant } from '@/types'
-import { productsApi } from '@/lib/api'
+import { productsApi, chatApi } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
+import { getTelegramUser } from '@/lib/telegram'
 
 export default function ProductDetailPage() {
   const params = useParams()
@@ -17,7 +18,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
-  const { toggleFavorite, isFavorite } = useAppStore()
+  const { toggleFavorite, isFavorite, addChat } = useAppStore()
 
   useEffect(() => {
     loadProduct()
@@ -42,6 +43,29 @@ export default function ProductDetailPage() {
       console.error('Error loading product:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleContactSeller = async () => {
+    if (!product) return
+
+    try {
+      const user = getTelegramUser()
+      const buyerId = user?.id || 'dev_user'
+
+      const response = await chatApi.createChat({
+        buyerId,
+        sellerId: product.seller.id,
+        productId: product._id,
+        productName: product.name
+      })
+
+      if (response.success) {
+        addChat(response.chat)
+        router.push('/chats')
+      }
+    } catch (error) {
+      console.error('Error creating chat:', error)
     }
   }
 
@@ -195,7 +219,10 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Contact Manager Button */}
-        <button className="w-full bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-accent-cyan py-3 rounded-lg mb-4 hover:bg-light-border dark:hover:bg-dark-border transition-colors">
+        <button
+          onClick={handleContactSeller}
+          className="w-full bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-accent-cyan py-3 rounded-lg mb-4 hover:bg-light-border dark:hover:bg-dark-border transition-colors"
+        >
           Связаться с продавцом
         </button>
 
