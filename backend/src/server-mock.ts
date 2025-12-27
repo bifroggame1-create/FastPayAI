@@ -955,8 +955,57 @@ async function start() {
 
     fastify.post('/admin/promo', async (request) => {
       const promo = request.body as any
-      mockPromoCodes.push(promo)
+      const existing = mockPromoCodes.findIndex(p => p.code === promo.code)
+      if (existing !== -1) {
+        mockPromoCodes[existing] = promo
+      } else {
+        mockPromoCodes.push(promo)
+      }
       return { success: true, promo }
+    })
+
+    fastify.put('/admin/promo/:code', async (request) => {
+      const { code } = request.params as any
+      const updates = request.body as any
+      const index = mockPromoCodes.findIndex(p => p.code === code)
+      if (index === -1) return { success: false, error: 'Promo code not found' }
+      mockPromoCodes[index] = { ...mockPromoCodes[index], ...updates }
+      return { success: true, promo: mockPromoCodes[index] }
+    })
+
+    fastify.delete('/admin/promo/:code', async (request) => {
+      const { code } = request.params as any
+      const index = mockPromoCodes.findIndex(p => p.code === code)
+      if (index === -1) return { success: false, error: 'Promo code not found' }
+      mockPromoCodes.splice(index, 1)
+      return { success: true }
+    })
+
+    // Admin API - Sellers
+    fastify.post('/admin/sellers', async (request) => {
+      const seller = request.body as any
+      // Update all products with this seller
+      mockProducts.forEach(p => {
+        if (p.seller.id === seller.id) {
+          p.seller = seller
+        }
+      })
+      return { success: true, seller }
+    })
+
+    fastify.put('/admin/sellers/:id', async (request) => {
+      const { id } = request.params as any
+      const updates = request.body as any
+      // Update all products with this seller
+      let updated = false
+      mockProducts.forEach(p => {
+        if (p.seller.id === id) {
+          p.seller = { ...p.seller, ...updates }
+          updated = true
+        }
+      })
+      if (!updated) return { success: false, error: 'Seller not found' }
+      return { success: true, seller: updates }
     })
 
     fastify.get('/users/:id', async (request) => {

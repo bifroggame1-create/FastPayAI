@@ -111,6 +111,16 @@ export const adminApi = {
     return data
   },
 
+  createSeller: async (seller: any) => {
+    const { data } = await api.post('/admin/sellers', seller)
+    return data
+  },
+
+  updateSeller: async (id: string, updates: any) => {
+    const { data } = await api.put(`/admin/sellers/${id}`, updates)
+    return data
+  },
+
   // Promo
   getPromoCodes: async () => {
     const { data } = await api.get('/admin/promo')
@@ -119,6 +129,16 @@ export const adminApi = {
 
   createPromoCode: async (promo: any) => {
     const { data } = await api.post('/admin/promo', promo)
+    return data
+  },
+
+  updatePromoCode: async (code: string, updates: any) => {
+    const { data } = await api.put(`/admin/promo/${code}`, updates)
+    return data
+  },
+
+  deletePromoCode: async (code: string) => {
+    const { data } = await api.delete(`/admin/promo/${code}`)
     return data
   },
 }

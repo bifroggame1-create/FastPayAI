@@ -145,14 +145,25 @@ export default function AdminPage() {
     }
   }
 
-  const handleSaveSeller = (seller: Seller) => {
-    if (sellers.find(s => s.id === seller.id)) {
-      setSellers(sellers.map(s => s.id === seller.id ? seller : s))
-    } else {
-      setSellers([...sellers, { ...seller, id: seller.id || String(Date.now()) }])
+  const handleSaveSeller = async (seller: Seller) => {
+    try {
+      const existingSeller = sellers.find(s => s.id === seller.id)
+      if (existingSeller) {
+        await adminApi.updateSeller(seller.id, seller)
+        setSellers(sellers.map(s => s.id === seller.id ? seller : s))
+      } else {
+        await adminApi.createSeller(seller)
+        setSellers([...sellers, { ...seller, id: seller.id || String(Date.now()) }])
+      }
+      setEditingSeller(null)
+      alert('Продавец сохранён')
+      // Reload products to get updated seller info
+      const productsData = await productsApi.getAll({})
+      setProducts(productsData)
+    } catch (error) {
+      console.error('Error saving seller:', error)
+      alert('Ошибка сохранения продавца')
     }
-    setEditingSeller(null)
-    alert('Продавец сохранён')
   }
 
   const handleSaveReview = (review: Review) => {
@@ -167,7 +178,9 @@ export default function AdminPage() {
 
   const handleSavePromo = async (promo: PromoCode) => {
     try {
-      if (promoCodes.find(p => p.code === promo.code)) {
+      const existingPromo = promoCodes.find(p => p.code === promo.code)
+      if (existingPromo) {
+        await adminApi.updatePromoCode(promo.code, promo)
         setPromoCodes(promoCodes.map(p => p.code === promo.code ? promo : p))
       } else {
         await adminApi.createPromoCode(promo)
@@ -176,7 +189,21 @@ export default function AdminPage() {
       setEditingPromo(null)
       alert('Промокод сохранён')
     } catch (error) {
+      console.error('Error saving promo:', error)
       alert('Ошибка сохранения промокода')
+    }
+  }
+
+  const handleDeletePromo = async (code: string) => {
+    if (confirm('Удалить промокод?')) {
+      try {
+        await adminApi.deletePromoCode(code)
+        setPromoCodes(promoCodes.filter(p => p.code !== code))
+        alert('Промокод удалён')
+      } catch (error) {
+        console.error('Error deleting promo:', error)
+        alert('Ошибка удаления промокода')
+      }
     }
   }
 
@@ -462,7 +489,7 @@ export default function AdminPage() {
                   className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border"
                 >
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-mono font-bold text-lg text-accent-cyan">{promo.code}</h3>
                         <span className={`text-xs px-2 py-0.5 rounded-full ${promo.isActive ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
@@ -476,12 +503,20 @@ export default function AdminPage() {
                         Использовано: {promo.usedCount}/{promo.maxUses} • Мин. сумма: {promo.minOrderAmount}₽
                       </p>
                     </div>
-                    <button
-                      onClick={() => setEditingPromo(promo)}
-                      className="px-3 py-1 bg-accent-blue text-white rounded-lg text-sm"
-                    >
-                      Изменить
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditingPromo(promo)}
+                        className="px-3 py-1 bg-accent-blue text-white rounded-lg text-sm"
+                      >
+                        Изменить
+                      </button>
+                      <button
+                        onClick={() => handleDeletePromo(promo.code)}
+                        className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm"
+                      >
+                        Удалить
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
