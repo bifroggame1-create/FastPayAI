@@ -1138,7 +1138,7 @@ async function start() {
           }
         }
 
-        // Convert RUB amount to crypto
+        // Convert RUB amount to crypto (markup already applied on frontend)
         const cryptoAsset = (asset || 'USDT') as CryptoAsset
         const cryptoAmount = convertRubToCrypto(amount, cryptoAsset)
 

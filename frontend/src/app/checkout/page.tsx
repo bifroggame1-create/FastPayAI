@@ -143,7 +143,12 @@ function CheckoutContent() {
   }
 
   const basePrice = selectedVariant?.price || product.price
-  const finalPrice = basePrice - discount
+  const discountedPrice = basePrice - discount
+
+  // Add 5% markup for CryptoBot payments
+  const cryptoBotMarkup = paymentMethod === 'cryptobot' ? discountedPrice * 0.05 : 0
+  const finalPrice = discountedPrice + cryptoBotMarkup
+
   const bonusToUse = Math.min(user?.bonusBalance || 0, finalPrice * 0.3) // Можно использовать до 30% от суммы
 
   return (
@@ -351,20 +356,31 @@ function CheckoutContent() {
         <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 border border-light-border dark:border-dark-border">
           <div className="space-y-2">
             <div className="flex justify-between text-light-text dark:text-dark-text">
-              <span>Цена товара:</span>
-              <span>{basePrice.toLocaleString('ru-RU')} ₽</span>
+              <span>{t('productPrice', language)}:</span>
+              <span>{formatPrice(basePrice, currency)}</span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between text-green-500">
-                <span>Скидка по промокоду:</span>
-                <span>-{discount.toLocaleString('ru-RU')} ₽</span>
+                <span>{t('promoDiscount', language)}:</span>
+                <span>-{formatPrice(discount, currency)}</span>
+              </div>
+            )}
+            {paymentMethod === 'cryptobot' && cryptoBotMarkup > 0 && (
+              <div className="flex justify-between text-orange-500 text-sm">
+                <span>Комиссия CryptoBot (+5%):</span>
+                <span>+{formatPrice(cryptoBotMarkup, currency)}</span>
               </div>
             )}
             <div className="border-t border-light-border dark:border-dark-border pt-2 mt-2">
               <div className="flex justify-between text-xl font-bold text-light-text dark:text-dark-text">
-                <span>Итого:</span>
-                <span className="text-accent-cyan">{finalPrice.toLocaleString('ru-RU')} ₽</span>
+                <span>{t('total', language)}:</span>
+                <span className="text-accent-cyan">{formatPrice(finalPrice, currency)}</span>
               </div>
+              {paymentMethod === 'cryptobot' && (
+                <div className="flex justify-between text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                  <span>≈ {formatCryptoAmount(finalPrice, selectedCrypto)}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
