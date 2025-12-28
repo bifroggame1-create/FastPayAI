@@ -12,9 +12,14 @@ dotenv.config({ path: path.join(__dirname, '../.env') })
 // NOW import modules that depend on environment variables
 import { cryptoBot } from './cryptobot'
 import { cactusPay, PaymentMethod } from './cactuspay'
+import { connectDB } from './database'
 import {
   loadProducts, saveProducts, loadPromoCodes, savePromoCodes,
-  loadOrders, saveOrders, addOrder, updateOrder, getOrderById,
+  loadOrders, addOrder, updateOrder, getOrderById,
+  getOrdersWithFilters, countOrders, getProductById, addProduct,
+  updateProduct, deleteProduct, getPromoByCode, addPromoCode,
+  updatePromoCode, deletePromoCode, incrementPromoUsage,
+  upsertUser, getUserById, countUsers, getOrderStats,
   Order, OrderStatus
 } from './dataStore'
 import { searchProducts, getSearchSuggestions } from './searchUtils'
@@ -952,21 +957,43 @@ const defaultPromoCodes = [
   },
 ]
 
-// Load data from storage or use defaults
-let mockProducts = loadProducts()
-if (mockProducts.length === 0) {
-  mockProducts = defaultProducts
-  saveProducts(mockProducts)
-}
+// Data will be loaded after MongoDB connection
+let mockProducts: any[] = []
+let mockPromoCodes: any[] = []
 
-let mockPromoCodes = loadPromoCodes()
-if (mockPromoCodes.length === 0) {
-  mockPromoCodes = defaultPromoCodes
-  savePromoCodes(mockPromoCodes)
+async function initializeData() {
+  // Load products from MongoDB or seed with defaults
+  mockProducts = await loadProducts()
+  if (mockProducts.length === 0) {
+    console.log('📦 Seeding default products...')
+    await saveProducts(defaultProducts as any)
+    mockProducts = defaultProducts as any
+  }
+  console.log(`✅ Loaded ${mockProducts.length} products`)
+
+  // Load promo codes from MongoDB or seed with defaults
+  mockPromoCodes = await loadPromoCodes()
+  if (mockPromoCodes.length === 0) {
+    console.log('🎫 Seeding default promo codes...')
+    // Add createdAt to default promo codes
+    const promoWithDates = defaultPromoCodes.map(p => ({
+      ...p,
+      createdAt: new Date().toISOString()
+    }))
+    await savePromoCodes(promoWithDates as any)
+    mockPromoCodes = promoWithDates
+  }
+  console.log(`✅ Loaded ${mockPromoCodes.length} promo codes`)
 }
 
 async function start() {
   try {
+    // Connect to MongoDB first
+    await connectDB()
+
+    // Initialize data (load from DB or seed defaults)
+    await initializeData()
+
     // Register rate limiting
     await fastify.register(rateLimit, {
       max: 100, // 100 requests
@@ -1132,9 +1159,9 @@ async function start() {
           createdAt: new Date().toISOString(),
           inStock: true
         }
-        mockProducts.unshift(newProduct as any)
-        saveProducts(mockProducts)
-        return { success: true, product: newProduct }
+        const saved = await addProduct(newProduct as any)
+        mockProducts.unshift(saved)
+        return { success: true, product: saved }
       } catch (error: any) {
         reply.code(error.statusCode || 500)
         return { success: false, error: error.error || error.message, details: error.details }
@@ -1146,14 +1173,15 @@ async function start() {
       try {
         const { id } = request.params as any
         const updates = validateBody(updateProductSchema, request.body)
-        const index = mockProducts.findIndex(p => p._id === id)
-        if (index === -1) {
+        const updated = await updateProduct(id, updates)
+        if (!updated) {
           reply.code(404)
           return { success: false, error: 'Product not found' }
         }
-        mockProducts[index] = { ...mockProducts[index], ...updates }
-        saveProducts(mockProducts)
-        return { success: true, product: mockProducts[index] }
+        // Update local cache
+        const index = mockProducts.findIndex(p => p._id === id)
+        if (index !== -1) mockProducts[index] = updated
+        return { success: true, product: updated }
       } catch (error: any) {
         reply.code(error.statusCode || 500)
         return { success: false, error: error.error || error.message, details: error.details }
@@ -1163,13 +1191,14 @@ async function start() {
     // Admin API - Delete product
     fastify.delete('/admin/products/:id', { preHandler: adminMiddleware }, async (request, reply) => {
       const { id } = request.params as any
-      const index = mockProducts.findIndex(p => p._id === id)
-      if (index === -1) {
+      const deleted = await deleteProduct(id)
+      if (!deleted) {
         reply.code(404)
         return { success: false, error: 'Product not found' }
       }
-      mockProducts.splice(index, 1)
-      saveProducts(mockProducts)
+      // Update local cache
+      const index = mockProducts.findIndex(p => p._id === id)
+      if (index !== -1) mockProducts.splice(index, 1)
       return { success: true }
     })
 
@@ -1235,13 +1264,13 @@ async function start() {
     fastify.post('/admin/sellers', { preHandler: adminMiddleware }, async (request, reply) => {
       try {
         const seller = validateBody(createSellerSchema, request.body)
-        // Update all products with this seller
-        mockProducts.forEach(p => {
+        // Update all products with this seller in MongoDB
+        for (const p of mockProducts) {
           if (p.seller.id === seller.id) {
             p.seller = seller as any
+            await updateProduct(p._id, { seller: seller as any })
           }
-        })
-        saveProducts(mockProducts)
+        }
         return { success: true, seller }
       } catch (error: any) {
         reply.code(error.statusCode || 500)
@@ -1253,19 +1282,19 @@ async function start() {
       try {
         const { id } = request.params as any
         const updates = validateBody(updateSellerSchema, request.body)
-        // Update all products with this seller
+        // Update all products with this seller in MongoDB
         let updated = false
-        mockProducts.forEach(p => {
+        for (const p of mockProducts) {
           if (p.seller.id === id) {
             p.seller = { ...p.seller, ...updates }
+            await updateProduct(p._id, { seller: p.seller })
             updated = true
           }
-        })
+        }
         if (!updated) {
           reply.code(404)
           return { success: false, error: 'Seller not found' }
         }
-        saveProducts(mockProducts)
         return { success: true, seller: updates }
       } catch (error: any) {
         reply.code(error.statusCode || 500)
@@ -1279,23 +1308,18 @@ async function start() {
     fastify.get('/admin/orders', { preHandler: adminMiddleware }, async (request, reply) => {
       try {
         const query = validateQuery(orderQuerySchema, request.query)
-        let orders = loadOrders()
+        const filters: { status?: OrderStatus; userId?: string } = {}
+        if (query.status) filters.status = query.status
+        if (query.userId) filters.userId = query.userId
 
-        // Apply filters
-        if (query.status) {
-          orders = orders.filter(o => o.status === query.status)
-        }
-        if (query.userId) {
-          orders = orders.filter(o => o.userId === query.userId)
-        }
-
-        // Apply pagination
-        const total = orders.length
-        const paginatedOrders = orders.slice(query.offset, query.offset + query.limit)
+        const [orders, total] = await Promise.all([
+          getOrdersWithFilters(filters, query.limit, query.offset),
+          countOrders(filters)
+        ])
 
         return {
           success: true,
-          orders: paginatedOrders,
+          orders,
           total,
           limit: query.limit,
           offset: query.offset
@@ -1308,28 +1332,14 @@ async function start() {
 
     // Get orders stats (must be before :id route)
     fastify.get('/admin/orders/stats', { preHandler: adminMiddleware }, async () => {
-      const orders = loadOrders()
-
-      const stats = {
-        total: orders.length,
-        pending: orders.filter(o => o.status === 'pending').length,
-        paid: orders.filter(o => o.status === 'paid').length,
-        processing: orders.filter(o => o.status === 'processing').length,
-        delivered: orders.filter(o => o.status === 'delivered').length,
-        cancelled: orders.filter(o => o.status === 'cancelled').length,
-        refunded: orders.filter(o => o.status === 'refunded').length,
-        totalRevenue: orders
-          .filter(o => ['paid', 'processing', 'delivered'].includes(o.status))
-          .reduce((sum, o) => sum + o.amount, 0)
-      }
-
+      const stats = await getOrderStats()
       return { success: true, stats }
     })
 
     // Get single order by ID
     fastify.get('/admin/orders/:id', { preHandler: adminMiddleware }, async (request, reply) => {
       const { id } = request.params as any
-      const order = getOrderById(id)
+      const order = await getOrderById(id)
 
       if (!order) {
         reply.code(404)
@@ -1350,7 +1360,7 @@ async function start() {
           updates.deliveredAt = new Date().toISOString()
         }
 
-        const updatedOrder = updateOrder(id, updates)
+        const updatedOrder = await updateOrder(id, updates)
         if (!updatedOrder) {
           reply.code(404)
           return { success: false, error: 'Order not found' }
@@ -1369,7 +1379,7 @@ async function start() {
         const { id } = request.params as any
         const { deliveryData, deliveryNote } = validateBody(deliverOrderSchema, request.body)
 
-        const updatedOrder = updateOrder(id, {
+        const updatedOrder = await updateOrder(id, {
           status: 'delivered',
           deliveryData,
           deliveryNote,
@@ -1394,7 +1404,7 @@ async function start() {
     fastify.post('/admin/orders/:id/cancel', { preHandler: adminMiddleware }, async (request, reply) => {
       const { id } = request.params as any
 
-      const updatedOrder = updateOrder(id, {
+      const updatedOrder = await updateOrder(id, {
         status: 'cancelled'
       })
 
@@ -1410,7 +1420,7 @@ async function start() {
     fastify.post('/admin/orders/:id/refund', { preHandler: adminMiddleware }, async (request, reply) => {
       const { id } = request.params as any
 
-      const updatedOrder = updateOrder(id, {
+      const updatedOrder = await updateOrder(id, {
         status: 'refunded'
       })
 
@@ -1617,7 +1627,7 @@ async function start() {
           status: 'pending',
           createdAt: new Date().toISOString(),
         }
-        addOrder(order)
+        await addOrder(order)
         console.log('Order created:', orderId)
 
         return {
@@ -1739,7 +1749,7 @@ async function start() {
 
           // Update order status to paid
           if (payload.orderId) {
-            const updatedOrder = updateOrder(payload.orderId, {
+            const updatedOrder = await updateOrder(payload.orderId, {
               status: 'paid',
               paidAt: new Date().toISOString(),
             })
@@ -1862,7 +1872,7 @@ async function start() {
             status: 'pending',
             createdAt: new Date().toISOString(),
           }
-          addOrder(order)
+          await addOrder(order)
           console.log('Order created:', orderId)
 
           return {
@@ -1939,7 +1949,7 @@ async function start() {
           })
 
           // Update order status to paid
-          const updatedOrder = updateOrder(order_id, {
+          const updatedOrder = await updateOrder(order_id, {
             status: 'paid',
             paymentId: String(id),
             paidAt: new Date().toISOString()
