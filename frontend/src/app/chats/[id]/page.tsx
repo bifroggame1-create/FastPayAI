@@ -55,7 +55,7 @@ export default function ChatDetailPage() {
 
   const user = getTelegramUser()
   const userId = user?.id?.toString() || 'anonymous'
-  const userName = user?.first_name || 'Пользователь'
+  const userName = user?.name || 'Пользователь'
 
   // Load chat and messages
   useEffect(() => {
