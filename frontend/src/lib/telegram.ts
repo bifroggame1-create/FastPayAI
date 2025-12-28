@@ -123,3 +123,10 @@ export const hapticNotification = (type: 'error' | 'success' | 'warning') => {
   }
 }
 
+// Get raw initData for backend validation
+export const getTelegramInitData = (): string | null => {
+  const webApp = useTelegramWebApp()
+  if (!webApp) return null
+  return webApp.initData || null
+}
+

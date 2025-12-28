@@ -39,6 +39,7 @@ import {
   Admin
 } from '../dataStore'
 import { createBackup, restoreFromBackup, getBackupStats, validateBackup } from '../backup'
+import { addDeliveryKeys, removeDeliveryKey, getDeliveryStats } from '../delivery'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -101,6 +102,135 @@ export async function adminRoutes(fastify: FastifyInstance) {
     const index = fastify.products.findIndex(p => p._id === id)
     if (index !== -1) fastify.products.splice(index, 1)
     return { success: true }
+  })
+
+  // ============================================
+  // DELIVERY KEYS MANAGEMENT
+  // ============================================
+
+  // Get delivery stats for a product
+  fastify.get('/admin/products/:id/delivery', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as any
+      const stats = await getDeliveryStats(id)
+      const product = fastify.products.find(p => p._id === id)
+
+      return {
+        success: true,
+        stats,
+        deliveryType: product?.deliveryType || 'manual',
+        deliveryInstructions: product?.deliveryInstructions,
+        keys: product?.deliveryKeys?.map((k: any) => ({
+          id: k.id,
+          key: k.isUsed ? '***' : k.key,
+          variantId: k.variantId,
+          isUsed: k.isUsed,
+          usedByOrderId: k.usedByOrderId,
+          usedAt: k.usedAt,
+          addedAt: k.addedAt
+        })) || []
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Add delivery keys to a product
+  fastify.post('/admin/products/:id/delivery/keys', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as any
+      const { keys, variantId } = request.body as { keys: string[]; variantId?: string }
+
+      if (!keys || !Array.isArray(keys) || keys.length === 0) {
+        reply.code(400)
+        return { success: false, error: 'Keys array is required' }
+      }
+
+      // Filter out empty keys
+      const validKeys = keys.map(k => k.trim()).filter(k => k.length > 0)
+
+      if (validKeys.length === 0) {
+        reply.code(400)
+        return { success: false, error: 'No valid keys provided' }
+      }
+
+      const addedKeys = await addDeliveryKeys(id, validKeys, variantId)
+
+      // Update local cache
+      const product = fastify.products.find(p => p._id === id)
+      if (product) {
+        if (!product.deliveryKeys) product.deliveryKeys = []
+        product.deliveryKeys.push(...addedKeys)
+      }
+
+      return {
+        success: true,
+        addedCount: addedKeys.length,
+        keys: addedKeys
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Remove a delivery key
+  fastify.delete('/admin/products/:id/delivery/keys/:keyId', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id, keyId } = request.params as any
+
+      const deleted = await removeDeliveryKey(id, keyId)
+
+      if (!deleted) {
+        reply.code(404)
+        return { success: false, error: 'Key not found' }
+      }
+
+      // Update local cache
+      const product = fastify.products.find(p => p._id === id)
+      if (product && product.deliveryKeys) {
+        product.deliveryKeys = product.deliveryKeys.filter((k: any) => k.id !== keyId)
+      }
+
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Update delivery settings for a product
+  fastify.put('/admin/products/:id/delivery', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as any
+      const { deliveryType, deliveryInstructions } = request.body as {
+        deliveryType?: 'manual' | 'auto'
+        deliveryInstructions?: string
+      }
+
+      const updates: any = {}
+      if (deliveryType !== undefined) updates.deliveryType = deliveryType
+      if (deliveryInstructions !== undefined) updates.deliveryInstructions = deliveryInstructions
+
+      const updated = await updateProduct(id, updates)
+
+      if (!updated) {
+        reply.code(404)
+        return { success: false, error: 'Product not found' }
+      }
+
+      // Update local cache
+      const product = fastify.products.find(p => p._id === id)
+      if (product) {
+        Object.assign(product, updates)
+      }
+
+      return { success: true, product: updated }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
   })
 
   // ============================================

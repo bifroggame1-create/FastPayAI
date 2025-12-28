@@ -203,6 +203,73 @@ export async function sendPaymentConfirmation(params: {
 }
 
 /**
+ * Send delivery notification with digital product
+ */
+export async function sendDeliveryNotification(params: {
+  email: string
+  orderNumber: string
+  productName: string
+  deliveryData: string
+  instructions?: string
+}): Promise<boolean> {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
+    .delivery-box { background: #e8f5e9; border: 2px dashed #4caf50; padding: 20px; border-radius: 8px; margin: 20px 0; font-family: monospace; word-break: break-all; }
+    .instructions { background: #fff3e0; padding: 15px; border-radius: 8px; margin-top: 15px; }
+    .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>FastPay</h1>
+      <p>Ваш заказ доставлен!</p>
+    </div>
+    <div class="content">
+      <p>Спасибо за покупку! Ваш заказ <strong>${params.orderNumber}</strong> успешно доставлен.</p>
+      <p><strong>Товар:</strong> ${params.productName}</p>
+
+      <div class="delivery-box">
+        <strong>Ваш товар:</strong><br><br>
+        ${params.deliveryData.replace(/\n/g, '<br>')}
+      </div>
+
+      ${params.instructions ? `
+      <div class="instructions">
+        <strong>Инструкции:</strong><br>
+        ${params.instructions.replace(/\n/g, '<br>')}
+      </div>
+      ` : ''}
+
+      <p style="color: #666; font-size: 12px; margin-top: 20px;">
+        Сохраните это письмо. Данные товара не будут отправлены повторно.
+      </p>
+    </div>
+    <div class="footer">
+      <p>© 2025 FastPay. Все права защищены.</p>
+    </div>
+  </div>
+</body>
+</html>
+`
+
+  return sendEmail({
+    to: params.email,
+    subject: `Заказ ${params.orderNumber} доставлен - FastPay`,
+    html,
+    text: `Ваш заказ ${params.orderNumber} (${params.productName}) доставлен!\n\nВаш товар:\n${params.deliveryData}${params.instructions ? `\n\nИнструкции:\n${params.instructions}` : ''}`
+  })
+}
+
+/**
  * Send admin notification about new order
  */
 export async function sendAdminNewOrderNotification(params: {

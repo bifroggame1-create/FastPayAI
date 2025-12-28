@@ -2,6 +2,11 @@ import { FastifyInstance } from 'fastify'
 import { validateBody, createUserSchema } from '../validation'
 import { upsertUser, getUserById } from '../dataStore'
 
+// Generate referral code from user ID
+function generateReferralCode(userId: string): string {
+  return `ref_${userId}`
+}
+
 export async function userRoutes(fastify: FastifyInstance) {
   // Get user by ID
   fastify.get('/users/:id', async (request) => {
@@ -15,13 +20,19 @@ export async function userRoutes(fastify: FastifyInstance) {
     try {
       const data = validateBody(createUserSchema, request.body)
 
+      // Check if user exists to preserve existing data
+      const existingUser = await getUserById(data.id)
+
       const user = await upsertUser({
         id: data.id,
         name: data.name,
         username: data.username,
         avatar: data.avatar,
         referredBy: data.referredBy,
-        createdAt: new Date().toISOString()
+        referralCode: existingUser?.referralCode || generateReferralCode(data.id),
+        referralCount: existingUser?.referralCount || 0,
+        bonusBalance: existingUser?.bonusBalance || 0,
+        createdAt: existingUser?.createdAt || new Date().toISOString()
       })
 
       return { success: true, user }

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { Product, User, Order, Review, ProductFilters } from '@/types'
+import { getToken } from './auth'
 
 // Use backend URL from environment variable, fallback to production Render URL
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com'
@@ -13,6 +14,15 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: false,
+})
+
+// Add auth token to all requests
+api.interceptors.request.use((config) => {
+  const token = getToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 export const productsApi = {
@@ -50,6 +60,11 @@ export const reviewsApi = {
 
   canReview: async (userId: string, productId: string) => {
     const { data } = await api.get<{ canReview: boolean; orderId?: string }>(`/reviews/can-review/${userId}/${productId}`)
+    return data
+  },
+
+  getStats: async (productId: string) => {
+    const { data } = await api.get<{ count: number; average: number; distribution: Record<number, number> }>(`/reviews/product/${productId}/stats`)
     return data
   },
 }
@@ -247,6 +262,30 @@ export const adminApi = {
     const { data } = await api.get('/admin/orders/stats')
     return data
   },
+
+  // Delivery management
+  getProductDelivery: async (productId: string) => {
+    const { data } = await api.get(`/admin/products/${productId}/delivery`)
+    return data
+  },
+
+  updateProductDelivery: async (productId: string, settings: {
+    deliveryType?: 'manual' | 'auto'
+    deliveryInstructions?: string
+  }) => {
+    const { data } = await api.put(`/admin/products/${productId}/delivery`, settings)
+    return data
+  },
+
+  addDeliveryKeys: async (productId: string, keys: string[], variantId?: string) => {
+    const { data } = await api.post(`/admin/products/${productId}/delivery/keys`, { keys, variantId })
+    return data
+  },
+
+  removeDeliveryKey: async (productId: string, keyId: string) => {
+    const { data } = await api.delete(`/admin/products/${productId}/delivery/keys/${keyId}`)
+    return data
+  },
 }
 
 export const chatApi = {
@@ -316,6 +355,12 @@ export const referralApi = {
   // Get list of referred users
   getReferrals: async (userId: string) => {
     const { data } = await api.get(`/referral/list/${userId}`)
+    return data
+  },
+
+  // Use bonus balance for checkout
+  useBonus: async (userId: string, amount: number) => {
+    const { data } = await api.post('/referral/use-bonus', { userId, amount })
     return data
   },
 }

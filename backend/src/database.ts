@@ -27,6 +27,10 @@ export interface Product {
     avatar?: string
     rating?: number
   }
+  // Auto-delivery settings
+  deliveryType?: DeliveryType  // 'manual' | 'auto'
+  deliveryKeys?: DeliveryKey[] // Pool of keys/codes for auto-delivery
+  deliveryInstructions?: string // Instructions to show after delivery
 }
 
 export interface ProductVariant {
@@ -37,6 +41,19 @@ export interface ProductVariant {
   description?: string
   features?: string[]
 }
+
+// Digital delivery key/code
+export interface DeliveryKey {
+  id: string
+  key: string           // The actual key/code/link to deliver
+  variantId?: string    // Optional: specific to a variant
+  isUsed: boolean
+  usedByOrderId?: string
+  usedAt?: string
+  addedAt: string
+}
+
+export type DeliveryType = 'manual' | 'auto'
 
 export interface PromoCode {
   _id?: string | ObjectId
@@ -83,8 +100,42 @@ export interface User {
   username?: string
   avatar?: string
   referredBy?: string
+  referralCode?: string    // Unique referral code (generated from id)
+  referralCount?: number   // Number of users referred
+  bonusBalance?: number    // Bonus balance from referrals
   createdAt: string
   lastSeen?: string
+}
+
+// Referral tracking
+export interface Referral {
+  _id?: string | ObjectId
+  userId: string           // The referred user
+  referrerId: string       // Who referred them
+  bonusAwarded: number     // Bonus given for this referral
+  createdAt: string
+}
+
+export function getReferralsCollection(): Collection<Referral> {
+  return getDB().collection<Referral>('referrals')
+}
+
+// Product reviews
+export interface Review {
+  _id?: string | ObjectId
+  id: string
+  productId: string
+  userId: string
+  userName: string
+  userAvatar?: string
+  orderId?: string          // Order that allowed this review
+  rating: number            // 1-5
+  text: string
+  createdAt: string
+}
+
+export function getReviewsCollection(): Collection<Review> {
+  return getDB().collection<Review>('reviews')
 }
 
 export interface Seller {
@@ -182,6 +233,15 @@ async function createIndexes(database: Db): Promise<void> {
 
     // Sellers
     await database.collection('sellers').createIndex({ id: 1 }, { unique: true })
+
+    // Referrals
+    await database.collection('referrals').createIndex({ userId: 1 }, { unique: true })
+    await database.collection('referrals').createIndex({ referrerId: 1 })
+
+    // Reviews
+    await database.collection('reviews').createIndex({ productId: 1 })
+    await database.collection('reviews').createIndex({ userId: 1 })
+    await database.collection('reviews').createIndex({ orderId: 1 })
 
     console.log('✅ Database indexes created')
   } catch (error) {

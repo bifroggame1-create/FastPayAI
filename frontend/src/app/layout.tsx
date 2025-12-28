@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import '@/styles/globals.css'
-import TelegramProvider from '@/components/TelegramProvider'
+import AuthProvider from '@/components/AuthProvider'
 import Toast from '@/components/Toast'
 import Script from 'next/script'
 
@@ -20,10 +20,10 @@ export default function RootLayout({
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
       </head>
       <body className="bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text">
-        <TelegramProvider>
+        <AuthProvider>
           {children}
           <Toast />
-        </TelegramProvider>
+        </AuthProvider>
       </body>
     </html>
   )

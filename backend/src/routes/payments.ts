@@ -3,7 +3,10 @@ import { cryptoBot } from '../cryptobot'
 import { cactusPay, PaymentMethod } from '../cactuspay'
 import { validateBody, createCryptoInvoiceSchema, createCactusPaymentSchema, cancelPaymentSchema } from '../validation'
 import { convertRubToCrypto, CryptoAsset, getExchangeRates, refreshExchangeRates } from '../cryptoConverter'
-import { addOrder, updateOrder, Order } from '../dataStore'
+import { addOrder, updateOrder, getOrderById, Order } from '../dataStore'
+import { processAutoDelivery } from '../delivery'
+import { sendPaymentConfirmation, sendAdminNewOrderNotification } from '../email'
+import { logger } from '../logger'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -235,39 +238,68 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       })
 
       if (update_type === 'invoice_paid' && payload) {
-        console.log('✅ Payment confirmed:', {
+        logger.info({
           invoiceId: payload.invoice_id,
           amount: payload.amount,
           asset: payload.asset,
           paidAt: payload.paid_at,
-          payload: payload.payload
-        })
+        }, 'CryptoBot payment confirmed')
 
         // Parse custom payload
         let customPayload: any = {}
         try {
           customPayload = JSON.parse(payload.payload || '{}')
         } catch (e) {
-          console.warn('Failed to parse payload:', payload.payload)
+          logger.warn({ payload: payload.payload }, 'Failed to parse webhook payload')
         }
 
-        console.log('Payment for:', {
-          productId: customPayload.productId,
-          variantId: customPayload.variantId,
-          orderId: customPayload.orderId,
-        })
+        // Find order by payment ID (invoice_id)
+        const paymentId = String(payload.invoice_id)
+        let order = await getOrderById(customPayload.orderId)
 
-        // Update order status to paid
-        if (customPayload.orderId) {
-          const updatedOrder = await updateOrder(customPayload.orderId, {
+        if (!order) {
+          // Try to find by payment ID
+          const orders = await import('../dataStore')
+          const allOrders = await orders.loadOrders()
+          order = allOrders.find(o => o.paymentId === paymentId) || null
+        }
+
+        if (order) {
+          // Update order status to paid
+          const updatedOrder = await updateOrder(order.id, {
             status: 'paid',
             paidAt: new Date().toISOString(),
           })
+
           if (updatedOrder) {
-            console.log(`✅ Order ${customPayload.orderId} marked as paid`)
-          } else {
-            console.warn(`⚠️ Order ${customPayload.orderId} not found`)
+            logger.info({ orderId: order.id }, 'Order marked as paid')
+
+            // Process auto-delivery
+            const deliveryResult = await processAutoDelivery(updatedOrder)
+
+            if (deliveryResult.success) {
+              logger.info({
+                orderId: order.id,
+                delivered: true
+              }, 'Auto-delivery successful')
+            } else {
+              logger.info({
+                orderId: order.id,
+                reason: deliveryResult.error
+              }, 'Auto-delivery not performed')
+
+              // Send admin notification for manual delivery
+              await sendAdminNewOrderNotification({
+                orderNumber: order.id,
+                productName: order.productName,
+                amount: order.amount,
+                userName: order.userName || 'Unknown',
+                paymentMethod: order.paymentMethod
+              })
+            }
           }
+        } else {
+          logger.warn({ paymentId }, 'Order not found for payment')
         }
       }
 
@@ -433,15 +465,15 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     try {
       const { id, order_id, status, amount } = request.body as any
 
-      console.log('CactusPay webhook received:', {
+      logger.info({
         id,
         order_id,
         status,
         amount
-      })
+      }, 'CactusPay webhook received')
 
       if (!order_id) {
-        console.warn('CactusPay webhook: missing order_id')
+        logger.warn('CactusPay webhook: missing order_id')
         return { success: true }
       }
 
@@ -449,10 +481,11 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       const statusResult = await cactusPay.getPaymentStatus(order_id)
 
       if (statusResult.response?.status === 'ACCEPT') {
-        console.log(`CactusPay payment confirmed: ${order_id}`, {
+        logger.info({
+          orderId: order_id,
           amount: statusResult.response.amount,
           cactusPayId: id
-        })
+        }, 'CactusPay payment confirmed')
 
         // Update order status to paid
         const updatedOrder = await updateOrder(order_id, {
@@ -462,15 +495,39 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         })
 
         if (updatedOrder) {
-          console.log('Order updated to paid:', updatedOrder.id)
+          logger.info({ orderId: updatedOrder.id }, 'Order marked as paid')
+
+          // Process auto-delivery
+          const deliveryResult = await processAutoDelivery(updatedOrder)
+
+          if (deliveryResult.success) {
+            logger.info({
+              orderId: updatedOrder.id,
+              delivered: true
+            }, 'Auto-delivery successful')
+          } else {
+            logger.info({
+              orderId: updatedOrder.id,
+              reason: deliveryResult.error
+            }, 'Auto-delivery not performed')
+
+            // Send admin notification for manual delivery
+            await sendAdminNewOrderNotification({
+              orderNumber: updatedOrder.id,
+              productName: updatedOrder.productName,
+              amount: updatedOrder.amount,
+              userName: updatedOrder.userName || 'Unknown',
+              paymentMethod: updatedOrder.paymentMethod
+            })
+          }
         } else {
-          console.warn('Order not found for update:', order_id)
+          logger.warn({ orderId: order_id }, 'Order not found for update')
         }
       }
 
       return { success: true }
     } catch (error: any) {
-      console.error('CactusPay webhook error:', error)
+      logger.error({ err: error }, 'CactusPay webhook error')
       reply.code(500)
       return { error: error.message }
     }
