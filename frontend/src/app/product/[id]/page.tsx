@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import ProductCard from '@/components/ProductCard'
 import BottomNav from '@/components/BottomNav'
+import { ProductDetailSkeleton } from '@/components/Skeleton'
 import { Product, ProductVariant } from '@/types'
 import { productsApi, chatApi } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
@@ -73,8 +74,10 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-cyan"></div>
+      <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-32">
+        <Header showBack onBack={() => router.back()} />
+        <ProductDetailSkeleton />
+        <BottomNav />
       </div>
     )
   }

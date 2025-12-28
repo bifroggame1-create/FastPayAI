@@ -8,6 +8,7 @@ import ProductCard from '@/components/ProductCard'
 import BottomNav from '@/components/BottomNav'
 import ThemeToggle from '@/components/ThemeToggle'
 import PopularServices from '@/components/PopularServices'
+import { ProductGridSkeleton } from '@/components/Skeleton'
 import { Product } from '@/types'
 import { productsApi } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
@@ -54,9 +55,7 @@ export default function MarketPage() {
         </h2>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-cyan"></div>
-          </div>
+          <ProductGridSkeleton count={4} />
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {products.map((product) => (
