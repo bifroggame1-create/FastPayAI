@@ -91,7 +91,7 @@ export default function SupportPage() {
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
           <a
-            href="https://t.me/fastpay_support"
+            href="https://t.me/fastpay_sup"
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col items-center gap-2 p-4 bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border hover:border-accent-cyan transition-colors"
@@ -156,7 +156,7 @@ export default function SupportPage() {
         <div className="bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border p-4">
           <h3 className="font-semibold text-light-text dark:text-dark-text mb-3">Контакты</h3>
           <div className="space-y-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-            <p>Поддержка: @fastpay_support</p>
+            <p>Поддержка: @fastpay_sup</p>
             <p>Время работы: 24/7</p>
             <p>Среднее время ответа: 15 минут</p>
           </div>
