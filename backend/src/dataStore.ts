@@ -6,6 +6,7 @@ import {
   getSellersCollection,
   getChatsCollection,
   getChatMessagesCollection,
+  getAdminsCollection,
   toClientDoc,
   Product,
   Order,
@@ -14,13 +15,14 @@ import {
   PromoCode,
   Seller,
   Chat,
-  ChatMessage
+  ChatMessage,
+  Admin
 } from './database'
 import { ObjectId } from 'mongodb'
 import { redis, CACHE_KEYS, CACHE_TTL } from './redis'
 
 // Re-export types
-export { Order, OrderStatus, Product, User, PromoCode, Seller, Chat, ChatMessage }
+export { Order, OrderStatus, Product, User, PromoCode, Seller, Chat, ChatMessage, Admin }
 
 // ============================================
 // Products
@@ -459,6 +461,55 @@ export async function getOrderStats(): Promise<{
   const totalRevenue = revenueResult[0]?.total || 0
 
   return { total, pending, paid, delivered, cancelled, totalRevenue }
+}
+
+// ============================================
+// Admins
+// ============================================
+
+export async function loadAdmins(): Promise<Admin[]> {
+  const admins = await getAdminsCollection().find({}).toArray()
+  return admins.map(a => toClientDoc(a))
+}
+
+export async function getAdminById(adminId: string): Promise<Admin | null> {
+  const admin = await getAdminsCollection().findOne({ id: adminId })
+  return admin ? toClientDoc(admin) : null
+}
+
+export async function getAdminByUserId(userId: string): Promise<Admin | null> {
+  const admin = await getAdminsCollection().findOne({ userId })
+  return admin ? toClientDoc(admin) : null
+}
+
+export async function getAdminByUsername(username: string): Promise<Admin | null> {
+  const admin = await getAdminsCollection().findOne({ username: username.toLowerCase() })
+  return admin ? toClientDoc(admin) : null
+}
+
+export async function addAdmin(admin: Admin): Promise<Admin> {
+  const collection = getAdminsCollection()
+  const result = await collection.insertOne(admin as any)
+  return { ...admin, _id: result.insertedId.toString() }
+}
+
+export async function deleteAdmin(adminId: string): Promise<boolean> {
+  const result = await getAdminsCollection().deleteOne({ id: adminId })
+  return result.deletedCount > 0
+}
+
+export async function isUserAdmin(userId: string): Promise<boolean> {
+  const admin = await getAdminsCollection().findOne({ userId })
+  return !!admin
+}
+
+// ============================================
+// Sellers (enhanced)
+// ============================================
+
+export async function deleteSeller(sellerId: string): Promise<boolean> {
+  const result = await getSellersCollection().deleteOne({ id: sellerId })
+  return result.deletedCount > 0
 }
 
 console.log('✅ DataStore module loaded (MongoDB)')

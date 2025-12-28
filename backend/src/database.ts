@@ -114,6 +114,16 @@ export interface ChatMessage {
   createdAt: string
 }
 
+export interface Admin {
+  _id?: string | ObjectId
+  id: string
+  userId?: string
+  username?: string
+  name?: string
+  addedAt: string
+  addedBy?: string
+}
+
 // Connect to MongoDB
 export async function connectDB(): Promise<Db> {
   if (db) return db
@@ -159,6 +169,13 @@ async function createIndexes(database: Db): Promise<void> {
     await database.collection('chats').createIndex({ participants: 1 })
     await database.collection('chatMessages').createIndex({ chatId: 1, createdAt: 1 })
 
+    // Admins
+    await database.collection('admins').createIndex({ userId: 1 }, { sparse: true })
+    await database.collection('admins').createIndex({ username: 1 }, { sparse: true })
+
+    // Sellers
+    await database.collection('sellers').createIndex({ id: 1 }, { unique: true })
+
     console.log('✅ Database indexes created')
   } catch (error) {
     console.error('⚠️ Error creating indexes:', error)
@@ -200,6 +217,10 @@ export function getChatsCollection(): Collection<Chat> {
 
 export function getChatMessagesCollection(): Collection<ChatMessage> {
   return getDB().collection<ChatMessage>('chatMessages')
+}
+
+export function getAdminsCollection(): Collection<Admin> {
+  return getDB().collection<Admin>('admins')
 }
 
 // Close connection

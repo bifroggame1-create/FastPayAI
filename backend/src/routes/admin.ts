@@ -25,8 +25,18 @@ import {
   getOrderStats,
   getOrderById,
   updateOrder,
+  loadAdmins,
+  addAdmin,
+  deleteAdmin,
+  getAdminByUserId,
+  getAdminByUsername,
+  loadSellers,
+  addSeller,
+  updateSeller,
+  deleteSeller,
   Order,
-  OrderStatus
+  OrderStatus,
+  Admin
 } from '../dataStore'
 import { createBackup, restoreFromBackup, getBackupStats, validateBackup } from '../backup'
 
@@ -99,20 +109,23 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
   // Get all sellers
   fastify.get('/admin/sellers', { preHandler: adminMiddleware }, async () => {
-    const sellers = [...new Map(fastify.products.map(p => [p.seller.id, p.seller])).values()]
-    return { success: true, sellers }
+    try {
+      const sellers = await loadSellers()
+      return { success: true, sellers }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
   })
 
-  // Create/update seller
+  // Create seller
   fastify.post('/admin/sellers', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
-      const seller = validateBody(createSellerSchema, request.body)
-      for (const p of fastify.products) {
-        if (p.seller.id === seller.id) {
-          p.seller = seller as any
-          await updateProduct(p._id, { seller: seller as any })
-        }
-      }
+      const sellerData = validateBody(createSellerSchema, request.body)
+      const seller = await addSeller({
+        ...sellerData,
+        id: sellerData.id || String(Date.now()),
+        createdAt: new Date().toISOString()
+      } as any)
       return { success: true, seller }
     } catch (error: any) {
       reply.code(error.statusCode || 500)
@@ -125,22 +138,110 @@ export async function adminRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params as any
       const updates = validateBody(updateSellerSchema, request.body)
-      let updated = false
-      for (const p of fastify.products) {
-        if (p.seller.id === id) {
-          p.seller = { ...p.seller, ...updates }
-          await updateProduct(p._id, { seller: p.seller })
-          updated = true
-        }
-      }
+      const updated = await updateSeller(id, updates)
       if (!updated) {
         reply.code(404)
         return { success: false, error: 'Seller not found' }
       }
-      return { success: true, seller: updates }
+      // Also update seller info in products
+      for (const p of fastify.products) {
+        if (p.seller.id === id) {
+          p.seller = { ...p.seller, ...updates }
+          await updateProduct(p._id, { seller: p.seller })
+        }
+      }
+      return { success: true, seller: updated }
     } catch (error: any) {
       reply.code(error.statusCode || 500)
       return { success: false, error: error.error || error.message, details: error.details }
+    }
+  })
+
+  // Delete seller
+  fastify.delete('/admin/sellers/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as any
+      const deleted = await deleteSeller(id)
+      if (!deleted) {
+        reply.code(404)
+        return { success: false, error: 'Seller not found' }
+      }
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // ADMINS MANAGEMENT
+  // ============================================
+
+  // Get all admins
+  fastify.get('/admin/admins', { preHandler: adminMiddleware }, async () => {
+    try {
+      const admins = await loadAdmins()
+      return { success: true, admins }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Add admin
+  fastify.post('/admin/admins', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { userId, username, name } = request.body as { userId?: string; username?: string; name?: string }
+
+      if (!userId && !username) {
+        reply.code(400)
+        return { success: false, error: 'userId or username is required' }
+      }
+
+      // Check if already exists
+      if (userId) {
+        const existing = await getAdminByUserId(userId)
+        if (existing) {
+          reply.code(400)
+          return { success: false, error: 'Admin with this userId already exists' }
+        }
+      }
+      if (username) {
+        const existing = await getAdminByUsername(username)
+        if (existing) {
+          reply.code(400)
+          return { success: false, error: 'Admin with this username already exists' }
+        }
+      }
+
+      const admin: Admin = {
+        id: String(Date.now()),
+        userId: userId || undefined,
+        username: username?.toLowerCase() || undefined,
+        name: name || undefined,
+        addedAt: new Date().toISOString()
+      }
+
+      const saved = await addAdmin(admin)
+      return { success: true, admin: saved }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Remove admin
+  fastify.delete('/admin/admins/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as any
+      const deleted = await deleteAdmin(id)
+      if (!deleted) {
+        reply.code(404)
+        return { success: false, error: 'Admin not found' }
+      }
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
     }
   })
 
