@@ -2,9 +2,6 @@ import axios from 'axios'
 
 const CACTUSPAY_API_URL = 'https://lk.cactuspay.pro/api/'
 
-// Token will be loaded from environment variables
-const CACTUSPAY_TOKEN = process.env.CACTUSPAY_TOKEN
-
 export type PaymentMethod = 'card' | 'sbp' | 'yoomoney' | 'crypto' | 'nspk'
 
 export type PaymentStatus = 'WAIT' | 'ACCEPT'
@@ -55,25 +52,38 @@ interface CancelDetailsResponse {
 }
 
 export class CactusPayAPI {
-  private token: string
+  private token: string = ''
   private apiUrl: string
+  private initialized: boolean = false
 
   constructor(token?: string) {
-    const rawToken = token || CACTUSPAY_TOKEN || ''
-    this.token = rawToken.trim()
     this.apiUrl = CACTUSPAY_API_URL
+    if (token) {
+      this.token = token.trim()
+      this.initialized = true
+    }
+  }
 
-    if (this.token) {
-      console.log('✅ CactusPay token initialized:', {
-        length: this.token.length,
-        preview: this.token.substring(0, 8) + '...',
-      })
-    } else {
-      console.warn('⚠️ CactusPay token is not configured')
+  private ensureInitialized(): void {
+    if (!this.initialized) {
+      // Lazy load token from environment (after dotenv has loaded)
+      const envToken = process.env.CACTUSPAY_TOKEN
+      if (envToken) {
+        this.token = envToken.trim()
+        console.log('✅ CactusPay token initialized:', {
+          length: this.token.length,
+          preview: this.token.substring(0, 8) + '...',
+        })
+      } else {
+        console.warn('⚠️ CactusPay token is not configured')
+      }
+      this.initialized = true
     }
   }
 
   private async makeRequest<T>(method: string, data?: any): Promise<T> {
+    this.ensureInitialized()
+
     try {
       if (!this.token) {
         throw new Error('CactusPay token is not configured')
@@ -163,6 +173,27 @@ export class CactusPayAPI {
       return result.response?.status === 'ACCEPT'
     } catch {
       return false
+    }
+  }
+
+  /**
+   * Check if CactusPay is configured
+   * @returns true if token is available
+   */
+  isConfigured(): boolean {
+    this.ensureInitialized()
+    return !!this.token
+  }
+
+  /**
+   * Get token info for debugging
+   */
+  getTokenInfo(): { configured: boolean; length: number; preview: string } {
+    this.ensureInitialized()
+    return {
+      configured: !!this.token,
+      length: this.token.length,
+      preview: this.token ? this.token.substring(0, 8) + '...' : 'not set',
     }
   }
 }

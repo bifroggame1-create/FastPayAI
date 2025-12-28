@@ -1339,18 +1339,22 @@ async function start() {
     // Test endpoint to check CactusPay connection
     fastify.get('/payment/test-cactuspay', async (request, reply) => {
       try {
-        if (!process.env.CACTUSPAY_TOKEN) {
+        const tokenInfo = cactusPay.getTokenInfo()
+
+        if (!tokenInfo.configured) {
           return {
             success: false,
             error: 'CACTUSPAY_TOKEN not configured',
-            configured: false
+            configured: false,
+            envCheck: !!process.env.CACTUSPAY_TOKEN
           }
         }
 
         return {
           success: true,
           configured: true,
-          message: 'CactusPay is configured'
+          message: 'CactusPay is configured',
+          tokenInfo
         }
       } catch (error: any) {
         console.error('CactusPay test failed:', error)
@@ -1376,11 +1380,15 @@ async function start() {
           }
         }
 
-        if (!process.env.CACTUSPAY_TOKEN) {
+        if (!cactusPay.isConfigured()) {
           reply.code(500)
           return {
             success: false,
-            error: 'CactusPay not configured. Add CACTUSPAY_TOKEN to environment variables.'
+            error: 'CactusPay not configured. Add CACTUSPAY_TOKEN to environment variables.',
+            debug: {
+              envCheck: !!process.env.CACTUSPAY_TOKEN,
+              tokenInfo: cactusPay.getTokenInfo()
+            }
           }
         }
 
