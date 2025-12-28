@@ -21,7 +21,7 @@ function CheckoutContent() {
   const [promoError, setPromoError] = useState('')
   const [discount, setDiscount] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [paymentMethod, setPaymentMethod] = useState<'cryptobot' | 'qr-sbp' | 'card'>('cryptobot')
+  const [paymentMethod, setPaymentMethod] = useState<'cryptobot' | 'cactuspay-sbp' | 'cactuspay-card'>('cryptobot')
   const [selectedCrypto, setSelectedCrypto] = useState<'TON' | 'USDT'>('TON')
 
   useEffect(() => {
@@ -139,12 +139,56 @@ function CheckoutContent() {
       } finally {
         setLoading(false)
       }
-    } else if (paymentMethod === 'qr-sbp') {
-      // Для QR СБП - пока заглушка
-      alert('Оплата через QR код СБП в разработке')
-    } else {
-      // Для карты - пока заглушка
-      alert('Оплата картой в разработке')
+    } else if (paymentMethod === 'cactuspay-sbp' || paymentMethod === 'cactuspay-card') {
+      // CactusPay payment (SBP or Card)
+      try {
+        setLoading(true)
+
+        const productName = selectedVariant
+          ? `${product.name} - ${selectedVariant.name}`
+          : product.name
+
+        const cactusMethod = paymentMethod === 'cactuspay-sbp' ? 'sbp' : 'card'
+
+        const paymentParams = {
+          amount: finalPrice,
+          description: `Оплата: ${productName}`,
+          productId: product._id,
+          variantId: selectedVariant?.id,
+          method: cactusMethod as 'sbp' | 'card',
+        }
+
+        console.log('[FastPay] Creating CactusPay payment:', paymentParams)
+
+        const response = await paymentApi.createCactusPayment(paymentParams)
+
+        console.log('[FastPay] CactusPay response:', response)
+
+        if (response.success && response.payment) {
+          // Open payment URL
+          if (window.Telegram?.WebApp && (window.Telegram.WebApp as any).openLink) {
+            (window.Telegram.WebApp as any).openLink(response.payment.payUrl)
+          } else {
+            window.open(response.payment.payUrl, '_blank')
+          }
+        } else {
+          const errorMsg = response.error || 'Неизвестная ошибка'
+          alert('Ошибка создания платежа:\n' + errorMsg)
+        }
+      } catch (error: any) {
+        console.error('CactusPay checkout error:', error)
+        let errorMessage = 'Ошибка при создании платежа'
+
+        if (error.response?.data?.error) {
+          errorMessage = error.response.data.error
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+
+        alert(errorMessage)
+      } finally {
+        setLoading(false)
+      }
     }
   }
 
@@ -167,9 +211,10 @@ function CheckoutContent() {
   const basePrice = selectedVariant?.price || product.price
   const discountedPrice = basePrice - discount
 
-  // Add 5% markup for CryptoBot payments
+  // Add 5% markup for CryptoBot payments (no markup for CactusPay)
   const cryptoBotMarkup = paymentMethod === 'cryptobot' ? discountedPrice * 0.05 : 0
   const finalPrice = discountedPrice + cryptoBotMarkup
+  const isCactusPay = paymentMethod.startsWith('cactuspay')
 
   const bonusToUse = Math.min(user?.bonusBalance || 0, finalPrice * 0.3) // Можно использовать до 30% от суммы
 
@@ -325,9 +370,9 @@ function CheckoutContent() {
             )}
 
             <button
-              onClick={() => setPaymentMethod('qr-sbp')}
+              onClick={() => setPaymentMethod('cactuspay-sbp')}
               className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                paymentMethod === 'qr-sbp'
+                paymentMethod === 'cactuspay-sbp'
                   ? 'border-accent-cyan bg-accent-cyan/10'
                   : 'border-light-border dark:border-dark-border'
               }`}
@@ -340,35 +385,37 @@ function CheckoutContent() {
                     className="w-10 h-10 object-cover"
                   />
                 </div>
-                <div>
-                  <p className="font-medium text-light-text dark:text-dark-text">QR код СБП</p>
+                <div className="flex-1">
+                  <p className="font-medium text-light-text dark:text-dark-text">СБП (Система быстрых платежей)</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    Система быстрых платежей
+                    Оплата через QR-код или по номеру телефона
                   </p>
                 </div>
+                <span className="text-xs px-2 py-1 bg-green-500/20 text-green-500 rounded-full">Рубли</span>
               </div>
             </button>
 
             <button
-              onClick={() => setPaymentMethod('card')}
+              onClick={() => setPaymentMethod('cactuspay-card')}
               className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                paymentMethod === 'card'
+                paymentMethod === 'cactuspay-card'
                   ? 'border-accent-cyan bg-accent-cyan/10'
                   : 'border-light-border dark:border-dark-border'
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="font-medium text-light-text dark:text-dark-text">Банковская карта</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                     Visa, Mastercard, МИР
                   </p>
                 </div>
+                <span className="text-xs px-2 py-1 bg-green-500/20 text-green-500 rounded-full">Рубли</span>
               </div>
             </button>
           </div>

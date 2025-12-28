@@ -69,6 +69,7 @@ export const promoApi = {
 }
 
 export const paymentApi = {
+  // CryptoBot payments
   createInvoice: async (params: {
     amount: number
     description?: string
@@ -87,6 +88,29 @@ export const paymentApi = {
 
   getBalance: async () => {
     const { data } = await api.get('/payment/balance')
+    return data
+  },
+
+  // CactusPay payments
+  createCactusPayment: async (params: {
+    amount: number
+    description?: string
+    productId: string
+    variantId?: string
+    method?: 'card' | 'sbp' | 'yoomoney' | 'crypto' | 'nspk'
+    userIp?: string
+  }) => {
+    const { data } = await api.post('/payment/cactuspay/create', params)
+    return data
+  },
+
+  getCactusPaymentStatus: async (orderId: string) => {
+    const { data } = await api.get(`/payment/cactuspay/status/${orderId}`)
+    return data
+  },
+
+  cancelCactusPayment: async (orderId: string) => {
+    const { data } = await api.post('/payment/cactuspay/cancel', { orderId })
     return data
   },
 }

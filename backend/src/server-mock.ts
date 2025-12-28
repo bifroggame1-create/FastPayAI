@@ -9,6 +9,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') })
 
 // NOW import modules that depend on environment variables
 import { cryptoBot } from './cryptobot'
+import { cactusPay, PaymentMethod } from './cactuspay'
 import { loadProducts, saveProducts, loadPromoCodes, savePromoCodes } from './dataStore'
 import { searchProducts, getSearchSuggestions } from './searchUtils'
 import { convertRubToCrypto, CryptoAsset } from './cryptoConverter'
@@ -22,7 +23,8 @@ console.log('  PORT:', process.env.PORT || '3001')
 console.log('  HOST:', process.env.HOST || '0.0.0.0')
 console.log('  FRONTEND_URL:', process.env.FRONTEND_URL || 'not set')
 console.log('  MONGODB_URI:', process.env.MONGODB_URI ? '✅ Set' : '❌ Not set')
-console.log('  CRYPTOBOT_TOKEN:', process.env.CRYPTOBOT_TOKEN ? `✅ Set (${process.env.CRYPTOBOT_TOKEN.substring(0, 10)}...)` : '❌ NOT SET - PAYMENT WILL NOT WORK!')
+console.log('  CRYPTOBOT_TOKEN:', process.env.CRYPTOBOT_TOKEN ? `✅ Set (${process.env.CRYPTOBOT_TOKEN.substring(0, 10)}...)` : '❌ NOT SET')
+console.log('  CACTUSPAY_TOKEN:', process.env.CACTUSPAY_TOKEN ? `✅ Set (${process.env.CACTUSPAY_TOKEN.substring(0, 8)}...)` : '❌ NOT SET')
 console.log('='.repeat(60))
 
 const fastify = Fastify({
@@ -1327,6 +1329,182 @@ async function start() {
         console.error('Webhook error:', error)
         reply.code(500)
         return { error: error.message }
+      }
+    })
+
+    // ============================================
+    // CactusPay Payment endpoints
+    // ============================================
+
+    // Test endpoint to check CactusPay connection
+    fastify.get('/payment/test-cactuspay', async (request, reply) => {
+      try {
+        if (!process.env.CACTUSPAY_TOKEN) {
+          return {
+            success: false,
+            error: 'CACTUSPAY_TOKEN not configured',
+            configured: false
+          }
+        }
+
+        return {
+          success: true,
+          configured: true,
+          message: 'CactusPay is configured'
+        }
+      } catch (error: any) {
+        console.error('CactusPay test failed:', error)
+        return {
+          success: false,
+          error: error.message
+        }
+      }
+    })
+
+    // Create CactusPay payment
+    fastify.post('/payment/cactuspay/create', async (request, reply) => {
+      try {
+        const { amount, description, productId, variantId, method, userIp } = request.body as any
+
+        console.log('CactusPay payment request:', { amount, description, productId, variantId, method })
+
+        if (!amount || amount <= 0) {
+          reply.code(400)
+          return {
+            success: false,
+            error: 'Invalid amount'
+          }
+        }
+
+        if (!process.env.CACTUSPAY_TOKEN) {
+          reply.code(500)
+          return {
+            success: false,
+            error: 'CactusPay not configured. Add CACTUSPAY_TOKEN to environment variables.'
+          }
+        }
+
+        // Generate unique order ID
+        const orderId = `fp_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
+
+        // Create payment
+        const result = await cactusPay.createPayment({
+          amount: Math.round(amount),
+          order_id: orderId,
+          description: description || 'Оплата заказа FastPay',
+          method: method as PaymentMethod,
+          user_ip: userIp,
+        })
+
+        if (result.status === 'success' && result.response) {
+          console.log('CactusPay payment created:', orderId)
+
+          return {
+            success: true,
+            payment: {
+              orderId: orderId,
+              payUrl: result.response.url,
+              amount: amount,
+              requisite: result.response.requisite,
+            }
+          }
+        } else {
+          throw new Error('Failed to create payment')
+        }
+      } catch (error: any) {
+        console.error('CactusPay create payment error:', error)
+        reply.code(500)
+        return {
+          success: false,
+          error: error.message || 'Failed to create payment'
+        }
+      }
+    })
+
+    // Check CactusPay payment status
+    fastify.get('/payment/cactuspay/status/:orderId', async (request, reply) => {
+      try {
+        const { orderId } = request.params as any
+
+        if (!orderId) {
+          reply.code(400)
+          return { success: false, error: 'Order ID required' }
+        }
+
+        const result = await cactusPay.getPaymentStatus(orderId)
+
+        return {
+          success: true,
+          payment: {
+            orderId: result.response?.order_id,
+            status: result.response?.status,
+            amount: result.response?.amount,
+            isPaid: result.response?.status === 'ACCEPT'
+          }
+        }
+      } catch (error: any) {
+        console.error('CactusPay status check error:', error)
+        reply.code(500)
+        return { success: false, error: error.message }
+      }
+    })
+
+    // CactusPay webhook handler
+    fastify.post('/payment/cactuspay/webhook', async (request, reply) => {
+      try {
+        const body = request.body as any
+
+        console.log('CactusPay webhook received:', body)
+
+        const { id, order_id, amount } = body
+
+        if (!order_id) {
+          reply.code(400)
+          return { error: 'Missing order_id' }
+        }
+
+        // Verify payment status via API
+        const statusResult = await cactusPay.getPaymentStatus(order_id)
+
+        if (statusResult.response?.status === 'ACCEPT') {
+          console.log(`CactusPay payment confirmed: ${order_id}`, {
+            amount: statusResult.response.amount,
+            cactusPayId: id
+          })
+
+          // TODO: Here you would:
+          // 1. Save the payment to database
+          // 2. Send the product/service to the user
+          // 3. Send notification to user via Telegram bot
+        }
+
+        return { success: true }
+      } catch (error: any) {
+        console.error('CactusPay webhook error:', error)
+        reply.code(500)
+        return { error: error.message }
+      }
+    })
+
+    // Cancel CactusPay H2H details
+    fastify.post('/payment/cactuspay/cancel', async (request, reply) => {
+      try {
+        const { orderId } = request.body as any
+
+        if (!orderId) {
+          reply.code(400)
+          return { success: false, error: 'Order ID required' }
+        }
+
+        const result = await cactusPay.cancelDetails(orderId)
+
+        return {
+          success: result.status === 'success'
+        }
+      } catch (error: any) {
+        console.error('CactusPay cancel error:', error)
+        reply.code(500)
+        return { success: false, error: error.message }
       }
     })
 
