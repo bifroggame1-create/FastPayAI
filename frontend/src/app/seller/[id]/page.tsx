@@ -114,9 +114,11 @@ export default function SellerProfilePage() {
                   </svg>
                 )}
               </div>
-              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-2">
-                На FastPay с {format(new Date(seller.joinedAt), 'd MMMM yyyy', { locale: ru })}
-              </p>
+              {seller.joinedAt && (
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-2">
+                  На FastPay с {format(new Date(seller.joinedAt), 'd MMMM yyyy', { locale: ru })}
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-medium rounded-full">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

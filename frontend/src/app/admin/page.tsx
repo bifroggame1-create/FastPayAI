@@ -6,6 +6,8 @@ import Header from '@/components/Header'
 import { useAppStore } from '@/lib/store'
 import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi } from '@/lib/api'
+import { authenticate, isAdmin as checkIsAdmin } from '@/lib/auth'
+import { getTelegramUser } from '@/lib/telegram'
 
 // Bootstrap admin IDs - always have access even if API fails
 const BOOTSTRAP_ADMIN_IDS = ['1301598469']
@@ -120,16 +122,24 @@ export default function AdminPage() {
   const [ordersStats, setOrdersStats] = useState<any>(null)
 
   useEffect(() => {
-    // Check admin access - bootstrap admins always have access
-    const userId = user?.id || (typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() : null)
-    const hasAccess = !!(userId && BOOTSTRAP_ADMIN_IDS.includes(userId))
-    setIsAdmin(hasAccess)
+    const checkAccessAndLoad = async () => {
+      // First authenticate with backend to get JWT token
+      await authenticate()
 
-    if (hasAccess) {
-      loadData()
-    } else {
-      setLoading(false)
+      // Check admin access - bootstrap admins always have access
+      const telegramUser = getTelegramUser()
+      const userId = user?.id || telegramUser?.id || (typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() : null)
+      const hasAccess = !!(userId && BOOTSTRAP_ADMIN_IDS.includes(userId)) || checkIsAdmin()
+      setIsAdmin(hasAccess)
+
+      if (hasAccess) {
+        loadData()
+      } else {
+        setLoading(false)
+      }
     }
+
+    checkAccessAndLoad()
   }, [user])
 
   const loadData = async () => {
