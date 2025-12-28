@@ -79,6 +79,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('orders')
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
 
@@ -107,11 +108,14 @@ export default function AdminPage() {
   useEffect(() => {
     // Check admin access
     const userId = user?.id || (typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() : null)
-    if (!userId || !ADMIN_IDS.includes(userId)) {
-      router.push('/')
-      return
+    const hasAccess = !!(userId && ADMIN_IDS.includes(userId))
+    setIsAdmin(hasAccess)
+
+    if (hasAccess) {
+      loadData()
+    } else {
+      setLoading(false)
     }
-    loadData()
   }, [user])
 
   const loadData = async () => {
@@ -356,6 +360,33 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-cyan"></div>
+      </div>
+    )
+  }
+
+  // Access denied screen
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex flex-col items-center justify-center px-4">
+        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-8 text-center max-w-sm w-full border border-light-border dark:border-dark-border">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-500/10 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-light-text dark:text-dark-text mb-2">
+            Доступ запрещён
+          </h1>
+          <p className="text-light-text-secondary dark:text-dark-text-secondary mb-6">
+            У вас нет прав для просмотра этой страницы
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="w-full py-3 bg-accent-cyan text-white rounded-xl font-semibold"
+          >
+            На главную
+          </button>
+        </div>
       </div>
     )
   }
