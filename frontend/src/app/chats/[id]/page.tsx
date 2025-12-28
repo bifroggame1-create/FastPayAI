@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
@@ -8,6 +8,9 @@ import { chatApi } from '@/lib/api'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { getTelegramUser } from '@/lib/telegram'
+
+// API URL for file uploads
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
 
 interface ChatMessage {
   id: string
@@ -32,16 +35,12 @@ interface ChatInfo {
   lastMessageAt?: string
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
-const WS_URL = API_URL.replace('https://', 'wss://').replace('http://', 'ws://')
-
 export default function ChatDetailPage() {
   const params = useParams()
   const router = useRouter()
   const chatId = params.id as string
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const wsRef = useRef<WebSocket | null>(null)
 
   const [chat, setChat] = useState<ChatInfo | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -49,8 +48,6 @@ export default function ChatDetailPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [connected, setConnected] = useState(false)
-  const [typingUser, setTypingUser] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const user = getTelegramUser()
@@ -89,97 +86,43 @@ export default function ChatDetailPage() {
     }
   }
 
-  // WebSocket connection
+  // Poll for new messages (using HTTP instead of WebSocket for compatibility)
   useEffect(() => {
     if (!chat || !userId) return
 
-    const connectWebSocket = () => {
+    let pollInterval: NodeJS.Timeout | null = null
+
+    const pollMessages = async () => {
       try {
-        const ws = new WebSocket(`${WS_URL}/ws/chat`)
-        wsRef.current = ws
-
-        ws.onopen = () => {
-          console.log('WebSocket connected')
-          setConnected(true)
-          // Join the chat room
-          ws.send(JSON.stringify({
-            type: 'join',
-            chatId,
-            userId,
-            userName
-          }))
-        }
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data)
-
-            switch (data.type) {
-              case 'new_message':
-                setMessages(prev => [...prev, data.message])
-                break
-              case 'typing':
-                if (data.userId !== userId) {
-                  setTypingUser(data.userName || 'Собеседник')
-                  setTimeout(() => setTypingUser(null), 3000)
-                }
-                break
-              case 'user_joined':
-                console.log('User joined:', data.userName)
-                break
-              case 'user_left':
-                console.log('User left:', data.userId)
-                break
-              case 'error':
-                console.error('WebSocket error:', data.message)
-                break
+        const res = await chatApi.getMessages(chatId)
+        if (res.success && res.messages) {
+          setMessages(prev => {
+            // Only update if there are new messages
+            if (res.messages.length !== prev.length) {
+              return res.messages
             }
-          } catch (err) {
-            console.error('Failed to parse WebSocket message:', err)
-          }
-        }
-
-        ws.onclose = () => {
-          console.log('WebSocket disconnected')
-          setConnected(false)
-          // Reconnect after 3 seconds
-          setTimeout(connectWebSocket, 3000)
-        }
-
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error)
+            return prev
+          })
         }
       } catch (err) {
-        console.error('Failed to connect WebSocket:', err)
+        // Silent fail for polling
       }
     }
 
-    connectWebSocket()
+    // Poll every 3 seconds for new messages
+    pollInterval = setInterval(pollMessages, 3000)
 
     return () => {
-      if (wsRef.current) {
-        wsRef.current.send(JSON.stringify({ type: 'leave' }))
-        wsRef.current.close()
-      }
+      if (pollInterval) clearInterval(pollInterval)
     }
-  }, [chat, chatId, userId, userName])
+  }, [chat, chatId, userId])
 
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
-  // Send typing indicator
-  const sendTyping = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'typing',
-        userName
-      }))
-    }
-  }, [userName])
-
-  // Send text message
+  // Send text message via REST API
   const handleSendMessage = async () => {
     if (!messageText.trim() || sending) return
 
@@ -188,25 +131,14 @@ export default function ChatDetailPage() {
     setSending(true)
 
     try {
-      // Try WebSocket first
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({
-          type: 'message',
-          content,
-          userName,
-          messageType: 'text'
-        }))
-      } else {
-        // Fallback to REST API
-        const res = await chatApi.sendMessage(chatId, {
-          senderId: userId,
-          senderName: userName,
-          content,
-          messageType: 'text'
-        })
-        if (res.success) {
-          setMessages(prev => [...prev, res.message])
-        }
+      const res = await chatApi.sendMessage(chatId, {
+        senderId: userId,
+        senderName: userName,
+        content,
+        messageType: 'text'
+      })
+      if (res.success && res.message) {
+        setMessages(prev => [...prev, res.message])
       }
     } catch (err) {
       console.error('Failed to send message:', err)
@@ -320,13 +252,6 @@ export default function ChatDetailPage() {
         showNavButtons={false}
       />
 
-      {/* Connection status */}
-      {!connected && (
-        <div className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-center py-1 text-xs">
-          Подключение...
-        </div>
-      )}
-
       {/* Messages */}
       <div className="flex-1 px-4 py-4 overflow-y-auto pb-36">
         {messages.length === 0 ? (
@@ -401,15 +326,6 @@ export default function ChatDetailPage() {
               </div>
             ))}
 
-            {/* Typing indicator */}
-            {typingUser && (
-              <div className="flex justify-start">
-                <div className="bg-light-card dark:bg-dark-card text-light-text-secondary dark:text-dark-text-secondary px-4 py-2 rounded-2xl rounded-bl-md text-sm italic">
-                  {typingUser} печатает...
-                </div>
-              </div>
-            )}
-
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -444,10 +360,7 @@ export default function ChatDetailPage() {
           <input
             type="text"
             value={messageText}
-            onChange={(e) => {
-              setMessageText(e.target.value)
-              sendTyping()
-            }}
+            onChange={(e) => setMessageText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
             placeholder="Введите сообщение..."
             className="flex-1 px-4 py-3 rounded-xl bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text focus:outline-none focus:border-accent-cyan"
