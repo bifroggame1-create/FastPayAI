@@ -146,15 +146,9 @@ export async function registerSwagger(fastify: FastifyInstance) {
       deepLinking: true,
       displayRequestDuration: true,
       filter: true,
-      showExtensions: true,
-      syntaxHighlight: {
-        theme: 'monokai'
-      }
+      showExtensions: true
     },
-    staticCSP: true,
-    transformStaticCSP: (header) => header,
-    transformSpecification: (swaggerObject) => swaggerObject,
-    transformSpecificationClone: true
+    staticCSP: true
   })
 
   console.log('✅ Swagger docs available at /docs')
