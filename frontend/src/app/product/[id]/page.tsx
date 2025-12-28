@@ -18,7 +18,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
-  const { toggleFavorite, isFavorite, addChat } = useAppStore()
+  const { toggleFavorite, isFavorite, addChat, addToCart } = useAppStore()
 
   useEffect(() => {
     loadProduct()
@@ -305,6 +305,24 @@ export default function ProductDetailPage() {
         <div className="flex gap-3">
           <button
             onClick={() => {
+              addToCart({
+                productId: product._id,
+                productName: product.name,
+                productImage: product.images[0] || '/placeholder.jpg',
+                price: selectedVariant?.price || product.price,
+                quantity: 1,
+                variantId: selectedVariant?.id,
+                variantName: selectedVariant?.name
+              })
+            }}
+            className="px-4 py-4 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl hover:border-accent-cyan transition-colors"
+          >
+            <svg className="w-6 h-6 text-light-text dark:text-dark-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => {
               const params = new URLSearchParams({
                 productId: product._id,
                 ...(selectedVariant && { variantId: selectedVariant.id })
@@ -317,7 +335,7 @@ export default function ProductDetailPage() {
           </button>
           <button
             onClick={() => toggleFavorite(product._id)}
-            className="px-6 py-4 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl hover:bg-light-border dark:hover:bg-dark-border transition-colors"
+            className="px-4 py-4 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl hover:bg-light-border dark:hover:bg-dark-border transition-colors"
           >
             <svg
               className={`w-6 h-6 ${isFavorite(product._id) ? 'fill-pink-500 text-pink-500' : 'fill-none text-light-text dark:text-dark-text'}`}

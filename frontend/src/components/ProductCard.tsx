@@ -15,8 +15,19 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onClick }: ProductCardProps) {
   const router = useRouter()
-  const { toggleFavorite, isFavorite, language, currency } = useAppStore()
+  const { toggleFavorite, isFavorite, language, currency, addToCart } = useAppStore()
   const favorite = isFavorite(product._id)
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    addToCart({
+      productId: product._id,
+      productName: product.name,
+      productImage: product.images[0] || '/placeholder.jpg',
+      price: product.price,
+      quantity: 1
+    })
+  }
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -89,16 +100,26 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           {format(new Date(product.createdAt), 'd MMMM в HH:mm', { locale: language === 'ru' ? ru : enUS })}
         </p>
 
-        {/* Buy Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            router.push(`/checkout?productId=${product._id}`)
-          }}
-          className="w-full bg-accent-cyan hover:bg-accent-cyan/90 text-white font-medium py-2.5 rounded-lg transition-colors"
-        >
-          {t('buy', language)}
-        </button>
+        {/* Buy and Cart Buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleAddToCart}
+            className="w-10 h-10 flex items-center justify-center bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-lg hover:border-accent-cyan transition-colors flex-shrink-0"
+          >
+            <svg className="w-5 h-5 text-light-text dark:text-dark-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              router.push(`/checkout?productId=${product._id}`)
+            }}
+            className="flex-1 bg-accent-cyan hover:bg-accent-cyan/90 text-white font-medium py-2.5 rounded-lg transition-colors"
+          >
+            {t('buy', language)}
+          </button>
+        </div>
       </div>
     </div>
   )
