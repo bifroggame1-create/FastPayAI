@@ -57,18 +57,28 @@ export interface Category {
 
 export interface Order {
   _id: string
+  oderId?: string
   userId: string
   products: OrderProduct[]
   totalPrice: number
   discountAmount?: number
   promoCode?: string
   usedBonuses?: number
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'
+  status: 'pending' | 'paid' | 'processing' | 'delivered' | 'cancelled' | 'refunded'
+  paymentMethod?: 'cryptobot' | 'cactuspay-sbp' | 'cactuspay-card'
+  deliveryData?: string
+  deliveryNote?: string
   createdAt: string
+  paidAt?: string
+  deliveredAt?: string
 }
 
 export interface OrderProduct {
   productId: string
+  productName?: string
+  productImage?: string
+  variantId?: string
+  variantName?: string
   quantity: number
   price: number
 }
