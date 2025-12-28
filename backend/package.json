@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "dev:mock": "ts-node-dev --respawn --transpile-only src/server-mock.ts",
-    "build": "npx tsc --skipLibCheck src/server-mock.ts src/cryptobot.ts --outDir dist --esModuleInterop --module commonjs --target es2020 --resolveJsonModule",
+    "build": "tsc",
     "start": "node dist/server-mock.js"
   },
   "dependencies": {
