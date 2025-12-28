@@ -1,4 +1,4 @@
-# Конфигурация переменных окружения для Render
+rj# Конфигурация переменных окружения для Render
 
 ## Backend Service - Environment Variables
 

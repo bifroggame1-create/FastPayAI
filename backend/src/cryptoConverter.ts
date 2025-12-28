@@ -1,17 +1,146 @@
+import axios from 'axios'
+import { redis, CACHE_KEYS, CACHE_TTL } from './redis'
+import { logger } from './logger'
+
 // Crypto currency converter for RUB to crypto
 
-// Approximate exchange rates (update these regularly or fetch from API)
-const EXCHANGE_RATES = {
-  // 1 unit of crypto = X RUB
-  TON: 285,      // 1 TON ≈ 285 RUB
-  USDT: 105,     // 1 USDT ≈ 105 RUB
-  BTC: 10500000, // 1 BTC ≈ 10,500,000 RUB
-  ETH: 370000,   // 1 ETH ≈ 370,000 RUB
-  LTC: 11000,    // 1 LTC ≈ 11,000 RUB
-  USDC: 105,     // 1 USDC ≈ 105 RUB
+// Fallback exchange rates (used when API is unavailable)
+const FALLBACK_RATES = {
+  TON: 285,
+  USDT: 105,
+  BTC: 10500000,
+  ETH: 370000,
+  LTC: 11000,
+  USDC: 105,
 }
 
-export type CryptoAsset = keyof typeof EXCHANGE_RATES
+// Live exchange rates (updated periodically)
+let liveRates: Record<string, number> = { ...FALLBACK_RATES }
+let lastUpdate: Date | null = null
+let updateInterval: NodeJS.Timeout | null = null
+
+export type CryptoAsset = 'TON' | 'USDT' | 'BTC' | 'ETH' | 'LTC' | 'USDC'
+
+// CoinGecko API IDs for our supported coins
+const COINGECKO_IDS: Record<CryptoAsset, string> = {
+  TON: 'the-open-network',
+  USDT: 'tether',
+  BTC: 'bitcoin',
+  ETH: 'ethereum',
+  LTC: 'litecoin',
+  USDC: 'usd-coin',
+}
+
+// Update interval (5 minutes)
+const UPDATE_INTERVAL_MS = 5 * 60 * 1000
+
+/**
+ * Fetch current exchange rates from CoinGecko API
+ */
+async function fetchExchangeRates(): Promise<Record<string, number>> {
+  try {
+    const ids = Object.values(COINGECKO_IDS).join(',')
+    const response = await axios.get(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=rub`,
+      { timeout: 10000 }
+    )
+
+    const rates: Record<string, number> = {}
+
+    for (const [asset, cgId] of Object.entries(COINGECKO_IDS)) {
+      if (response.data[cgId]?.rub) {
+        rates[asset] = response.data[cgId].rub
+      } else {
+        // Use fallback for this asset
+        rates[asset] = FALLBACK_RATES[asset as CryptoAsset]
+      }
+    }
+
+    logger.info({ rates, source: 'coingecko' }, 'Exchange rates updated')
+    return rates
+  } catch (error: any) {
+    logger.warn({ err: error }, 'Failed to fetch exchange rates from CoinGecko, using fallback')
+    return FALLBACK_RATES
+  }
+}
+
+/**
+ * Update rates and cache them
+ */
+async function updateRates(): Promise<void> {
+  try {
+    const rates = await fetchExchangeRates()
+    liveRates = rates
+    lastUpdate = new Date()
+
+    // Cache in Redis if available
+    await redis.set(CACHE_KEYS.EXCHANGE_RATES, {
+      rates,
+      updatedAt: lastUpdate.toISOString()
+    }, CACHE_TTL.EXCHANGE_RATES * 2) // Cache for 2x the update interval
+
+    logger.info({ updatedAt: lastUpdate }, 'Exchange rates cached')
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to update exchange rates')
+  }
+}
+
+/**
+ * Initialize exchange rate updater
+ */
+export async function initExchangeRates(): Promise<void> {
+  // Try to load from cache first
+  const cached = await redis.get<{ rates: Record<string, number>, updatedAt: string }>(
+    CACHE_KEYS.EXCHANGE_RATES
+  )
+
+  if (cached && cached.rates) {
+    liveRates = cached.rates
+    lastUpdate = new Date(cached.updatedAt)
+    logger.info({ updatedAt: lastUpdate }, 'Exchange rates loaded from cache')
+  } else {
+    // Fetch fresh rates
+    await updateRates()
+  }
+
+  // Set up periodic updates
+  if (!updateInterval) {
+    updateInterval = setInterval(updateRates, UPDATE_INTERVAL_MS)
+    logger.info({ intervalMs: UPDATE_INTERVAL_MS }, 'Exchange rate auto-update started')
+  }
+}
+
+/**
+ * Stop the exchange rate updater
+ */
+export function stopExchangeRates(): void {
+  if (updateInterval) {
+    clearInterval(updateInterval)
+    updateInterval = null
+    logger.info('Exchange rate auto-update stopped')
+  }
+}
+
+/**
+ * Get current exchange rates
+ */
+export function getExchangeRates(): {
+  rates: Record<string, number>
+  lastUpdate: string | null
+} {
+  return {
+    rates: liveRates,
+    lastUpdate: lastUpdate?.toISOString() || null
+  }
+}
+
+/**
+ * Force refresh exchange rates
+ */
+export async function refreshExchangeRates(): Promise<Record<string, number>> {
+  await updateRates()
+  return liveRates
+}
 
 /**
  * Convert RUB amount to crypto amount
@@ -20,7 +149,7 @@ export type CryptoAsset = keyof typeof EXCHANGE_RATES
  * @returns Amount in crypto with proper precision
  */
 export function convertRubToCrypto(rubAmount: number, asset: CryptoAsset): string {
-  const rate = EXCHANGE_RATES[asset]
+  const rate = liveRates[asset] || FALLBACK_RATES[asset]
   if (!rate) {
     throw new Error(`Unknown crypto asset: ${asset}`)
   }
@@ -36,6 +165,18 @@ export function convertRubToCrypto(rubAmount: number, asset: CryptoAsset): strin
   }
 
   return cryptoAmount.toFixed(precision)
+}
+
+/**
+ * Convert crypto amount to RUB
+ */
+export function convertCryptoToRub(cryptoAmount: number, asset: CryptoAsset): number {
+  const rate = liveRates[asset] || FALLBACK_RATES[asset]
+  if (!rate) {
+    throw new Error(`Unknown crypto asset: ${asset}`)
+  }
+
+  return Math.round(cryptoAmount * rate)
 }
 
 /**

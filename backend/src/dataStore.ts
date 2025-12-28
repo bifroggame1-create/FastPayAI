@@ -17,6 +17,7 @@ import {
   ChatMessage
 } from './database'
 import { ObjectId } from 'mongodb'
+import { redis, CACHE_KEYS, CACHE_TTL } from './redis'
 
 // Re-export types
 export { Order, OrderStatus, Product, User, PromoCode, Seller, Chat, ChatMessage }
@@ -26,8 +27,14 @@ export { Order, OrderStatus, Product, User, PromoCode, Seller, Chat, ChatMessage
 // ============================================
 
 export async function loadProducts(): Promise<Product[]> {
-  const products = await getProductsCollection().find({}).toArray()
-  return products.map(p => toClientDoc(p))
+  return redis.getOrSet(
+    CACHE_KEYS.PRODUCTS,
+    async () => {
+      const products = await getProductsCollection().find({}).toArray()
+      return products.map(p => toClientDoc(p))
+    },
+    CACHE_TTL.PRODUCTS
+  )
 }
 
 export async function saveProducts(products: Product[]): Promise<void> {
@@ -37,28 +44,38 @@ export async function saveProducts(products: Product[]): Promise<void> {
   if (products.length > 0) {
     await collection.insertMany(products)
   }
+  // Invalidate cache
+  await redis.invalidateProducts()
 }
 
 export async function getProductById(productId: string): Promise<Product | null> {
-  const collection = getProductsCollection()
-  let product: Product | null = null
+  return redis.getOrSet(
+    CACHE_KEYS.PRODUCT(productId),
+    async () => {
+      const collection = getProductsCollection()
+      let product: Product | null = null
 
-  // Try as ObjectId first
-  if (ObjectId.isValid(productId)) {
-    product = await collection.findOne({ _id: new ObjectId(productId) as any })
-  }
+      // Try as ObjectId first
+      if (ObjectId.isValid(productId)) {
+        product = await collection.findOne({ _id: new ObjectId(productId) as any })
+      }
 
-  // Try as string _id
-  if (!product) {
-    product = await collection.findOne({ _id: productId as any })
-  }
+      // Try as string _id
+      if (!product) {
+        product = await collection.findOne({ _id: productId as any })
+      }
 
-  return product ? toClientDoc(product) : null
+      return product ? toClientDoc(product) : null
+    },
+    CACHE_TTL.PRODUCT
+  )
 }
 
 export async function addProduct(product: Product): Promise<Product> {
   const collection = getProductsCollection()
   const result = await collection.insertOne(product as any)
+  // Invalidate cache
+  await redis.invalidateProducts()
   return { ...product, _id: result.insertedId.toString() }
 }
 
@@ -78,6 +95,9 @@ export async function updateProduct(productId: string, updates: Partial<Product>
     { returnDocument: 'after' }
   )
 
+  // Invalidate cache
+  await redis.invalidateProducts()
+
   return result ? toClientDoc(result) : null
 }
 
@@ -90,6 +110,9 @@ export async function deleteProduct(productId: string): Promise<boolean> {
   } else {
     result = await collection.deleteOne({ _id: productId as any })
   }
+
+  // Invalidate cache
+  await redis.invalidateProducts()
 
   return result.deletedCount > 0
 }
@@ -109,8 +132,14 @@ export async function getProductsBySeller(sellerId: string): Promise<Product[]> 
 // ============================================
 
 export async function loadPromoCodes(): Promise<PromoCode[]> {
-  const codes = await getPromoCodesCollection().find({}).toArray()
-  return codes.map(c => toClientDoc(c))
+  return redis.getOrSet(
+    CACHE_KEYS.PROMO_CODES,
+    async () => {
+      const codes = await getPromoCodesCollection().find({}).toArray()
+      return codes.map(c => toClientDoc(c))
+    },
+    CACHE_TTL.PROMO_CODES
+  )
 }
 
 export async function savePromoCodes(promoCodes: PromoCode[]): Promise<void> {
@@ -119,16 +148,26 @@ export async function savePromoCodes(promoCodes: PromoCode[]): Promise<void> {
   if (promoCodes.length > 0) {
     await collection.insertMany(promoCodes)
   }
+  // Invalidate cache
+  await redis.invalidatePromoCodes()
 }
 
 export async function getPromoByCode(code: string): Promise<PromoCode | null> {
-  const promo = await getPromoCodesCollection().findOne({ code: code.toUpperCase() })
-  return promo ? toClientDoc(promo) : null
+  return redis.getOrSet(
+    CACHE_KEYS.PROMO_CODE(code.toUpperCase()),
+    async () => {
+      const promo = await getPromoCodesCollection().findOne({ code: code.toUpperCase() })
+      return promo ? toClientDoc(promo) : null
+    },
+    CACHE_TTL.PROMO_CODES
+  )
 }
 
 export async function addPromoCode(promo: PromoCode): Promise<PromoCode> {
   const collection = getPromoCodesCollection()
   const result = await collection.insertOne(promo as any)
+  // Invalidate cache
+  await redis.invalidatePromoCodes()
   return { ...promo, _id: result.insertedId.toString() }
 }
 
@@ -138,6 +177,8 @@ export async function updatePromoCode(code: string, updates: Partial<PromoCode>)
     { $set: updates },
     { returnDocument: 'after' }
   )
+  // Invalidate cache
+  await redis.invalidatePromoCodes()
   return result ? toClientDoc(result) : null
 }
 
@@ -146,10 +187,14 @@ export async function incrementPromoUsage(code: string): Promise<void> {
     { code: code.toUpperCase() },
     { $inc: { usedCount: 1 } }
   )
+  // Invalidate cache for this specific promo code
+  await redis.del(CACHE_KEYS.PROMO_CODE(code.toUpperCase()))
 }
 
 export async function deletePromoCode(code: string): Promise<boolean> {
   const result = await getPromoCodesCollection().deleteOne({ code: code.toUpperCase() })
+  // Invalidate cache
+  await redis.invalidatePromoCodes()
   return result.deletedCount > 0
 }
 
