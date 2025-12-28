@@ -1,6 +1,6 @@
 import { getTelegramInitData, getTelegramUser } from './telegram'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
 const TOKEN_KEY = 'fastpay_token'
 const USER_KEY = 'fastpay_user'
 

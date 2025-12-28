@@ -3,7 +3,7 @@ import { Product, User, Order, Review, ProductFilters } from '@/types'
 import { getToken } from './auth'
 
 // Use backend URL from environment variable, fallback to production Render URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
 
 // Log the API URL for debugging
 console.log('[FastPay] API URL:', API_URL)

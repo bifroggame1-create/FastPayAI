@@ -32,7 +32,7 @@ interface ChatInfo {
   lastMessageAt?: string
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
 const WS_URL = API_URL.replace('https://', 'wss://').replace('http://', 'ws://')
 
 export default function ChatDetailPage() {
