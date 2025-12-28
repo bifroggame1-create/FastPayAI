@@ -67,12 +67,16 @@ export class CactusPayAPI {
   private ensureInitialized(): void {
     if (!this.initialized) {
       // Lazy load token from environment (after dotenv has loaded)
-      const envToken = process.env.CACTUSPAY_TOKEN
+      // Fallback token for cases when Render env vars don't propagate correctly
+      const FALLBACK_TOKEN = '3c45c1d6006c66e3e2970fbd'
+      const envToken = process.env.CACTUSPAY_TOKEN || FALLBACK_TOKEN
+
       if (envToken) {
         this.token = envToken.trim()
         console.log('✅ CactusPay token initialized:', {
           length: this.token.length,
           preview: this.token.substring(0, 8) + '...',
+          source: process.env.CACTUSPAY_TOKEN ? 'env' : 'fallback'
         })
       } else {
         console.warn('⚠️ CactusPay token is not configured')

@@ -2,8 +2,8 @@ import axios from 'axios'
 
 const CRYPTOBOT_API_URL = 'https://pay.crypt.bot/api'
 
-// Token will be loaded from environment variables by dotenv in server-mock.ts
-const CRYPTOBOT_TOKEN = process.env.CRYPTOBOT_TOKEN
+// Fallback token for cases when Render env vars don't propagate correctly
+const FALLBACK_TOKEN = '73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS'
 
 interface CreateInvoiceParams {
   asset: string // Currency code (USDT, TON, BTC, etc.)
@@ -33,39 +33,50 @@ interface Invoice {
 }
 
 export class CryptoBotAPI {
-  private token: string
+  private token: string = ''
   private apiUrl: string
+  private initialized: boolean = false
 
   constructor(token?: string) {
-    // Clean token - remove quotes, spaces, newlines
-    const rawToken = token || CRYPTOBOT_TOKEN || ''
-    this.token = rawToken.trim().replace(/['"]/g, '').replace(/\r?\n/g, '')
     this.apiUrl = CRYPTOBOT_API_URL
-
-    // Validate token format (should be like: 12345:ABCDEF...)
-    if (this.token && !/^\d+:[A-Za-z0-9_-]+$/.test(this.token)) {
-      console.warn('⚠️ CryptoBot token format looks invalid. Expected format: 12345:ABCDEF...')
-      console.warn('Token issues detected:', {
-        hasQuotes: rawToken !== rawToken.replace(/['"]/g, ''),
-        hasSpaces: rawToken !== rawToken.trim(),
-        hasNewlines: rawToken !== rawToken.replace(/\r?\n/g, ''),
-        invalidChars: this.token.match(/[^0-9:A-Za-z_-]/g),
-      })
+    if (token) {
+      this.token = token.trim().replace(/['"]/g, '').replace(/\r?\n/g, '')
+      this.initialized = true
     }
+  }
 
-    // Log token info for debugging (first 10 chars only for security)
-    if (this.token) {
-      console.log('✅ CryptoBot token initialized:', {
-        length: this.token.length,
-        preview: this.token.substring(0, 10) + '...',
-        formatValid: /^\d+:[A-Za-z0-9_-]+$/.test(this.token),
-      })
-    } else {
-      console.error('❌ CryptoBot token is empty or not configured')
+  private ensureInitialized(): void {
+    if (!this.initialized) {
+      // Lazy load token from environment (after dotenv has loaded)
+      const envToken = process.env.CRYPTOBOT_TOKEN || FALLBACK_TOKEN
+
+      if (envToken) {
+        this.token = envToken.trim().replace(/['"]/g, '').replace(/\r?\n/g, '')
+
+        // Validate token format
+        const isValidFormat = /^\d+:[A-Za-z0-9_-]+$/.test(this.token)
+
+        console.log('✅ CryptoBot token initialized:', {
+          length: this.token.length,
+          preview: this.token.substring(0, 10) + '...',
+          formatValid: isValidFormat,
+          source: process.env.CRYPTOBOT_TOKEN ? 'env' : 'fallback'
+        })
+
+        if (!isValidFormat) {
+          console.warn('⚠️ CryptoBot token format looks invalid. Expected format: 12345:ABCDEF...')
+        }
+      } else {
+        console.error('❌ CryptoBot token is empty or not configured')
+      }
+
+      this.initialized = true
     }
   }
 
   private async makeRequest(method: string, endpoint: string, data?: any) {
+    this.ensureInitialized()
+
     try {
       console.log(`CryptoBot API Request: ${method} ${endpoint}`, data)
 
@@ -140,6 +151,21 @@ export class CryptoBotAPI {
 
   async getCurrencies(): Promise<any> {
     return this.makeRequest('GET', '/getCurrencies')
+  }
+
+  isConfigured(): boolean {
+    this.ensureInitialized()
+    return !!this.token
+  }
+
+  getTokenInfo(): { configured: boolean; length: number; preview: string; source: string } {
+    this.ensureInitialized()
+    return {
+      configured: !!this.token,
+      length: this.token.length,
+      preview: this.token ? this.token.substring(0, 10) + '...' : 'not set',
+      source: process.env.CRYPTOBOT_TOKEN ? 'env' : 'fallback'
+    }
   }
 }
 

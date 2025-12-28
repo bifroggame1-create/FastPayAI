@@ -1143,11 +1143,14 @@ async function start() {
     // Test endpoint to check CryptoBot connection
     fastify.get('/payment/test-cryptobot', async (request, reply) => {
       try {
-        if (!process.env.CRYPTOBOT_TOKEN) {
+        const tokenInfo = cryptoBot.getTokenInfo()
+
+        if (!tokenInfo.configured) {
           return {
             success: false,
             error: 'CRYPTOBOT_TOKEN not configured',
-            configured: false
+            configured: false,
+            tokenInfo
           }
         }
 
@@ -1155,14 +1158,16 @@ async function start() {
         return {
           success: true,
           configured: true,
-          bot_info: me
+          bot_info: me,
+          tokenInfo
         }
       } catch (error: any) {
         console.error('CryptoBot test failed:', error)
         return {
           success: false,
           error: error.message,
-          details: error.response?.data
+          details: error.response?.data,
+          tokenInfo: cryptoBot.getTokenInfo()
         }
       }
     })
