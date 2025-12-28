@@ -63,9 +63,8 @@ export default function ProductDetailPage() {
         productName: product.name
       })
 
-      if (response.success) {
-        addChat(response.chat)
-        router.push('/chats')
+      if (response.success && response.chat) {
+        router.push(`/chats/${response.chat.id}`)
       }
     } catch (error) {
       console.error('Error creating chat:', error)

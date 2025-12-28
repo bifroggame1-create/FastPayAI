@@ -108,9 +108,16 @@ export interface Chat {
 
 export interface ChatMessage {
   _id?: string | ObjectId
+  id?: string
   chatId: string
   senderId: string
+  senderName?: string
   content: string
+  messageType?: 'text' | 'image' | 'file'
+  fileUrl?: string
+  fileName?: string
+  fileSize?: number
+  isRead?: boolean
   createdAt: string
 }
 

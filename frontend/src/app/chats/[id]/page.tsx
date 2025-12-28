@@ -1,65 +1,268 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
-import { useAppStore, Chat, ChatMessage } from '@/lib/store'
+import { chatApi } from '@/lib/api'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
+import { getTelegramUser } from '@/lib/telegram'
+
+interface ChatMessage {
+  id: string
+  chatId: string
+  senderId: string
+  senderName?: string
+  content: string
+  messageType?: 'text' | 'image' | 'file'
+  fileUrl?: string
+  fileName?: string
+  fileSize?: number
+  isRead?: boolean
+  createdAt: string
+}
+
+interface ChatInfo {
+  id: string
+  participants: string[]
+  productId?: string
+  productName?: string
+  createdAt: string
+  lastMessageAt?: string
+}
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com'
+const WS_URL = API_URL.replace('https://', 'wss://').replace('http://', 'ws://')
 
 export default function ChatDetailPage() {
   const params = useParams()
   const router = useRouter()
   const chatId = params.id as string
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const wsRef = useRef<WebSocket | null>(null)
 
-  const { chats, messages, markChatAsRead, addMessage } = useAppStore()
+  const [chat, setChat] = useState<ChatInfo | null>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [messageText, setMessageText] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [connected, setConnected] = useState(false)
+  const [typingUser, setTypingUser] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const chat = chats.find(c => c.id === chatId)
-  const chatMessages = messages.filter(m => m.chatId === chatId)
+  const user = getTelegramUser()
+  const userId = user?.id?.toString() || 'anonymous'
+  const userName = user?.first_name || 'Пользователь'
 
+  // Load chat and messages
   useEffect(() => {
-    if (chat) {
-      markChatAsRead(chat.id)
+    loadChat()
+  }, [chatId])
+
+  const loadChat = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const [chatRes, messagesRes] = await Promise.all([
+        chatApi.getChat(chatId),
+        chatApi.getMessages(chatId)
+      ])
+
+      if (chatRes.success) {
+        setChat(chatRes.chat)
+      } else {
+        setError('Чат не найден')
+      }
+
+      if (messagesRes.success) {
+        setMessages(messagesRes.messages || [])
+      }
+    } catch (err) {
+      console.error('Failed to load chat:', err)
+      setError('Не удалось загрузить чат')
+    } finally {
+      setLoading(false)
     }
-  }, [chat?.id])
+  }
 
+  // WebSocket connection
   useEffect(() => {
-    // Scroll to bottom on new messages
+    if (!chat || !userId) return
+
+    const connectWebSocket = () => {
+      try {
+        const ws = new WebSocket(`${WS_URL}/ws/chat`)
+        wsRef.current = ws
+
+        ws.onopen = () => {
+          console.log('WebSocket connected')
+          setConnected(true)
+          // Join the chat room
+          ws.send(JSON.stringify({
+            type: 'join',
+            chatId,
+            userId,
+            userName
+          }))
+        }
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+
+            switch (data.type) {
+              case 'new_message':
+                setMessages(prev => [...prev, data.message])
+                break
+              case 'typing':
+                if (data.userId !== userId) {
+                  setTypingUser(data.userName || 'Собеседник')
+                  setTimeout(() => setTypingUser(null), 3000)
+                }
+                break
+              case 'user_joined':
+                console.log('User joined:', data.userName)
+                break
+              case 'user_left':
+                console.log('User left:', data.userId)
+                break
+              case 'error':
+                console.error('WebSocket error:', data.message)
+                break
+            }
+          } catch (err) {
+            console.error('Failed to parse WebSocket message:', err)
+          }
+        }
+
+        ws.onclose = () => {
+          console.log('WebSocket disconnected')
+          setConnected(false)
+          // Reconnect after 3 seconds
+          setTimeout(connectWebSocket, 3000)
+        }
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error)
+        }
+      } catch (err) {
+        console.error('Failed to connect WebSocket:', err)
+      }
+    }
+
+    connectWebSocket()
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.send(JSON.stringify({ type: 'leave' }))
+        wsRef.current.close()
+      }
+    }
+  }, [chat, chatId, userId, userName])
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chatMessages.length])
+  }, [messages.length])
 
-  const handleSendMessage = () => {
-    if (!messageText.trim() || !chat) return
+  // Send typing indicator
+  const sendTyping = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'typing',
+        userName
+      }))
+    }
+  }, [userName])
 
-    const message: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      chatId: chat.id,
-      senderId: 'user',
-      senderName: 'Вы',
-      text: messageText.trim(),
-      timestamp: new Date().toISOString(),
-      type: 'text'
+  // Send text message
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || sending) return
+
+    const content = messageText.trim()
+    setMessageText('')
+    setSending(true)
+
+    try {
+      // Try WebSocket first
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'message',
+          content,
+          userName,
+          messageType: 'text'
+        }))
+      } else {
+        // Fallback to REST API
+        const res = await chatApi.sendMessage(chatId, {
+          senderId: userId,
+          senderName: userName,
+          content,
+          messageType: 'text'
+        })
+        if (res.success) {
+          setMessages(prev => [...prev, res.message])
+        }
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err)
+      setMessageText(content) // Restore message on error
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // Handle file upload
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || uploading) return
+
+    // Max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Максимальный размер файла: 10MB')
+      return
     }
 
-    addMessage(message)
-    setMessageText('')
+    setUploading(true)
 
-    // Simulate auto-reply for support chats
-    if (chat.type === 'support') {
-      setTimeout(() => {
-        addMessage({
-          id: `msg-${Date.now() + 1}`,
-          chatId: chat.id,
-          senderId: 'support',
-          senderName: 'Поддержка FastPay',
-          text: 'Спасибо за сообщение! Оператор ответит вам в ближайшее время.',
-          timestamp: new Date().toISOString(),
-          type: 'text'
-        })
-      }, 1500)
+    try {
+      // Convert to base64
+      const reader = new FileReader()
+      reader.onload = async () => {
+        const base64 = reader.result as string
+
+        try {
+          const res = await chatApi.uploadFile(chatId, {
+            file: base64,
+            fileName: file.name,
+            fileType: file.type,
+            senderId: userId,
+            senderName: userName
+          })
+
+          if (res.success) {
+            setMessages(prev => [...prev, res.message])
+          }
+        } catch (err) {
+          console.error('Failed to upload file:', err)
+          alert('Не удалось загрузить файл')
+        } finally {
+          setUploading(false)
+        }
+      }
+      reader.readAsDataURL(file)
+    } catch (err) {
+      console.error('File read error:', err)
+      setUploading(false)
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
   }
 
@@ -71,11 +274,32 @@ export default function ChatDetailPage() {
     }
   }
 
-  if (!chat) {
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return ''
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  const isMyMessage = (senderId: string) => {
+    return senderId === userId
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-cyan"></div>
+      </div>
+    )
+  }
+
+  if (error || !chat) {
     return (
       <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
         <div className="text-center">
-          <p className="text-light-text-secondary dark:text-dark-text-secondary mb-4">Чат не найден</p>
+          <p className="text-light-text-secondary dark:text-dark-text-secondary mb-4">
+            {error || 'Чат не найден'}
+          </p>
           <button
             onClick={() => router.push('/chats')}
             className="px-6 py-2 bg-accent-cyan text-white rounded-xl"
@@ -90,78 +314,161 @@ export default function ChatDetailPage() {
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex flex-col">
       <Header
-        title={chat.title}
+        title={chat.productName || 'Чат'}
         showBack
         onBack={() => router.push('/chats')}
         showNavButtons={false}
       />
 
+      {/* Connection status */}
+      {!connected && (
+        <div className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-center py-1 text-xs">
+          Подключение...
+        </div>
+      )}
+
       {/* Messages */}
-      <div className="flex-1 px-4 py-4 overflow-y-auto pb-32">
-        {chatMessages.length === 0 ? (
+      <div className="flex-1 px-4 py-4 overflow-y-auto pb-36">
+        {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <svg className="w-16 h-16 text-light-text-secondary dark:text-dark-text-secondary mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             <p className="text-light-text-secondary dark:text-dark-text-secondary">
-              Начните диалог
+              Начните диалог с продавцом
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {chatMessages.map(message => (
+            {messages.map(message => (
               <div
                 key={message.id}
-                className={`flex ${message.senderId === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${isMyMessage(message.senderId) ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`max-w-[80%] px-4 py-2 rounded-2xl ${
-                    message.senderId === 'user'
+                    isMyMessage(message.senderId)
                       ? 'bg-accent-cyan text-white rounded-br-md'
-                      : message.type === 'notification'
-                      ? 'bg-yellow-500/20 text-light-text dark:text-dark-text rounded-bl-md'
                       : 'bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text rounded-bl-md border border-light-border dark:border-dark-border'
                   }`}
                 >
-                  {message.senderId !== 'user' && message.type !== 'notification' && (
+                  {!isMyMessage(message.senderId) && message.senderName && (
                     <p className="text-xs font-medium mb-1 opacity-70">{message.senderName}</p>
                   )}
-                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
-                  <p className={`text-xs mt-1 ${message.senderId === 'user' ? 'opacity-70' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
-                    {formatTime(message.timestamp)}
+
+                  {/* Image message */}
+                  {message.messageType === 'image' && message.fileUrl && (
+                    <div className="mb-2">
+                      <img
+                        src={message.fileUrl}
+                        alt={message.fileName || 'Image'}
+                        className="max-w-full rounded-lg cursor-pointer"
+                        onClick={() => window.open(message.fileUrl, '_blank')}
+                      />
+                    </div>
+                  )}
+
+                  {/* File message */}
+                  {message.messageType === 'file' && message.fileUrl && (
+                    <a
+                      href={message.fileUrl}
+                      download={message.fileName}
+                      className={`flex items-center gap-2 p-2 rounded-lg mb-2 ${
+                        isMyMessage(message.senderId)
+                          ? 'bg-white/20'
+                          : 'bg-light-bg dark:bg-dark-bg'
+                      }`}
+                    >
+                      <svg className="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{message.fileName}</p>
+                        <p className="text-xs opacity-70">{formatFileSize(message.fileSize)}</p>
+                      </div>
+                    </a>
+                  )}
+
+                  {/* Text content */}
+                  {message.messageType !== 'image' && (
+                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                  )}
+
+                  <p className={`text-xs mt-1 ${isMyMessage(message.senderId) ? 'opacity-70' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                    {formatTime(message.createdAt)}
                   </p>
                 </div>
               </div>
             ))}
+
+            {/* Typing indicator */}
+            {typingUser && (
+              <div className="flex justify-start">
+                <div className="bg-light-card dark:bg-dark-card text-light-text-secondary dark:text-dark-text-secondary px-4 py-2 rounded-2xl rounded-bl-md text-sm italic">
+                  {typingUser} печатает...
+                </div>
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
       {/* Message input */}
-      {chat.type !== 'notification' && (
-        <div className="fixed bottom-16 left-0 right-0 p-4 bg-light-bg dark:bg-dark-bg border-t border-light-border dark:border-dark-border">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-              placeholder="Введите сообщение..."
-              className="flex-1 px-4 py-3 rounded-xl bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text focus:outline-none focus:border-accent-cyan"
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!messageText.trim()}
-              className="px-4 py-3 bg-accent-cyan text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-            >
+      <div className="fixed bottom-16 left-0 right-0 p-4 bg-light-bg dark:bg-dark-bg border-t border-light-border dark:border-dark-border">
+        <div className="flex gap-2 items-end">
+          {/* File upload button */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="p-3 rounded-xl bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan disabled:opacity-50 transition-colors"
+          >
+            {uploading ? (
+              <div className="w-5 h-5 animate-spin rounded-full border-2 border-accent-cyan border-t-transparent"></div>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,.doc,.docx,.txt,.zip"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
+          {/* Message input */}
+          <input
+            type="text"
+            value={messageText}
+            onChange={(e) => {
+              setMessageText(e.target.value)
+              sendTyping()
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+            placeholder="Введите сообщение..."
+            className="flex-1 px-4 py-3 rounded-xl bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text focus:outline-none focus:border-accent-cyan"
+          />
+
+          {/* Send button */}
+          <button
+            onClick={handleSendMessage}
+            disabled={!messageText.trim() || sending}
+            className="px-4 py-3 bg-accent-cyan text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+          >
+            {sending ? (
+              <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+            ) : (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
-            </button>
-          </div>
+            )}
+          </button>
         </div>
-      )}
+      </div>
 
       <BottomNav />
     </div>

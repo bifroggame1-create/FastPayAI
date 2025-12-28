@@ -1,15 +1,52 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
-import { useAppStore, Chat } from '@/lib/store'
+import { chatApi } from '@/lib/api'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
+import { getTelegramUser } from '@/lib/telegram'
+
+interface ChatInfo {
+  id: string
+  participants: string[]
+  productId?: string
+  productName?: string
+  createdAt: string
+  lastMessageAt?: string
+}
 
 export default function ChatsPage() {
   const router = useRouter()
-  const { chats } = useAppStore()
+  const [chats, setChats] = useState<ChatInfo[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const user = getTelegramUser()
+  const userId = user?.id?.toString() || ''
+
+  useEffect(() => {
+    loadChats()
+  }, [userId])
+
+  const loadChats = async () => {
+    if (!userId) {
+      setLoading(false)
+      return
+    }
+
+    try {
+      const res = await chatApi.getUserChats(userId)
+      if (res.success) {
+        setChats(res.chats || [])
+      }
+    } catch (err) {
+      console.error('Failed to load chats:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const formatTime = (timestamp: string) => {
     try {
@@ -19,27 +56,12 @@ export default function ChatsPage() {
     }
   }
 
-  const getTypeIcon = (type: Chat['type']) => {
-    switch (type) {
-      case 'seller':
-        return (
-          <svg className="w-5 h-5 text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        )
-      case 'support':
-        return (
-          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        )
-      case 'notification':
-        return (
-          <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-        )
-    }
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-cyan"></div>
+      </div>
+    )
   }
 
   return (
@@ -54,7 +76,7 @@ export default function ChatsPage() {
             </svg>
             <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-2">Нет чатов</h3>
             <p className="text-light-text-secondary dark:text-dark-text-secondary max-w-xs">
-              Здесь будут отображаться уведомления о рефералах, покупках и диалоги с продавцами
+              Напишите продавцу на странице товара, чтобы начать диалог
             </p>
           </div>
         ) : (
@@ -65,35 +87,26 @@ export default function ChatsPage() {
                 onClick={() => router.push(`/chats/${chat.id}`)}
                 className="w-full flex items-center gap-3 p-4 bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border hover:border-accent-cyan transition-colors text-left"
               >
-                <div className="relative">
-                  {chat.avatar ? (
-                    <img src={chat.avatar} alt="" className="w-12 h-12 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-light-bg dark:bg-dark-bg flex items-center justify-center">
-                      {getTypeIcon(chat.type)}
-                    </div>
-                  )}
-                  {chat.unread > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                      {chat.unread}
-                    </span>
-                  )}
+                <div className="w-12 h-12 rounded-full bg-light-bg dark:bg-dark-bg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-semibold text-light-text dark:text-dark-text truncate">{chat.title}</h3>
-                    {chat.lastMessageTime && (
+                    <h3 className="font-semibold text-light-text dark:text-dark-text truncate">
+                      {chat.productName || 'Чат'}
+                    </h3>
+                    {chat.lastMessageAt && (
                       <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary ml-2 flex-shrink-0">
-                        {formatTime(chat.lastMessageTime)}
+                        {formatTime(chat.lastMessageAt)}
                       </span>
                     )}
                   </div>
-                  {chat.lastMessage && (
-                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">
-                      {chat.lastMessage}
-                    </p>
-                  )}
+                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">
+                    Нажмите, чтобы открыть чат
+                  </p>
                 </div>
 
                 <svg className="w-5 h-5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

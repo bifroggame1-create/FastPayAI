@@ -259,6 +259,45 @@ export const chatApi = {
     const { data } = await api.post('/chats/create', params)
     return data
   },
+
+  getChat: async (chatId: string) => {
+    const { data } = await api.get(`/chats/${chatId}`)
+    return data
+  },
+
+  getUserChats: async (userId: string) => {
+    const { data } = await api.get(`/chats/user/${userId}`)
+    return data
+  },
+
+  getMessages: async (chatId: string, limit = 50, offset = 0) => {
+    const { data } = await api.get(`/chats/${chatId}/messages`, { params: { limit, offset } })
+    return data
+  },
+
+  sendMessage: async (chatId: string, params: {
+    senderId: string
+    senderName?: string
+    content: string
+    messageType?: 'text' | 'image' | 'file'
+    fileUrl?: string
+    fileName?: string
+    fileSize?: number
+  }) => {
+    const { data } = await api.post(`/chats/${chatId}/messages`, params)
+    return data
+  },
+
+  uploadFile: async (chatId: string, params: {
+    file: string // base64
+    fileName: string
+    fileType: string
+    senderId: string
+    senderName?: string
+  }) => {
+    const { data } = await api.post(`/chats/${chatId}/upload`, params)
+    return data
+  },
 }
 
 export const referralApi = {

@@ -45,17 +45,20 @@ export default function SellerProfilePage() {
 
     try {
       // Create or open chat with seller
-      const chat = await chatApi.createChat({
+      const response = await chatApi.createChat({
         buyerId: user.id,
         sellerId: seller.id,
         productId: products[0]?._id || '',
         productName: products[0]?.name || 'Общий вопрос'
       })
 
-      router.push(`/chats/${chat.id}`)
+      if (response.success && response.chat) {
+        router.push(`/chats/${response.chat.id}`)
+      } else {
+        router.push('/chats')
+      }
     } catch (error) {
       console.error('Error creating chat:', error)
-      // Fallback - just go to chats page
       router.push('/chats')
     }
   }

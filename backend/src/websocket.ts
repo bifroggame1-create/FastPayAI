@@ -7,11 +7,15 @@ import { logger } from './logger'
 const connections = new Map<string, Set<any>>()
 
 interface WSMessage {
-  type: 'join' | 'leave' | 'message' | 'typing' | 'read'
+  type: 'join' | 'leave' | 'message' | 'typing' | 'read' | 'file'
   chatId?: string
   userId?: string
   userName?: string
   content?: string
+  messageType?: 'text' | 'image' | 'file'
+  fileUrl?: string
+  fileName?: string
+  fileSize?: number
   timestamp?: string
 }
 
@@ -77,13 +81,18 @@ export async function registerWebSocket(fastify: FastifyInstance) {
             break
 
           case 'message':
-            if (currentChatId && message.content && currentUserId) {
+          case 'file':
+            if (currentChatId && (message.content || message.fileUrl) && currentUserId) {
               const chatMessage = {
                 id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 chatId: currentChatId,
                 senderId: currentUserId,
                 senderName: message.userName || 'Anonymous',
-                content: message.content,
+                content: message.content || message.fileName || '',
+                messageType: message.messageType || 'text',
+                fileUrl: message.fileUrl,
+                fileName: message.fileName,
+                fileSize: message.fileSize,
                 createdAt: new Date().toISOString(),
                 isRead: false
               }
@@ -95,7 +104,8 @@ export async function registerWebSocket(fastify: FastifyInstance) {
                 event: 'ws_message',
                 chatId: currentChatId,
                 userId: currentUserId,
-                messageId: chatMessage.id
+                messageId: chatMessage.id,
+                messageType: chatMessage.messageType
               }, 'Chat message saved')
 
               // Broadcast to all in chat including sender
