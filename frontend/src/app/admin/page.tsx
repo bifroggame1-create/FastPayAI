@@ -9,7 +9,30 @@ import { productsApi, adminApi } from '@/lib/api'
 
 const ADMIN_IDS = ['1301598469']
 
-type Tab = 'products' | 'sellers' | 'reviews' | 'promo' | 'files'
+type Tab = 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'orders'
+
+type OrderStatus = 'pending' | 'paid' | 'processing' | 'delivered' | 'cancelled' | 'refunded'
+
+interface Order {
+  id: string
+  oderId: string
+  userId: string
+  userName?: string
+  userUsername?: string
+  productId: string
+  productName: string
+  variantId?: string
+  variantName?: string
+  amount: number
+  paymentMethod: 'cryptobot' | 'cactuspay-sbp' | 'cactuspay-card'
+  paymentId?: string
+  status: OrderStatus
+  deliveryData?: string
+  deliveryNote?: string
+  createdAt: string
+  paidAt?: string
+  deliveredAt?: string
+}
 
 interface Seller {
   id: string
@@ -53,7 +76,7 @@ interface UploadedFile {
 export default function AdminPage() {
   const router = useRouter()
   const { user } = useAppStore()
-  const [activeTab, setActiveTab] = useState<Tab>('products')
+  const [activeTab, setActiveTab] = useState<Tab>('orders')
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -76,6 +99,11 @@ export default function AdminPage() {
   // Files state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
 
+  // Orders state
+  const [orders, setOrders] = useState<Order[]>([])
+  const [deliveringOrder, setDeliveringOrder] = useState<Order | null>(null)
+  const [ordersStats, setOrdersStats] = useState<any>(null)
+
   useEffect(() => {
     // Check admin access
     const userId = user?.id || (typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() : null)
@@ -88,12 +116,16 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, promoData] = await Promise.all([
+      const [productsData, promoData, ordersData, statsData] = await Promise.all([
         productsApi.getAll({}),
-        adminApi.getPromoCodes().catch(() => [])
+        adminApi.getPromoCodes().catch(() => []),
+        adminApi.getOrders().catch(() => ({ orders: [], total: 0 })),
+        adminApi.getOrdersStats().catch(() => ({ stats: {} }))
       ])
       setProducts(productsData)
       setPromoCodes(promoData || [])
+      setOrders(ordersData.orders || [])
+      setOrdersStats(statsData.stats || {})
 
       // Load files from localStorage
       const savedFiles = localStorage.getItem('admin-files')
@@ -244,6 +276,82 @@ export default function AdminPage() {
     alert('Скопировано!')
   }
 
+  // Order handlers
+  const handleDeliverOrder = async (orderId: string, deliveryData: string, deliveryNote?: string) => {
+    try {
+      const result = await adminApi.deliverOrder(orderId, deliveryData, deliveryNote)
+      if (result.success) {
+        setOrders(orders.map(o => o.id === orderId ? result.order : o))
+        setDeliveringOrder(null)
+        alert('Товар выдан успешно!')
+      }
+    } catch (error) {
+      console.error('Error delivering order:', error)
+      alert('Ошибка выдачи товара')
+    }
+  }
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!confirm('Отменить заказ?')) return
+    try {
+      const result = await adminApi.cancelOrder(orderId)
+      if (result.success) {
+        setOrders(orders.map(o => o.id === orderId ? result.order : o))
+        alert('Заказ отменён')
+      }
+    } catch (error) {
+      console.error('Error cancelling order:', error)
+      alert('Ошибка отмены заказа')
+    }
+  }
+
+  const handleRefundOrder = async (orderId: string) => {
+    if (!confirm('Вернуть деньги за заказ?')) return
+    try {
+      const result = await adminApi.refundOrder(orderId)
+      if (result.success) {
+        setOrders(orders.map(o => o.id === orderId ? result.order : o))
+        alert('Возврат оформлен')
+      }
+    } catch (error) {
+      console.error('Error refunding order:', error)
+      alert('Ошибка возврата')
+    }
+  }
+
+  const getStatusLabel = (status: OrderStatus) => {
+    const labels: Record<OrderStatus, string> = {
+      pending: 'Ожидает оплаты',
+      paid: 'Оплачен',
+      processing: 'В обработке',
+      delivered: 'Выдан',
+      cancelled: 'Отменён',
+      refunded: 'Возврат'
+    }
+    return labels[status]
+  }
+
+  const getStatusColor = (status: OrderStatus) => {
+    const colors: Record<OrderStatus, string> = {
+      pending: 'bg-yellow-500/20 text-yellow-500',
+      paid: 'bg-green-500/20 text-green-500',
+      processing: 'bg-blue-500/20 text-blue-500',
+      delivered: 'bg-accent-cyan/20 text-accent-cyan',
+      cancelled: 'bg-red-500/20 text-red-500',
+      refunded: 'bg-gray-500/20 text-gray-500'
+    }
+    return colors[status]
+  }
+
+  const getPaymentMethodLabel = (method: string) => {
+    const labels: Record<string, string> = {
+      'cryptobot': 'CryptoBot',
+      'cactuspay-sbp': 'СБП',
+      'cactuspay-card': 'Карта'
+    }
+    return labels[method] || method
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
@@ -259,6 +367,7 @@ export default function AdminPage() {
       {/* Tabs */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">
         {[
+          { id: 'orders', label: 'Заказы', count: orders.length },
           { id: 'products', label: 'Товары', count: products.length },
           { id: 'sellers', label: 'Продавцы', count: sellers.length },
           { id: 'reviews', label: 'Отзывы', count: reviews.length },
@@ -285,6 +394,115 @@ export default function AdminPage() {
       </div>
 
       <div className="px-4 py-4">
+        {/* Orders Tab */}
+        {activeTab === 'orders' && (
+          <div className="space-y-4">
+            {/* Stats */}
+            {ordersStats && (
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="bg-green-500/10 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-green-500">{ordersStats.paid || 0}</div>
+                  <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Оплачено</div>
+                </div>
+                <div className="bg-accent-cyan/10 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-accent-cyan">{ordersStats.delivered || 0}</div>
+                  <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Выдано</div>
+                </div>
+                <div className="bg-yellow-500/10 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-yellow-500">{(ordersStats.totalRevenue || 0).toLocaleString()}₽</div>
+                  <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Выручка</div>
+                </div>
+              </div>
+            )}
+
+            {orders.length === 0 ? (
+              <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8">
+                Заказов пока нет
+              </p>
+            ) : (
+              orders.map(order => (
+                <div
+                  key={order.id}
+                  className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-light-text dark:text-dark-text">
+                        {order.productName}
+                      </h3>
+                      {order.variantName && (
+                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                          {order.variantName}
+                        </p>
+                      )}
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}`}>
+                      {getStatusLabel(order.status)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 text-sm text-light-text-secondary dark:text-dark-text-secondary mb-3">
+                    <div className="flex justify-between">
+                      <span>Сумма:</span>
+                      <span className="font-medium text-light-text dark:text-dark-text">{order.amount.toLocaleString()}₽</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Оплата:</span>
+                      <span>{getPaymentMethodLabel(order.paymentMethod)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Покупатель:</span>
+                      <span>{order.userName || order.userUsername || order.userId}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Дата:</span>
+                      <span>{new Date(order.createdAt).toLocaleString('ru-RU')}</span>
+                    </div>
+                    {order.paidAt && (
+                      <div className="flex justify-between">
+                        <span>Оплачен:</span>
+                        <span>{new Date(order.paidAt).toLocaleString('ru-RU')}</span>
+                      </div>
+                    )}
+                    {order.deliveryData && (
+                      <div className="mt-2 p-2 bg-light-bg dark:bg-dark-bg rounded-lg">
+                        <span className="text-xs font-medium">Выданные данные:</span>
+                        <p className="text-xs break-all">{order.deliveryData}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  {order.status === 'paid' && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setDeliveringOrder(order)}
+                        className="flex-1 py-2 bg-accent-cyan text-white rounded-lg text-sm font-medium"
+                      >
+                        Выдать товар
+                      </button>
+                      <button
+                        onClick={() => handleCancelOrder(order.id)}
+                        className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm"
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  )}
+                  {order.status === 'delivered' && (
+                    <button
+                      onClick={() => handleRefundOrder(order.id)}
+                      className="w-full py-2 bg-gray-500 text-white rounded-lg text-sm font-medium"
+                    >
+                      Оформить возврат
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
         {/* Products Tab */}
         {activeTab === 'products' && (
           <div className="space-y-4">
@@ -620,6 +838,15 @@ export default function AdminPage() {
           onClose={() => setEditingPromo(null)}
         />
       )}
+
+      {/* Order Delivery Modal */}
+      {deliveringOrder && (
+        <OrderDeliveryEditor
+          order={deliveringOrder}
+          onDeliver={handleDeliverOrder}
+          onClose={() => setDeliveringOrder(null)}
+        />
+      )}
     </div>
   )
 }
@@ -923,23 +1150,61 @@ function ProductEditor({
                 <h3 className="font-bold text-light-text dark:text-dark-text">Выберите изображение</h3>
                 <button onClick={() => setShowFilePicker(false)} className="text-2xl">×</button>
               </div>
-              {uploadedFiles.filter(f => f.type.startsWith('image/')).length === 0 ? (
-                <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8">
-                  Нет загруженных изображений. Загрузите их во вкладке "Файлы".
+
+              {/* Static brand images - persistent */}
+              <div className="mb-4">
+                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mb-2">
+                  Статические (сохраняются):
                 </p>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {uploadedFiles.filter(f => f.type.startsWith('image/')).map(file => (
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { name: 'Claude', url: '/brands/claude.webp' },
+                    { name: 'OpenAI', url: '/brands/openai.webp' },
+                    { name: 'Gemini', url: '/brands/gemini.webp' },
+                    { name: 'Perplexity', url: '/brands/perp.webp' },
+                    { name: 'Adobe', url: '/brands/adobe.webp' },
+                    { name: 'Apple', url: '/brands/apple.webp' },
+                    { name: 'Spotify', url: '/brands/spotify.webp' },
+                    { name: 'NordVPN', url: '/brands/nord.webp' },
+                    { name: 'Steam', url: '/brands/steam.webp' },
+                    { name: 'Xbox', url: '/brands/xbox.webp' },
+                    { name: 'PlayStation', url: '/brands/Platstation.webp' },
+                  ].map(brand => (
                     <button
-                      key={file.id}
-                      onClick={() => selectImage(file.url)}
-                      className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-accent-cyan"
+                      key={brand.url}
+                      onClick={() => selectImage(brand.url)}
+                      className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-accent-cyan bg-light-bg dark:bg-dark-bg"
+                      title={brand.name}
                     >
-                      <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                      <img src={brand.url} alt={brand.name} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Uploaded files - temporary */}
+              {uploadedFiles.filter(f => f.type.startsWith('image/')).length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mb-2">
+                    Загруженные (временные):
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {uploadedFiles.filter(f => f.type.startsWith('image/')).map(file => (
+                      <button
+                        key={file.id}
+                        onClick={() => selectImage(file.url)}
+                        className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-accent-cyan"
+                      >
+                        <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
+
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-3 p-2 bg-yellow-500/10 rounded-lg">
+                Статические изображения сохраняются при рестарте сервера. Загруженные - только до перезагрузки.
+              </p>
             </div>
           </div>
         )}
@@ -1267,6 +1532,91 @@ function PromoEditor({
             </button>
             <button onClick={() => onSave(form)} className="flex-1 py-3 bg-accent-cyan text-white rounded-xl font-semibold">
               Сохранить
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Order Delivery Editor Component
+function OrderDeliveryEditor({
+  order,
+  onDeliver,
+  onClose
+}: {
+  order: Order
+  onDeliver: (orderId: string, deliveryData: string, deliveryNote?: string) => void
+  onClose: () => void
+}) {
+  const [deliveryData, setDeliveryData] = useState('')
+  const [deliveryNote, setDeliveryNote] = useState('')
+
+  const handleSubmit = () => {
+    if (!deliveryData.trim()) {
+      alert('Введите данные для выдачи')
+      return
+    }
+    onDeliver(order.id, deliveryData.trim(), deliveryNote.trim() || undefined)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
+      <div className="bg-light-card dark:bg-dark-card w-full rounded-t-3xl">
+        <div className="p-4 border-b border-light-border dark:border-dark-border flex justify-between items-center">
+          <h2 className="text-lg font-bold text-light-text dark:text-dark-text">Выдача товара</h2>
+          <button onClick={onClose} className="text-2xl text-light-text-secondary">×</button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* Order Info */}
+          <div className="bg-light-bg dark:bg-dark-bg rounded-xl p-3">
+            <h3 className="font-semibold text-light-text dark:text-dark-text">{order.productName}</h3>
+            {order.variantName && (
+              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{order.variantName}</p>
+            )}
+            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">
+              Покупатель: {order.userName || order.userUsername || order.userId}
+            </p>
+            <p className="text-sm font-medium text-accent-cyan mt-1">{order.amount.toLocaleString()}₽</p>
+          </div>
+
+          {/* Delivery Data */}
+          <div>
+            <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">
+              Данные для выдачи *
+            </label>
+            <textarea
+              value={deliveryData}
+              onChange={e => setDeliveryData(e.target.value)}
+              placeholder="Ключ, ссылка, логин:пароль и т.д."
+              rows={4}
+              className="w-full px-4 py-3 rounded-xl bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text"
+            />
+          </div>
+
+          {/* Delivery Note */}
+          <div>
+            <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">
+              Заметка (опционально)
+            </label>
+            <input
+              type="text"
+              value={deliveryNote}
+              onChange={e => setDeliveryNote(e.target.value)}
+              placeholder="Дополнительная информация для себя"
+              className="w-full px-4 py-3 rounded-xl bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-4">
+            <button onClick={onClose} className="flex-1 py-3 bg-gray-500 text-white rounded-xl font-semibold">
+              Отмена
+            </button>
+            <button onClick={handleSubmit} className="flex-1 py-3 bg-accent-cyan text-white rounded-xl font-semibold">
+              Выдать товар
             </button>
           </div>
         </div>

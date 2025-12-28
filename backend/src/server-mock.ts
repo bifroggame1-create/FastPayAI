@@ -10,7 +10,11 @@ dotenv.config({ path: path.join(__dirname, '../.env') })
 // NOW import modules that depend on environment variables
 import { cryptoBot } from './cryptobot'
 import { cactusPay, PaymentMethod } from './cactuspay'
-import { loadProducts, saveProducts, loadPromoCodes, savePromoCodes } from './dataStore'
+import {
+  loadProducts, saveProducts, loadPromoCodes, savePromoCodes,
+  loadOrders, saveOrders, addOrder, updateOrder, getOrderById,
+  Order, OrderStatus
+} from './dataStore'
 import { searchProducts, getSearchSuggestions } from './searchUtils'
 import { convertRubToCrypto, CryptoAsset } from './cryptoConverter'
 
@@ -1057,6 +1061,150 @@ async function start() {
       return { success: true, seller: updates }
     })
 
+    // ========== ADMIN ORDERS API ==========
+
+    // Get all orders (with optional filters)
+    fastify.get('/admin/orders', async (request) => {
+      const { status, userId, limit = 50, offset = 0 } = request.query as any
+      let orders = loadOrders()
+
+      // Apply filters
+      if (status) {
+        orders = orders.filter(o => o.status === status)
+      }
+      if (userId) {
+        orders = orders.filter(o => o.userId === userId)
+      }
+
+      // Apply pagination
+      const total = orders.length
+      const paginatedOrders = orders.slice(Number(offset), Number(offset) + Number(limit))
+
+      return {
+        success: true,
+        orders: paginatedOrders,
+        total,
+        limit: Number(limit),
+        offset: Number(offset)
+      }
+    })
+
+    // Get orders stats (must be before :id route)
+    fastify.get('/admin/orders/stats', async () => {
+      const orders = loadOrders()
+
+      const stats = {
+        total: orders.length,
+        pending: orders.filter(o => o.status === 'pending').length,
+        paid: orders.filter(o => o.status === 'paid').length,
+        processing: orders.filter(o => o.status === 'processing').length,
+        delivered: orders.filter(o => o.status === 'delivered').length,
+        cancelled: orders.filter(o => o.status === 'cancelled').length,
+        refunded: orders.filter(o => o.status === 'refunded').length,
+        totalRevenue: orders
+          .filter(o => ['paid', 'processing', 'delivered'].includes(o.status))
+          .reduce((sum, o) => sum + o.amount, 0)
+      }
+
+      return { success: true, stats }
+    })
+
+    // Get single order by ID
+    fastify.get('/admin/orders/:id', async (request) => {
+      const { id } = request.params as any
+      const order = getOrderById(id)
+
+      if (!order) {
+        return { success: false, error: 'Order not found' }
+      }
+
+      return { success: true, order }
+    })
+
+    // Update order status
+    fastify.put('/admin/orders/:id/status', async (request) => {
+      const { id } = request.params as any
+      const { status } = request.body as any
+
+      if (!status) {
+        return { success: false, error: 'Status is required' }
+      }
+
+      const validStatuses: OrderStatus[] = ['pending', 'paid', 'processing', 'delivered', 'cancelled', 'refunded']
+      if (!validStatuses.includes(status)) {
+        return { success: false, error: 'Invalid status' }
+      }
+
+      const updates: Partial<Order> = { status }
+      if (status === 'delivered') {
+        updates.deliveredAt = new Date().toISOString()
+      }
+
+      const updatedOrder = updateOrder(id, updates)
+      if (!updatedOrder) {
+        return { success: false, error: 'Order not found' }
+      }
+
+      return { success: true, order: updatedOrder }
+    })
+
+    // Deliver order (set delivery data and mark as delivered)
+    fastify.post('/admin/orders/:id/deliver', async (request) => {
+      const { id } = request.params as any
+      const { deliveryData, deliveryNote } = request.body as any
+
+      if (!deliveryData) {
+        return { success: false, error: 'Delivery data is required' }
+      }
+
+      const updatedOrder = updateOrder(id, {
+        status: 'delivered',
+        deliveryData,
+        deliveryNote,
+        deliveredAt: new Date().toISOString()
+      })
+
+      if (!updatedOrder) {
+        return { success: false, error: 'Order not found' }
+      }
+
+      console.log('Order delivered:', id, { deliveryData, deliveryNote })
+
+      return { success: true, order: updatedOrder }
+    })
+
+    // Cancel order
+    fastify.post('/admin/orders/:id/cancel', async (request) => {
+      const { id } = request.params as any
+
+      const updatedOrder = updateOrder(id, {
+        status: 'cancelled'
+      })
+
+      if (!updatedOrder) {
+        return { success: false, error: 'Order not found' }
+      }
+
+      return { success: true, order: updatedOrder }
+    })
+
+    // Refund order
+    fastify.post('/admin/orders/:id/refund', async (request) => {
+      const { id } = request.params as any
+
+      const updatedOrder = updateOrder(id, {
+        status: 'refunded'
+      })
+
+      if (!updatedOrder) {
+        return { success: false, error: 'Order not found' }
+      }
+
+      return { success: true, order: updatedOrder }
+    })
+
+    // ========== END ADMIN ORDERS API ==========
+
     fastify.get('/users/:id', async (request) => {
       const { id } = request.params as any
       const user = mockUsers.find(u => u.id === id)
@@ -1175,9 +1323,9 @@ async function start() {
     // CryptoBot Payment endpoints
     fastify.post('/payment/create-invoice', async (request, reply) => {
       try {
-        const { amount, description, productId, variantId, asset } = request.body as any
+        const { amount, description, productId, variantId, asset, userId, userName, userUsername } = request.body as any
 
-        console.log('Payment request received:', { amount, description, productId, variantId, asset })
+        console.log('Payment request received:', { amount, description, productId, variantId, asset, userId })
 
         // Validate inputs
         if (!amount || amount <= 0) {
@@ -1204,6 +1352,13 @@ async function start() {
           }
         }
 
+        // Get product info for order
+        const product = mockProducts.find(p => p._id === productId)
+        const variant = product?.variants?.find((v: any) => v.id === variantId)
+
+        // Generate order ID
+        const orderId = `ord_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
+
         // Create invoice
         console.log('Creating CryptoBot invoice...')
         const frontendUrl = process.env.FRONTEND_URL || 'https://fast-pay-ai.vercel.app'
@@ -1212,14 +1367,34 @@ async function start() {
           amount: cryptoAmount,
           description: description || 'Оплата заказа FastPay',
           paid_btn_name: 'callback',
-          paid_btn_url: `${frontendUrl}/payment/success`,
-          payload: JSON.stringify({ productId, variantId }),
+          paid_btn_url: `${frontendUrl}/payment/success?orderId=${orderId}`,
+          payload: JSON.stringify({ productId, variantId, orderId }),
           allow_comments: false,
           allow_anonymous: true,
           expires_in: 3600,
         })
 
         console.log('Invoice created successfully:', invoice.invoice_id)
+
+        // Create pending order
+        const order: Order = {
+          id: orderId,
+          oderId: String(invoice.invoice_id),
+          userId: userId || 'anonymous',
+          userName: userName,
+          userUsername: userUsername,
+          productId: productId,
+          productName: product?.name || 'Unknown',
+          variantId: variantId,
+          variantName: variant?.name,
+          amount: amount,
+          paymentMethod: 'cryptobot',
+          paymentId: String(invoice.invoice_id),
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+        }
+        addOrder(order)
+        console.log('Order created:', orderId)
 
         return {
           success: true,
@@ -1230,7 +1405,8 @@ async function start() {
             amount: invoice.amount,
             asset: invoice.asset,
             status: invoice.status,
-          }
+          },
+          orderId
         }
       } catch (error: any) {
         const tokenInfo = cryptoBot.getTokenInfo()
@@ -1323,12 +1499,23 @@ async function start() {
             asset: invoice.asset,
             productId: payload.productId,
             variantId: payload.variantId,
+            orderId: payload.orderId,
           })
 
-          // TODO: Here you would:
-          // 1. Save the payment to database
-          // 2. Send the product/service to the user
-          // 3. Send notification to user via Telegram bot
+          // Update order status to paid
+          if (payload.orderId) {
+            const updatedOrder = updateOrder(payload.orderId, {
+              status: 'paid',
+              paidAt: new Date().toISOString(),
+            })
+            if (updatedOrder) {
+              console.log(`✅ Order ${payload.orderId} marked as paid`)
+            } else {
+              console.warn(`⚠️ Order ${payload.orderId} not found`)
+            }
+          }
+
+          // TODO: Send notification to user via Telegram bot
         }
 
         return { success: true }
@@ -1375,9 +1562,9 @@ async function start() {
     // Create CactusPay payment
     fastify.post('/payment/cactuspay/create', async (request, reply) => {
       try {
-        const { amount, description, productId, variantId, method, userIp } = request.body as any
+        const { amount, description, productId, variantId, method, userIp, userId, userName, userUsername } = request.body as any
 
-        console.log('CactusPay payment request:', { amount, description, productId, variantId, method })
+        console.log('CactusPay payment request:', { amount, description, productId, variantId, method, userId })
 
         if (!amount || amount <= 0) {
           reply.code(400)
@@ -1399,8 +1586,15 @@ async function start() {
           }
         }
 
+        // Get product info for order
+        const product = mockProducts.find(p => p._id === productId)
+        const variant = product?.variants?.find((v: any) => v.id === variantId)
+
         // Generate unique order ID
         const orderId = `fp_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
+
+        // Determine payment method type
+        const paymentMethodType = method === 'sbp' ? 'cactuspay-sbp' : 'cactuspay-card'
 
         // Create payment
         const result = await cactusPay.createPayment({
@@ -1413,6 +1607,26 @@ async function start() {
 
         if (result.status === 'success' && result.response) {
           console.log('CactusPay payment created:', orderId)
+
+          // Create pending order
+          const order: Order = {
+            id: orderId,
+            oderId: orderId,
+            userId: userId || 'anonymous',
+            userName: userName,
+            userUsername: userUsername,
+            productId: productId,
+            productName: product?.name || 'Unknown',
+            variantId: variantId,
+            variantName: variant?.name,
+            amount: amount,
+            paymentMethod: paymentMethodType as any,
+            paymentId: orderId,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+          }
+          addOrder(order)
+          console.log('Order created:', orderId)
 
           return {
             success: true,
@@ -1487,10 +1701,18 @@ async function start() {
             cactusPayId: id
           })
 
-          // TODO: Here you would:
-          // 1. Save the payment to database
-          // 2. Send the product/service to the user
-          // 3. Send notification to user via Telegram bot
+          // Update order status to paid
+          const updatedOrder = updateOrder(order_id, {
+            status: 'paid',
+            paymentId: String(id),
+            paidAt: new Date().toISOString()
+          })
+
+          if (updatedOrder) {
+            console.log('Order updated to paid:', updatedOrder.id)
+          } else {
+            console.warn('Order not found for update:', order_id)
+          }
         }
 
         return { success: true }

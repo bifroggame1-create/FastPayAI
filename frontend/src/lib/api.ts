@@ -168,6 +168,42 @@ export const adminApi = {
     const { data } = await api.delete(`/admin/promo/${code}`)
     return data
   },
+
+  // Orders
+  getOrders: async (params?: { status?: string; userId?: string; limit?: number; offset?: number }) => {
+    const { data } = await api.get('/admin/orders', { params })
+    return data
+  },
+
+  getOrder: async (id: string) => {
+    const { data } = await api.get(`/admin/orders/${id}`)
+    return data
+  },
+
+  updateOrderStatus: async (id: string, status: string) => {
+    const { data } = await api.put(`/admin/orders/${id}/status`, { status })
+    return data
+  },
+
+  deliverOrder: async (id: string, deliveryData: string, deliveryNote?: string) => {
+    const { data } = await api.post(`/admin/orders/${id}/deliver`, { deliveryData, deliveryNote })
+    return data
+  },
+
+  cancelOrder: async (id: string) => {
+    const { data } = await api.post(`/admin/orders/${id}/cancel`)
+    return data
+  },
+
+  refundOrder: async (id: string) => {
+    const { data } = await api.post(`/admin/orders/${id}/refund`)
+    return data
+  },
+
+  getOrdersStats: async () => {
+    const { data } = await api.get('/admin/orders/stats')
+    return data
+  },
 }
 
 export const chatApi = {
