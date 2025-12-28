@@ -3,12 +3,10 @@ import { getReviewsCollection, getOrdersCollection, getProductsCollection, Revie
 import { logger } from '../logger'
 
 export async function reviewRoutes(fastify: FastifyInstance) {
-  const reviews = getReviewsCollection()
-  const orders = getOrdersCollection()
-  const products = getProductsCollection()
-
   // Get reviews for a product
   fastify.get('/reviews/product/:productId', async (request, reply) => {
+    const reviews = getReviewsCollection()
+
     try {
       const { productId } = request.params as { productId: string }
 
@@ -40,6 +38,8 @@ export async function reviewRoutes(fastify: FastifyInstance) {
 
   // Get reviews by a user
   fastify.get('/reviews/user/:userId', async (request, reply) => {
+    const reviews = getReviewsCollection()
+
     try {
       const { userId } = request.params as { userId: string }
 
@@ -70,6 +70,9 @@ export async function reviewRoutes(fastify: FastifyInstance) {
 
   // Check if user can review a product
   fastify.get('/reviews/can-review/:userId/:productId', async (request, reply) => {
+    const reviews = getReviewsCollection()
+    const orders = getOrdersCollection()
+
     try {
       const { userId, productId } = request.params as { userId: string; productId: string }
 
@@ -107,6 +110,10 @@ export async function reviewRoutes(fastify: FastifyInstance) {
 
   // Create a review
   fastify.post('/reviews', async (request, reply) => {
+    const reviews = getReviewsCollection()
+    const orders = getOrdersCollection()
+    const products = getProductsCollection()
+
     try {
       const { productId, userId, userName, userAvatar, rating, text, orderId } = request.body as {
         productId: string
@@ -202,6 +209,8 @@ export async function reviewRoutes(fastify: FastifyInstance) {
 
   // Get average rating for a product
   fastify.get('/reviews/product/:productId/stats', async (request, reply) => {
+    const reviews = getReviewsCollection()
+
     try {
       const { productId } = request.params as { productId: string }
 

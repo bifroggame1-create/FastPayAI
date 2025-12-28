@@ -11,11 +11,11 @@ function generateReferralCode(userId: string): string {
 }
 
 export async function referralRoutes(fastify: FastifyInstance) {
-  const users = getUsersCollection()
-  const referrals = getReferralsCollection()
-
   // Track a new referral
   fastify.post('/referral/track', async (request, reply) => {
+    const users = getUsersCollection()
+    const referrals = getReferralsCollection()
+
     try {
       const { userId, referrerId } = request.body as { userId: string; referrerId: string }
 
@@ -96,6 +96,9 @@ export async function referralRoutes(fastify: FastifyInstance) {
 
   // Get referral stats for a user
   fastify.get('/referral/stats/:userId', async (request, reply) => {
+    const users = getUsersCollection()
+    const referrals = getReferralsCollection()
+
     try {
       const { userId } = request.params as { userId: string }
 
@@ -137,6 +140,9 @@ export async function referralRoutes(fastify: FastifyInstance) {
 
   // Get list of referred users
   fastify.get('/referral/list/:userId', async (request, reply) => {
+    const users = getUsersCollection()
+    const referrals = getReferralsCollection()
+
     try {
       const { userId } = request.params as { userId: string }
 
@@ -178,6 +184,8 @@ export async function referralRoutes(fastify: FastifyInstance) {
 
   // Use bonus balance (for checkout)
   fastify.post('/referral/use-bonus', async (request, reply) => {
+    const users = getUsersCollection()
+
     try {
       const { userId, amount } = request.body as { userId: string; amount: number }
 
