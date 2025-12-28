@@ -9,7 +9,7 @@ import { ProductDetailSkeleton } from '@/components/Skeleton'
 import { Product, ProductVariant } from '@/types'
 import { productsApi, chatApi } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
-import { getTelegramUser } from '@/lib/telegram'
+import { getTelegramUser, hapticNotification, hapticImpact } from '@/lib/telegram'
 import { useToast } from '@/components/Toast'
 
 export default function ProductDetailPage() {
@@ -310,6 +310,7 @@ export default function ProductDetailPage() {
         <div className="flex gap-3">
           <button
             onClick={() => {
+              hapticNotification('success')
               addToCart({
                 productId: product._id,
                 productName: product.name,
@@ -340,7 +341,10 @@ export default function ProductDetailPage() {
             Купить за {(selectedVariant?.price || product.price).toLocaleString('ru-RU')} ₽
           </button>
           <button
-            onClick={() => toggleFavorite(product._id)}
+            onClick={() => {
+              hapticImpact('light')
+              toggleFavorite(product._id)
+            }}
             className="px-4 py-4 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl hover:bg-light-border dark:hover:bg-dark-border transition-colors"
           >
             <svg

@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { formatPrice } from '@/lib/currency'
 import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
+import { hapticImpact, hapticNotification } from '@/lib/telegram'
 
 interface ProductCardProps {
   product: Product
@@ -22,6 +23,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation()
+    hapticNotification('success')
     addToCart({
       productId: product._id,
       productName: product.name,
@@ -34,6 +36,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation()
+    hapticImpact('light')
     toggleFavorite(product._id)
   }
 

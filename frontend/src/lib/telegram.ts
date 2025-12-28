@@ -26,6 +26,11 @@ declare global {
           onClick: (callback: () => void) => void
           offClick: (callback: () => void) => void
         }
+        HapticFeedback: {
+          impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void
+          notificationOccurred: (type: 'error' | 'success' | 'warning') => void
+          selectionChanged: () => void
+        }
         initData: string
         initDataUnsafe: {
           user?: {
@@ -96,5 +101,33 @@ export const initTelegramWebApp = () => {
   // Set theme colors
   if (webApp.colorScheme === 'dark') {
     document.documentElement.classList.add('dark')
+  }
+}
+
+// Haptic feedback functions
+export const hapticImpact = (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft' = 'light') => {
+  try {
+    const webApp = useTelegramWebApp()
+    webApp?.HapticFeedback?.impactOccurred(style)
+  } catch (e) {
+    // Silently fail if haptic feedback is not available
+  }
+}
+
+export const hapticNotification = (type: 'error' | 'success' | 'warning') => {
+  try {
+    const webApp = useTelegramWebApp()
+    webApp?.HapticFeedback?.notificationOccurred(type)
+  } catch (e) {
+    // Silently fail if haptic feedback is not available
+  }
+}
+
+export const hapticSelection = () => {
+  try {
+    const webApp = useTelegramWebApp()
+    webApp?.HapticFeedback?.selectionChanged()
+  } catch (e) {
+    // Silently fail if haptic feedback is not available
   }
 }
