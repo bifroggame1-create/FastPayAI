@@ -3,22 +3,87 @@
 import { useEffect, useState } from 'react'
 import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
-import { useAppStore } from '@/lib/store'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns/format'
 import { ru } from 'date-fns/locale/ru'
+import { getTelegramUser } from '@/lib/telegram'
+import { userApi } from '@/lib/api'
+
+interface UserProfile {
+  id: string
+  name: string
+  username?: string
+  avatar?: string
+  joinedAt?: string
+  bonusBalance?: number
+  referralCode?: string
+  referralCount?: number
+  stats?: {
+    rating: number
+    reviewsCount: number
+    ordersCount: number
+    returnsCount: number
+  }
+}
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { user } = useAppStore()
+  const [user, setUser] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  if (!user) {
+  useEffect(() => {
+    loadUserProfile()
+  }, [])
+
+  const loadUserProfile = async () => {
+    try {
+      const telegramUser = getTelegramUser()
+      if (telegramUser) {
+        // Try to get user from backend
+        try {
+          const userData = await userApi.getById(telegramUser.id)
+          setUser({
+            ...userData,
+            id: telegramUser.id,
+            name: userData.name || telegramUser.name,
+            avatar: userData.avatar || telegramUser.avatar,
+            stats: userData.stats || { rating: 5.0, reviewsCount: 0, ordersCount: 0, returnsCount: 0 }
+          })
+        } catch {
+          // Use telegram user data as fallback
+          setUser({
+            id: telegramUser.id,
+            name: telegramUser.name,
+            username: telegramUser.username,
+            avatar: telegramUser.avatar,
+            stats: { rating: 5.0, reviewsCount: 0, ordersCount: 0, returnsCount: 0 }
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-cyan"></div>
       </div>
     )
   }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
+        <p className="text-light-text-secondary dark:text-dark-text-secondary">Не удалось загрузить профиль</p>
+      </div>
+    )
+  }
+
+  const stats = user.stats || { rating: 5.0, reviewsCount: 0, ordersCount: 0, returnsCount: 0 }
 
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
@@ -37,9 +102,11 @@ export default function ProfilePage() {
           />
           <div>
             <h2 className="text-xl font-semibold text-light-text dark:text-dark-text">{user.name}</h2>
-            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-              На платформе с {format(new Date(user.joinedAt), 'd MMM. yyyy', { locale: ru })}
-            </p>
+            {user.joinedAt && (
+              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                На платформе с {format(new Date(user.joinedAt), 'd MMM. yyyy', { locale: ru })}
+              </p>
+            )}
           </div>
         </div>
 
@@ -59,9 +126,9 @@ export default function ProfilePage() {
               <svg className="w-5 h-5 text-yellow-500 fill-current" viewBox="0 0 20 20">
                 <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
               </svg>
-              <span className="text-lg font-semibold text-light-text dark:text-dark-text">{user.stats.rating.toFixed(1)}</span>
+              <span className="text-lg font-semibold text-light-text dark:text-dark-text">{stats.rating.toFixed(1)}</span>
             </div>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{user.stats.reviewsCount} отзывов</p>
+            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{stats.reviewsCount} отзывов</p>
           </div>
 
           <div className="text-center">
@@ -69,7 +136,7 @@ export default function ProfilePage() {
               <svg className="w-5 h-5 text-light-text-secondary dark:text-dark-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
-              <span className="text-lg font-semibold text-light-text dark:text-dark-text">{user.stats.ordersCount}</span>
+              <span className="text-lg font-semibold text-light-text dark:text-dark-text">{stats.ordersCount}</span>
             </div>
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">заказов</p>
           </div>
@@ -79,7 +146,7 @@ export default function ProfilePage() {
               <svg className="w-5 h-5 text-light-text-secondary dark:text-dark-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
               </svg>
-              <span className="text-lg font-semibold text-light-text dark:text-dark-text">{user.stats.returnsCount}</span>
+              <span className="text-lg font-semibold text-light-text dark:text-dark-text">{stats.returnsCount}</span>
             </div>
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">возвратов</p>
           </div>
