@@ -77,7 +77,7 @@ export default function SearchBar() {
       <div className="px-4 py-3 sticky top-[57px] bg-light-bg dark:bg-dark-bg z-30">
         <div className="flex items-center gap-2">
           {/* Logo */}
-          <div className="h-16 w-16 flex-shrink-0 rounded-xl overflow-hidden bg-white dark:bg-white p-1">
+          <div className="h-[46px] w-[46px] flex-shrink-0 rounded-lg overflow-hidden bg-white p-1.5">
             <img
               src="/logo.svg"
               alt="FastPay"
@@ -88,12 +88,11 @@ export default function SearchBar() {
           {/* Catalog Button */}
           <button
             onClick={() => setIsCatalogOpen(!isCatalogOpen)}
-            className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-4 py-3 rounded-lg font-medium transition-all flex-shrink-0"
+            className="flex items-center justify-center h-[46px] w-[46px] bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg font-medium transition-all flex-shrink-0"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M4 4h7v7H4V4zm0 9h7v7H4v-7zm9-9h7v7h-7V4zm0 9h7v7h-7v-7z" />
             </svg>
-            <span className="hidden sm:inline">{t('catalog', language)}</span>
           </button>
 
           {/* Search Input */}
