@@ -7,9 +7,20 @@ import { useAppStore } from '@/lib/store'
 import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi } from '@/lib/api'
 
-const ADMIN_IDS = ['1301598469']
+// Bootstrap admin IDs - always have access even if API fails
+const BOOTSTRAP_ADMIN_IDS = ['1301598469']
 
-type Tab = 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'orders'
+type Tab = 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'orders' | 'admins'
+
+interface Admin {
+  id: string
+  oderId?: string
+  userId?: string
+  username?: string
+  name?: string
+  addedAt: string
+  addedBy?: string
+}
 
 type OrderStatus = 'pending' | 'paid' | 'processing' | 'delivered' | 'cancelled' | 'refunded'
 
@@ -84,10 +95,13 @@ export default function AdminPage() {
   const [isAddingNew, setIsAddingNew] = useState(false)
 
   // Sellers state
-  const [sellers, setSellers] = useState<Seller[]>([
-    { id: '1301598469', name: 'FastPay', avatar: '/fastpay-avatar.png', rating: 5.0, isVerified: true }
-  ])
+  const [sellers, setSellers] = useState<Seller[]>([])
   const [editingSeller, setEditingSeller] = useState<Seller | null>(null)
+
+  // Admins state
+  const [admins, setAdmins] = useState<Admin[]>([])
+  const [newAdminInput, setNewAdminInput] = useState('')
+  const [newAdminName, setNewAdminName] = useState('')
 
   // Reviews state
   const [reviews, setReviews] = useState<Review[]>([])
@@ -106,9 +120,9 @@ export default function AdminPage() {
   const [ordersStats, setOrdersStats] = useState<any>(null)
 
   useEffect(() => {
-    // Check admin access
+    // Check admin access - bootstrap admins always have access
     const userId = user?.id || (typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() : null)
-    const hasAccess = !!(userId && ADMIN_IDS.includes(userId))
+    const hasAccess = !!(userId && BOOTSTRAP_ADMIN_IDS.includes(userId))
     setIsAdmin(hasAccess)
 
     if (hasAccess) {
@@ -120,16 +134,20 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, promoData, ordersData, statsData] = await Promise.all([
+      const [productsData, promoData, ordersData, statsData, sellersData, adminsData] = await Promise.all([
         productsApi.getAll({}),
         adminApi.getPromoCodes().catch(() => []),
         adminApi.getOrders().catch(() => ({ orders: [], total: 0 })),
-        adminApi.getOrdersStats().catch(() => ({ stats: {} }))
+        adminApi.getOrdersStats().catch(() => ({ stats: {} })),
+        adminApi.getSellers().catch(() => []),
+        adminApi.getAdmins().catch(() => [])
       ])
       setProducts(productsData)
       setPromoCodes(promoData || [])
       setOrders(ordersData.orders || [])
       setOrdersStats(statsData.stats || {})
+      setSellers(sellersData || [])
+      setAdmins(adminsData || [])
 
       // Load files from localStorage
       const savedFiles = localStorage.getItem('admin-files')
@@ -188,8 +206,8 @@ export default function AdminPage() {
         await adminApi.updateSeller(seller.id, seller)
         setSellers(sellers.map(s => s.id === seller.id ? seller : s))
       } else {
-        await adminApi.createSeller(seller)
-        setSellers([...sellers, { ...seller, id: seller.id || String(Date.now()) }])
+        const result = await adminApi.createSeller(seller)
+        setSellers([...sellers, result.seller || { ...seller, id: seller.id || String(Date.now()) }])
       }
       setEditingSeller(null)
       alert('Продавец сохранён')
@@ -199,6 +217,58 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Error saving seller:', error)
       alert('Ошибка сохранения продавца')
+    }
+  }
+
+  const handleDeleteSeller = async (sellerId: string) => {
+    if (!confirm('Удалить продавца?')) return
+    try {
+      await adminApi.deleteSeller(sellerId)
+      setSellers(sellers.filter(s => s.id !== sellerId))
+      alert('Продавец удалён')
+    } catch (error) {
+      console.error('Error deleting seller:', error)
+      alert('Ошибка удаления продавца')
+    }
+  }
+
+  // Admin handlers
+  const handleAddAdmin = async () => {
+    const input = newAdminInput.trim()
+    if (!input) {
+      alert('Введите user_id или @username')
+      return
+    }
+
+    try {
+      const isUsername = input.startsWith('@')
+      const result = await adminApi.addAdmin({
+        userId: isUsername ? undefined : input,
+        username: isUsername ? input.substring(1) : undefined,
+        name: newAdminName.trim() || undefined
+      })
+
+      if (result.success) {
+        setAdmins([...admins, result.admin])
+        setNewAdminInput('')
+        setNewAdminName('')
+        alert('Админ добавлен')
+      }
+    } catch (error: any) {
+      console.error('Error adding admin:', error)
+      alert(error.response?.data?.message || 'Ошибка добавления админа')
+    }
+  }
+
+  const handleRemoveAdmin = async (adminId: string) => {
+    if (!confirm('Удалить админа?')) return
+    try {
+      await adminApi.removeAdmin(adminId)
+      setAdmins(admins.filter(a => a.id !== adminId))
+      alert('Админ удалён')
+    } catch (error) {
+      console.error('Error removing admin:', error)
+      alert('Ошибка удаления админа')
     }
   }
 
@@ -401,6 +471,7 @@ export default function AdminPage() {
           { id: 'orders', label: 'Заказы', count: orders.length },
           { id: 'products', label: 'Товары', count: products.length },
           { id: 'sellers', label: 'Продавцы', count: sellers.length },
+          { id: 'admins', label: 'Админы', count: admins.length },
           { id: 'reviews', label: 'Отзывы', count: reviews.length },
           { id: 'promo', label: 'Промокоды', count: promoCodes.length },
           { id: 'files', label: 'Файлы', count: uploadedFiles.length },
@@ -615,37 +686,127 @@ export default function AdminPage() {
               + Добавить продавца
             </button>
 
-            {sellers.map(seller => (
-              <div
-                key={seller.id}
-                className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border flex items-center gap-3"
-              >
-                <img
-                  src={seller.avatar || '/default-avatar.png'}
-                  alt={seller.name}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-1">
-                    <h3 className="font-semibold text-light-text dark:text-dark-text">{seller.name}</h3>
-                    {seller.isVerified && (
-                      <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                  </div>
-                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    ID: {seller.id} • Рейтинг: {seller.rating}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setEditingSeller(seller)}
-                  className="px-3 py-1 bg-accent-blue text-white rounded-lg text-sm"
+            {sellers.length === 0 ? (
+              <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8">
+                Продавцов пока нет
+              </p>
+            ) : (
+              sellers.map(seller => (
+                <div
+                  key={seller.id}
+                  className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border flex items-center gap-3"
                 >
-                  Изменить
-                </button>
+                  <img
+                    src={seller.avatar || '/default-avatar.png'}
+                    alt={seller.name}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1">
+                      <h3 className="font-semibold text-light-text dark:text-dark-text">{seller.name}</h3>
+                      {seller.isVerified && (
+                        <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      )}
+                    </div>
+                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                      ID: {seller.id} • Рейтинг: {seller.rating}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setEditingSeller(seller)}
+                      className="px-3 py-1 bg-accent-blue text-white rounded-lg text-sm"
+                    >
+                      Изменить
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSeller(seller.id)}
+                      className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm"
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Admins Tab */}
+        {activeTab === 'admins' && (
+          <div className="space-y-4">
+            {/* Add Admin Form */}
+            <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border space-y-3">
+              <h3 className="font-semibold text-light-text dark:text-dark-text">Добавить админа</h3>
+              <div>
+                <label className="block text-sm text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                  User ID или @username
+                </label>
+                <input
+                  type="text"
+                  value={newAdminInput}
+                  onChange={e => setNewAdminInput(e.target.value)}
+                  placeholder="1234567890 или @username"
+                  className="w-full px-4 py-3 rounded-xl bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text"
+                />
               </div>
-            ))}
+              <div>
+                <label className="block text-sm text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                  Имя (опционально)
+                </label>
+                <input
+                  type="text"
+                  value={newAdminName}
+                  onChange={e => setNewAdminName(e.target.value)}
+                  placeholder="Иван Иванов"
+                  className="w-full px-4 py-3 rounded-xl bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text"
+                />
+              </div>
+              <button
+                onClick={handleAddAdmin}
+                className="w-full py-3 bg-accent-cyan text-white rounded-xl font-semibold"
+              >
+                + Добавить админа
+              </button>
+            </div>
+
+            {/* Admins List */}
+            {admins.length === 0 ? (
+              <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8">
+                Админов пока нет. Добавьте первого админа выше.
+              </p>
+            ) : (
+              admins.map(admin => (
+                <div
+                  key={admin.id}
+                  className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-light-text dark:text-dark-text">
+                        {admin.name || 'Без имени'}
+                      </h3>
+                      <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                        {admin.userId && `ID: ${admin.userId}`}
+                        {admin.userId && admin.username && ' • '}
+                        {admin.username && `@${admin.username}`}
+                      </p>
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                        Добавлен: {new Date(admin.addedAt).toLocaleDateString('ru-RU')}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveAdmin(admin.id)}
+                      className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm"
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 

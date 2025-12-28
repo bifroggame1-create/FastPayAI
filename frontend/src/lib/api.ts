@@ -148,6 +148,27 @@ export const adminApi = {
     return data
   },
 
+  deleteSeller: async (id: string) => {
+    const { data } = await api.delete(`/admin/sellers/${id}`)
+    return data
+  },
+
+  // Admins
+  getAdmins: async () => {
+    const { data } = await api.get('/admin/admins')
+    return data
+  },
+
+  addAdmin: async (admin: { userId?: string; username?: string; name?: string }) => {
+    const { data } = await api.post('/admin/admins', admin)
+    return data
+  },
+
+  removeAdmin: async (id: string) => {
+    const { data } = await api.delete(`/admin/admins/${id}`)
+    return data
+  },
+
   // Promo
   getPromoCodes: async () => {
     const { data } = await api.get('/admin/promo')
