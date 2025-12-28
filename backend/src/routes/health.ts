@@ -30,10 +30,24 @@ export async function healthRoutes(fastify: FastifyInstance) {
     status: 'ok',
     timestamp: new Date().toISOString(),
     mode: 'production',
-    version: '2.0.0',
+    version: '2.1.0',
+    buildTime: '2024-12-29T01:00:00Z',
     cache: {
       enabled: redis.isEnabled(),
       type: 'redis'
     }
   }))
+
+  // Debug route to list all registered routes
+  fastify.get('/health/routes', async () => {
+    const routes: string[] = []
+    fastify.printRoutes({ includeHooks: false, commonPrefix: false }).split('\n').forEach(line => {
+      if (line.trim()) routes.push(line.trim())
+    })
+    return {
+      status: 'ok',
+      routeCount: routes.length,
+      routes
+    }
+  })
 }

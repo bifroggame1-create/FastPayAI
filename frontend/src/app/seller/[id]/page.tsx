@@ -7,14 +7,13 @@ import ProductCard from '@/components/ProductCard'
 import BottomNav from '@/components/BottomNav'
 import { User, Product } from '@/types'
 import { userApi, productsApi, chatApi } from '@/lib/api'
-import { useAppStore } from '@/lib/store'
+import { getTelegramUser } from '@/lib/telegram'
 import { format } from 'date-fns/format'
 import { ru } from 'date-fns/locale/ru'
 
 export default function SellerProfilePage() {
   const params = useParams()
   const router = useRouter()
-  const { user } = useAppStore()
   const [seller, setSeller] = useState<User | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -41,14 +40,22 @@ export default function SellerProfilePage() {
   }
 
   const handleWriteMessage = async () => {
-    if (!user || !seller) return
+    if (!seller) return
+
+    // Get Telegram user data
+    const telegramUser = getTelegramUser()
+    const buyerId = telegramUser?.id || 'anonymous'
+
+    if (buyerId === 'anonymous') {
+      console.warn('No Telegram user found for chat creation')
+    }
 
     try {
       // Create or open chat with seller
       const response = await chatApi.createChat({
-        buyerId: user.id,
+        buyerId: buyerId,
         sellerId: seller.id,
-        productId: products[0]?._id || '',
+        productId: products[0]?._id || 'general',
         productName: products[0]?.name || 'Общий вопрос'
       })
 

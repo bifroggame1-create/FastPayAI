@@ -54,20 +54,33 @@ export default function ProductDetailPage() {
 
     try {
       const user = getTelegramUser()
-      const buyerId = user?.id || 'dev_user'
+      const buyerId = user?.id || 'anonymous'
+
+      if (buyerId === 'anonymous') {
+        console.warn('No Telegram user found for chat creation')
+      }
+
+      const productId = product._id || (params.id as string)
+      if (!productId) {
+        toast.show('Не удалось создать чат', 'error')
+        return
+      }
 
       const response = await chatApi.createChat({
         buyerId,
         sellerId: product.seller.id,
-        productId: product._id,
+        productId,
         productName: product.name
       })
 
       if (response.success && response.chat) {
         router.push(`/chats/${response.chat.id}`)
+      } else {
+        toast.show('Не удалось создать чат', 'error')
       }
     } catch (error) {
       console.error('Error creating chat:', error)
+      toast.show('Ошибка при создании чата', 'error')
     }
   }
 
