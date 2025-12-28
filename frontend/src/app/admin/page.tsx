@@ -680,7 +680,7 @@ export default function AdminPage() {
         {activeTab === 'sellers' && (
           <div className="space-y-4">
             <button
-              onClick={() => setEditingSeller({ id: '', name: '', avatar: '/fastpay-avatar.png', rating: 5.0 })}
+              onClick={() => setEditingSeller({ id: '', name: '', avatar: '', rating: 5.0, isVerified: false })}
               className="w-full py-3 bg-accent-cyan text-white rounded-xl font-semibold"
             >
               + Добавить продавца
@@ -1009,6 +1009,7 @@ export default function AdminPage() {
           uploadedFiles={uploadedFiles}
           onSave={handleSaveSeller}
           onClose={() => setEditingSeller(null)}
+          isNew={!editingSeller.id}
         />
       )}
 
@@ -1410,12 +1411,14 @@ function SellerEditor({
   seller,
   uploadedFiles,
   onSave,
-  onClose
+  onClose,
+  isNew
 }: {
   seller: Seller
   uploadedFiles: UploadedFile[]
   onSave: (seller: Seller) => void
   onClose: () => void
+  isNew: boolean
 }) {
   const [form, setForm] = useState(seller)
   const [showFilePicker, setShowFilePicker] = useState(false)
@@ -1429,7 +1432,9 @@ function SellerEditor({
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
       <div className="bg-light-card dark:bg-dark-card w-full rounded-t-3xl relative">
         <div className="p-4 border-b border-light-border dark:border-dark-border flex justify-between items-center">
-          <h2 className="text-lg font-bold text-light-text dark:text-dark-text">Редактирование продавца</h2>
+          <h2 className="text-lg font-bold text-light-text dark:text-dark-text">
+            {isNew ? 'Новый продавец' : 'Редактирование продавца'}
+          </h2>
           <button onClick={onClose} className="text-2xl text-light-text-secondary">×</button>
         </div>
 
