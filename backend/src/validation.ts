@@ -226,18 +226,6 @@ export function validateQuery<T>(schema: z.ZodSchema<T>, query: unknown): T {
   return validateBody(schema, query)
 }
 
-/**
- * Sanitize string to prevent XSS
- */
-export function sanitizeString(str: string, maxLength: number = 1000): string {
-  return str
-    .slice(0, maxLength)
-    .replace(/[<>]/g, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+=/gi, '')
-    .trim()
-}
-
 // Export types
 export type CreateUserInput = z.infer<typeof createUserSchema>
 export type CreateProductInput = z.infer<typeof createProductSchema>

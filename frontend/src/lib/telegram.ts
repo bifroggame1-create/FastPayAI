@@ -123,11 +123,3 @@ export const hapticNotification = (type: 'error' | 'success' | 'warning') => {
   }
 }
 
-export const hapticSelection = () => {
-  try {
-    const webApp = useTelegramWebApp()
-    webApp?.HapticFeedback?.selectionChanged()
-  } catch (e) {
-    // Silently fail if haptic feedback is not available
-  }
-}

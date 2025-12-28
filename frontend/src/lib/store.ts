@@ -46,9 +46,6 @@ interface AppState {
 
   // Filters & Sorting
   sortBy: SortType
-  priceRange: { min: number; max: number } | null
-  minRating: number | null
-  recentlyViewed: string[] // product IDs
 
   // Chats
   chats: Chat[]
@@ -68,13 +65,6 @@ interface AppState {
   setLanguage: (language: 'ru' | 'en') => void
   setCurrency: (currency: 'RUB' | 'USD' | 'EUR') => void
   isFavorite: (productId: string) => boolean
-
-  // Filter & Sort actions
-  setSortBy: (sort: SortType) => void
-  setPriceRange: (range: { min: number; max: number } | null) => void
-  setMinRating: (rating: number | null) => void
-  addToRecentlyViewed: (productId: string) => void
-  clearFilters: () => void
 
   // Chat actions
   addChat: (chat: Chat) => void
@@ -102,9 +92,6 @@ export const useAppStore = create<AppState>()(
       language: 'ru',
       currency: 'RUB',
       sortBy: 'popular',
-      priceRange: null,
-      minRating: null,
-      recentlyViewed: [],
       chats: [],
       messages: [],
       unreadChats: 0,
