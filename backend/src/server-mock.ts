@@ -1,6 +1,7 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import rateLimit from '@fastify/rate-limit'
+import helmet from '@fastify/helmet'
 import dotenv from 'dotenv'
 import path from 'path'
 
@@ -18,6 +19,38 @@ import {
 } from './dataStore'
 import { searchProducts, getSearchSuggestions } from './searchUtils'
 import { convertRubToCrypto, CryptoAsset } from './cryptoConverter'
+import {
+  validateTelegramWebAppData,
+  generateToken,
+  authMiddleware,
+  adminMiddleware,
+  optionalAuthMiddleware,
+  isAdmin,
+  JWTPayload
+} from './auth'
+import {
+  validateBody,
+  validateQuery,
+  sanitizeString,
+  createUserSchema,
+  telegramAuthSchema,
+  productQuerySchema,
+  favoriteIdsSchema,
+  createProductSchema,
+  updateProductSchema,
+  createCryptoInvoiceSchema,
+  createCactusPaymentSchema,
+  cancelPaymentSchema,
+  validatePromoSchema,
+  createPromoSchema,
+  updatePromoSchema,
+  createSellerSchema,
+  updateSellerSchema,
+  orderQuerySchema,
+  updateOrderStatusSchema,
+  deliverOrderSchema,
+  createChatSchema
+} from './validation'
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
@@ -974,6 +1007,90 @@ async function start() {
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
     })
 
+    // Security headers with Helmet
+    await fastify.register(helmet, {
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "https://telegram.org"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https:", "blob:"],
+          connectSrc: ["'self'", "https://pay.crypt.bot", "https://lk.cactuspay.pro", ...ALLOWED_ORIGINS],
+          frameSrc: ["'self'", "https://telegram.org"],
+          frameAncestors: ["'self'", "https://web.telegram.org", "https://t.me"]
+        }
+      },
+      crossOriginEmbedderPolicy: false, // Needed for Telegram WebApp
+      crossOriginOpenerPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' }
+    })
+
+    // ============================================
+    // AUTH ENDPOINTS
+    // ============================================
+
+    // Telegram WebApp authentication
+    fastify.post('/auth/telegram', async (request, reply) => {
+      try {
+        const { initData } = validateBody(telegramAuthSchema, request.body)
+
+        const user = validateTelegramWebAppData(initData)
+        if (!user) {
+          // In development, allow mock auth
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('⚠️ Telegram validation failed, using mock auth (dev only)')
+            const mockToken = generateToken({
+              id: 123456789,
+              first_name: 'Dev',
+              username: 'devuser'
+            })
+            return {
+              success: true,
+              token: mockToken,
+              user: { id: '123456789', name: 'Dev User', isAdmin: false }
+            }
+          }
+
+          reply.code(401)
+          return { success: false, error: 'Invalid Telegram authentication' }
+        }
+
+        const token = generateToken(user)
+
+        return {
+          success: true,
+          token,
+          user: {
+            id: String(user.id),
+            name: `${user.first_name}${user.last_name ? ' ' + user.last_name : ''}`,
+            username: user.username,
+            isAdmin: isAdmin(String(user.id))
+          }
+        }
+      } catch (error: any) {
+        console.error('Auth error:', error)
+        reply.code(error.statusCode || 500)
+        return { success: false, error: error.error || error.message }
+      }
+    })
+
+    // Verify token endpoint
+    fastify.get('/auth/verify', { preHandler: authMiddleware }, async (request) => {
+      const user = (request as any).user as JWTPayload
+      return {
+        success: true,
+        user: {
+          id: user.userId,
+          username: user.username,
+          isAdmin: user.isAdmin
+        }
+      }
+    })
+
+    // ============================================
+    // PUBLIC ENDPOINTS
+    // ============================================
+
     fastify.get('/products', async (request) => {
       const { category, condition, search } = request.query as any
       let filtered = [...mockProducts]
@@ -1001,142 +1118,196 @@ async function start() {
       return mockProducts.filter(p => favoriteIds.includes(p._id))
     })
 
+    // ============================================
+    // ADMIN ENDPOINTS (Protected)
+    // ============================================
+
     // Admin API - Create product
-    fastify.post('/admin/products', async (request) => {
-      const product = request.body as any
-      const newProduct = {
-        ...product,
-        _id: product._id || String(Date.now()),
-        createdAt: product.createdAt || new Date().toISOString(),
-        inStock: true
+    fastify.post('/admin/products', { preHandler: adminMiddleware }, async (request, reply) => {
+      try {
+        const product = validateBody(createProductSchema, request.body)
+        const newProduct = {
+          ...product,
+          _id: product._id || String(Date.now()),
+          createdAt: new Date().toISOString(),
+          inStock: true
+        }
+        mockProducts.unshift(newProduct as any)
+        saveProducts(mockProducts)
+        return { success: true, product: newProduct }
+      } catch (error: any) {
+        reply.code(error.statusCode || 500)
+        return { success: false, error: error.error || error.message, details: error.details }
       }
-      mockProducts.unshift(newProduct)
-      saveProducts(mockProducts)
-      return { success: true, product: newProduct }
     })
 
     // Admin API - Update product
-    fastify.put('/admin/products/:id', async (request) => {
-      const { id } = request.params as any
-      const updates = request.body as any
-      const index = mockProducts.findIndex(p => p._id === id)
-      if (index === -1) return { success: false, error: 'Product not found' }
-      mockProducts[index] = { ...mockProducts[index], ...updates }
-      saveProducts(mockProducts)
-      return { success: true, product: mockProducts[index] }
+    fastify.put('/admin/products/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+      try {
+        const { id } = request.params as any
+        const updates = validateBody(updateProductSchema, request.body)
+        const index = mockProducts.findIndex(p => p._id === id)
+        if (index === -1) {
+          reply.code(404)
+          return { success: false, error: 'Product not found' }
+        }
+        mockProducts[index] = { ...mockProducts[index], ...updates }
+        saveProducts(mockProducts)
+        return { success: true, product: mockProducts[index] }
+      } catch (error: any) {
+        reply.code(error.statusCode || 500)
+        return { success: false, error: error.error || error.message, details: error.details }
+      }
     })
 
     // Admin API - Delete product
-    fastify.delete('/admin/products/:id', async (request) => {
+    fastify.delete('/admin/products/:id', { preHandler: adminMiddleware }, async (request, reply) => {
       const { id } = request.params as any
       const index = mockProducts.findIndex(p => p._id === id)
-      if (index === -1) return { success: false, error: 'Product not found' }
+      if (index === -1) {
+        reply.code(404)
+        return { success: false, error: 'Product not found' }
+      }
       mockProducts.splice(index, 1)
       saveProducts(mockProducts)
       return { success: true }
     })
 
     // Admin API - Get all sellers
-    fastify.get('/admin/sellers', async () => {
+    fastify.get('/admin/sellers', { preHandler: adminMiddleware }, async () => {
       const sellers = [...new Map(mockProducts.map(p => [p.seller.id, p.seller])).values()]
       return sellers
     })
 
     // Admin API - Promo codes
-    fastify.get('/admin/promo', async () => {
+    fastify.get('/admin/promo', { preHandler: adminMiddleware }, async () => {
       return mockPromoCodes
     })
 
-    fastify.post('/admin/promo', async (request) => {
-      const promo = request.body as any
-      const existing = mockPromoCodes.findIndex(p => p.code === promo.code)
-      if (existing !== -1) {
-        mockPromoCodes[existing] = promo
-      } else {
-        mockPromoCodes.push(promo)
+    fastify.post('/admin/promo', { preHandler: adminMiddleware }, async (request, reply) => {
+      try {
+        const promo = validateBody(createPromoSchema, request.body)
+        const existing = mockPromoCodes.findIndex(p => p.code === promo.code)
+        if (existing !== -1) {
+          mockPromoCodes[existing] = promo as any
+        } else {
+          mockPromoCodes.push(promo as any)
+        }
+        savePromoCodes(mockPromoCodes)
+        return { success: true, promo }
+      } catch (error: any) {
+        reply.code(error.statusCode || 500)
+        return { success: false, error: error.error || error.message, details: error.details }
       }
-      savePromoCodes(mockPromoCodes)
-      return { success: true, promo }
     })
 
-    fastify.put('/admin/promo/:code', async (request) => {
-      const { code } = request.params as any
-      const updates = request.body as any
-      const index = mockPromoCodes.findIndex(p => p.code === code)
-      if (index === -1) return { success: false, error: 'Promo code not found' }
-      mockPromoCodes[index] = { ...mockPromoCodes[index], ...updates }
-      savePromoCodes(mockPromoCodes)
-      return { success: true, promo: mockPromoCodes[index] }
+    fastify.put('/admin/promo/:code', { preHandler: adminMiddleware }, async (request, reply) => {
+      try {
+        const { code } = request.params as any
+        const updates = validateBody(updatePromoSchema, request.body)
+        const index = mockPromoCodes.findIndex(p => p.code === code)
+        if (index === -1) {
+          reply.code(404)
+          return { success: false, error: 'Promo code not found' }
+        }
+        mockPromoCodes[index] = { ...mockPromoCodes[index], ...updates }
+        savePromoCodes(mockPromoCodes)
+        return { success: true, promo: mockPromoCodes[index] }
+      } catch (error: any) {
+        reply.code(error.statusCode || 500)
+        return { success: false, error: error.error || error.message, details: error.details }
+      }
     })
 
-    fastify.delete('/admin/promo/:code', async (request) => {
+    fastify.delete('/admin/promo/:code', { preHandler: adminMiddleware }, async (request, reply) => {
       const { code } = request.params as any
       const index = mockPromoCodes.findIndex(p => p.code === code)
-      if (index === -1) return { success: false, error: 'Promo code not found' }
+      if (index === -1) {
+        reply.code(404)
+        return { success: false, error: 'Promo code not found' }
+      }
       mockPromoCodes.splice(index, 1)
       savePromoCodes(mockPromoCodes)
       return { success: true }
     })
 
     // Admin API - Sellers
-    fastify.post('/admin/sellers', async (request) => {
-      const seller = request.body as any
-      // Update all products with this seller
-      mockProducts.forEach(p => {
-        if (p.seller.id === seller.id) {
-          p.seller = seller
-        }
-      })
-      saveProducts(mockProducts)
-      return { success: true, seller }
+    fastify.post('/admin/sellers', { preHandler: adminMiddleware }, async (request, reply) => {
+      try {
+        const seller = validateBody(createSellerSchema, request.body)
+        // Update all products with this seller
+        mockProducts.forEach(p => {
+          if (p.seller.id === seller.id) {
+            p.seller = seller as any
+          }
+        })
+        saveProducts(mockProducts)
+        return { success: true, seller }
+      } catch (error: any) {
+        reply.code(error.statusCode || 500)
+        return { success: false, error: error.error || error.message, details: error.details }
+      }
     })
 
-    fastify.put('/admin/sellers/:id', async (request) => {
-      const { id } = request.params as any
-      const updates = request.body as any
-      // Update all products with this seller
-      let updated = false
-      mockProducts.forEach(p => {
-        if (p.seller.id === id) {
-          p.seller = { ...p.seller, ...updates }
-          updated = true
+    fastify.put('/admin/sellers/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+      try {
+        const { id } = request.params as any
+        const updates = validateBody(updateSellerSchema, request.body)
+        // Update all products with this seller
+        let updated = false
+        mockProducts.forEach(p => {
+          if (p.seller.id === id) {
+            p.seller = { ...p.seller, ...updates }
+            updated = true
+          }
+        })
+        if (!updated) {
+          reply.code(404)
+          return { success: false, error: 'Seller not found' }
         }
-      })
-      if (!updated) return { success: false, error: 'Seller not found' }
-      saveProducts(mockProducts)
-      return { success: true, seller: updates }
+        saveProducts(mockProducts)
+        return { success: true, seller: updates }
+      } catch (error: any) {
+        reply.code(error.statusCode || 500)
+        return { success: false, error: error.error || error.message, details: error.details }
+      }
     })
 
-    // ========== ADMIN ORDERS API ==========
+    // ========== ADMIN ORDERS API (Protected) ==========
 
     // Get all orders (with optional filters)
-    fastify.get('/admin/orders', async (request) => {
-      const { status, userId, limit = 50, offset = 0 } = request.query as any
-      let orders = loadOrders()
+    fastify.get('/admin/orders', { preHandler: adminMiddleware }, async (request, reply) => {
+      try {
+        const query = validateQuery(orderQuerySchema, request.query)
+        let orders = loadOrders()
 
-      // Apply filters
-      if (status) {
-        orders = orders.filter(o => o.status === status)
-      }
-      if (userId) {
-        orders = orders.filter(o => o.userId === userId)
-      }
+        // Apply filters
+        if (query.status) {
+          orders = orders.filter(o => o.status === query.status)
+        }
+        if (query.userId) {
+          orders = orders.filter(o => o.userId === query.userId)
+        }
 
-      // Apply pagination
-      const total = orders.length
-      const paginatedOrders = orders.slice(Number(offset), Number(offset) + Number(limit))
+        // Apply pagination
+        const total = orders.length
+        const paginatedOrders = orders.slice(query.offset, query.offset + query.limit)
 
-      return {
-        success: true,
-        orders: paginatedOrders,
-        total,
-        limit: Number(limit),
-        offset: Number(offset)
+        return {
+          success: true,
+          orders: paginatedOrders,
+          total,
+          limit: query.limit,
+          offset: query.offset
+        }
+      } catch (error: any) {
+        reply.code(error.statusCode || 500)
+        return { success: false, error: error.error || error.message, details: error.details }
       }
     })
 
     // Get orders stats (must be before :id route)
-    fastify.get('/admin/orders/stats', async () => {
+    fastify.get('/admin/orders/stats', { preHandler: adminMiddleware }, async () => {
       const orders = loadOrders()
 
       const stats = {
@@ -1156,11 +1327,12 @@ async function start() {
     })
 
     // Get single order by ID
-    fastify.get('/admin/orders/:id', async (request) => {
+    fastify.get('/admin/orders/:id', { preHandler: adminMiddleware }, async (request, reply) => {
       const { id } = request.params as any
       const order = getOrderById(id)
 
       if (!order) {
+        reply.code(404)
         return { success: false, error: 'Order not found' }
       }
 
@@ -1168,59 +1340,58 @@ async function start() {
     })
 
     // Update order status
-    fastify.put('/admin/orders/:id/status', async (request) => {
-      const { id } = request.params as any
-      const { status } = request.body as any
+    fastify.put('/admin/orders/:id/status', { preHandler: adminMiddleware }, async (request, reply) => {
+      try {
+        const { id } = request.params as any
+        const { status } = validateBody(updateOrderStatusSchema, request.body)
 
-      if (!status) {
-        return { success: false, error: 'Status is required' }
+        const updates: Partial<Order> = { status }
+        if (status === 'delivered') {
+          updates.deliveredAt = new Date().toISOString()
+        }
+
+        const updatedOrder = updateOrder(id, updates)
+        if (!updatedOrder) {
+          reply.code(404)
+          return { success: false, error: 'Order not found' }
+        }
+
+        return { success: true, order: updatedOrder }
+      } catch (error: any) {
+        reply.code(error.statusCode || 500)
+        return { success: false, error: error.error || error.message, details: error.details }
       }
-
-      const validStatuses: OrderStatus[] = ['pending', 'paid', 'processing', 'delivered', 'cancelled', 'refunded']
-      if (!validStatuses.includes(status)) {
-        return { success: false, error: 'Invalid status' }
-      }
-
-      const updates: Partial<Order> = { status }
-      if (status === 'delivered') {
-        updates.deliveredAt = new Date().toISOString()
-      }
-
-      const updatedOrder = updateOrder(id, updates)
-      if (!updatedOrder) {
-        return { success: false, error: 'Order not found' }
-      }
-
-      return { success: true, order: updatedOrder }
     })
 
     // Deliver order (set delivery data and mark as delivered)
-    fastify.post('/admin/orders/:id/deliver', async (request) => {
-      const { id } = request.params as any
-      const { deliveryData, deliveryNote } = request.body as any
+    fastify.post('/admin/orders/:id/deliver', { preHandler: adminMiddleware }, async (request, reply) => {
+      try {
+        const { id } = request.params as any
+        const { deliveryData, deliveryNote } = validateBody(deliverOrderSchema, request.body)
 
-      if (!deliveryData) {
-        return { success: false, error: 'Delivery data is required' }
+        const updatedOrder = updateOrder(id, {
+          status: 'delivered',
+          deliveryData,
+          deliveryNote,
+          deliveredAt: new Date().toISOString()
+        })
+
+        if (!updatedOrder) {
+          reply.code(404)
+          return { success: false, error: 'Order not found' }
+        }
+
+        console.log('Order delivered:', id, { deliveryData, deliveryNote })
+
+        return { success: true, order: updatedOrder }
+      } catch (error: any) {
+        reply.code(error.statusCode || 500)
+        return { success: false, error: error.error || error.message, details: error.details }
       }
-
-      const updatedOrder = updateOrder(id, {
-        status: 'delivered',
-        deliveryData,
-        deliveryNote,
-        deliveredAt: new Date().toISOString()
-      })
-
-      if (!updatedOrder) {
-        return { success: false, error: 'Order not found' }
-      }
-
-      console.log('Order delivered:', id, { deliveryData, deliveryNote })
-
-      return { success: true, order: updatedOrder }
     })
 
     // Cancel order
-    fastify.post('/admin/orders/:id/cancel', async (request) => {
+    fastify.post('/admin/orders/:id/cancel', { preHandler: adminMiddleware }, async (request, reply) => {
       const { id } = request.params as any
 
       const updatedOrder = updateOrder(id, {
@@ -1228,6 +1399,7 @@ async function start() {
       })
 
       if (!updatedOrder) {
+        reply.code(404)
         return { success: false, error: 'Order not found' }
       }
 
@@ -1235,7 +1407,7 @@ async function start() {
     })
 
     // Refund order
-    fastify.post('/admin/orders/:id/refund', async (request) => {
+    fastify.post('/admin/orders/:id/refund', { preHandler: adminMiddleware }, async (request, reply) => {
       const { id } = request.params as any
 
       const updatedOrder = updateOrder(id, {
@@ -1243,6 +1415,7 @@ async function start() {
       })
 
       if (!updatedOrder) {
+        reply.code(404)
         return { success: false, error: 'Order not found' }
       }
 
@@ -1366,43 +1539,34 @@ async function start() {
       }
     })
 
+    // ============================================
+    // PAYMENT ENDPOINTS
+    // ============================================
+
     // CryptoBot Payment endpoints
     fastify.post('/payment/create-invoice', async (request, reply) => {
       try {
-        const { amount, description, productId, variantId, asset, userId, userName, userUsername } = request.body as any
+        const data = validateBody(createCryptoInvoiceSchema, request.body)
 
-        console.log('Payment request received:', { amount, description, productId, variantId, asset, userId })
+        console.log('Payment request received:', {
+          amount: data.amount,
+          productId: data.productId,
+          asset: data.asset,
+          userId: data.userId
+        })
 
-        // Input validation
-        if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 10000000) {
-          reply.code(400)
-          return { success: false, error: 'Invalid amount: must be a positive number up to 10,000,000' }
-        }
-
-        if (!productId || typeof productId !== 'string') {
-          reply.code(400)
-          return { success: false, error: 'Invalid productId' }
-        }
-
-        // Validate asset
-        const validAssets = ['TON', 'USDT', 'BTC', 'ETH', 'LTC', 'USDC']
-        if (asset && !validAssets.includes(asset)) {
-          reply.code(400)
-          return { success: false, error: `Invalid asset. Allowed: ${validAssets.join(', ')}` }
-        }
-
-        // Sanitize description to prevent injection
-        const sanitizedDescription = description
-          ? String(description).slice(0, 200).replace(/[<>]/g, '')
+        // Sanitize description
+        const sanitizedDescription = data.description
+          ? sanitizeString(data.description, 200)
           : undefined
 
         // Convert RUB amount to crypto (markup already applied on frontend)
-        const cryptoAsset = (asset || 'USDT') as CryptoAsset
+        const cryptoAsset = (data.asset || 'USDT') as CryptoAsset
 
         let cryptoAmount: string
         try {
-          cryptoAmount = convertRubToCrypto(amount, cryptoAsset)
-          console.log(`Converted: ${amount} RUB = ${cryptoAmount} ${cryptoAsset}`)
+          cryptoAmount = convertRubToCrypto(data.amount, cryptoAsset)
+          console.log(`Converted: ${data.amount} RUB = ${cryptoAmount} ${cryptoAsset}`)
         } catch (conversionError: any) {
           console.error('Currency conversion failed:', conversionError)
           reply.code(400)
@@ -1413,8 +1577,8 @@ async function start() {
         }
 
         // Get product info for order
-        const product = mockProducts.find(p => p._id === productId)
-        const variant = product?.variants?.find((v: any) => v.id === variantId)
+        const product = mockProducts.find(p => p._id === data.productId)
+        const variant = product?.variants?.find((v: any) => v.id === data.variantId)
 
         // Generate order ID
         const orderId = `ord_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
@@ -1428,7 +1592,7 @@ async function start() {
           description: sanitizedDescription || 'Оплата заказа FastPay',
           paid_btn_name: 'callback',
           paid_btn_url: `${frontendUrl}/payment/success?orderId=${orderId}`,
-          payload: JSON.stringify({ productId, variantId, orderId }),
+          payload: JSON.stringify({ productId: data.productId, variantId: data.variantId, orderId }),
           allow_comments: false,
           allow_anonymous: true,
           expires_in: 3600,
@@ -1440,14 +1604,14 @@ async function start() {
         const order: Order = {
           id: orderId,
           oderId: String(invoice.invoice_id),
-          userId: userId || 'anonymous',
-          userName: userName,
-          userUsername: userUsername,
-          productId: productId,
+          userId: data.userId || 'anonymous',
+          userName: data.userName,
+          userUsername: data.userUsername,
+          productId: data.productId,
           productName: product?.name || 'Unknown',
-          variantId: variantId,
+          variantId: data.variantId,
           variantName: variant?.name,
-          amount: amount,
+          amount: data.amount,
           paymentMethod: 'cryptobot',
           paymentId: String(invoice.invoice_id),
           status: 'pending',
@@ -1633,31 +1797,18 @@ async function start() {
     // Create CactusPay payment
     fastify.post('/payment/cactuspay/create', async (request, reply) => {
       try {
-        const { amount, description, productId, variantId, method, userIp, userId, userName, userUsername } = request.body as any
+        const data = validateBody(createCactusPaymentSchema, request.body)
 
-        console.log('CactusPay payment request:', { amount, description, productId, variantId, method, userId })
-
-        // Input validation
-        if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 10000000) {
-          reply.code(400)
-          return { success: false, error: 'Invalid amount: must be a positive number up to 10,000,000' }
-        }
-
-        if (!productId || typeof productId !== 'string') {
-          reply.code(400)
-          return { success: false, error: 'Invalid productId' }
-        }
-
-        // Validate payment method
-        const validMethods = ['card', 'sbp', 'yoomoney', 'crypto', 'nspk']
-        if (method && !validMethods.includes(method)) {
-          reply.code(400)
-          return { success: false, error: `Invalid method. Allowed: ${validMethods.join(', ')}` }
-        }
+        console.log('CactusPay payment request:', {
+          amount: data.amount,
+          productId: data.productId,
+          method: data.method,
+          userId: data.userId
+        })
 
         // Sanitize description
-        const sanitizedDescription = description
-          ? String(description).slice(0, 200).replace(/[<>]/g, '')
+        const sanitizedDescription = data.description
+          ? sanitizeString(data.description, 200)
           : 'Оплата заказа FastPay'
 
         if (!cactusPay.isConfigured()) {
@@ -1673,22 +1824,22 @@ async function start() {
         }
 
         // Get product info for order
-        const product = mockProducts.find(p => p._id === productId)
-        const variant = product?.variants?.find((v: any) => v.id === variantId)
+        const product = mockProducts.find(p => p._id === data.productId)
+        const variant = product?.variants?.find((v: any) => v.id === data.variantId)
 
         // Generate unique order ID
         const orderId = `fp_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
 
         // Determine payment method type
-        const paymentMethodType = method === 'sbp' ? 'cactuspay-sbp' : 'cactuspay-card'
+        const paymentMethodType = data.method === 'sbp' ? 'cactuspay-sbp' : 'cactuspay-card'
 
         // Create payment
         const result = await cactusPay.createPayment({
-          amount: Math.round(amount),
+          amount: Math.round(data.amount),
           order_id: orderId,
           description: sanitizedDescription,
-          method: method as PaymentMethod,
-          user_ip: userIp,
+          method: data.method as PaymentMethod,
+          user_ip: data.userIp,
         })
 
         if (result.status === 'success' && result.response) {
@@ -1698,14 +1849,14 @@ async function start() {
           const order: Order = {
             id: orderId,
             oderId: orderId,
-            userId: userId || 'anonymous',
-            userName: userName,
-            userUsername: userUsername,
-            productId: productId,
+            userId: data.userId || 'anonymous',
+            userName: data.userName,
+            userUsername: data.userUsername,
+            productId: data.productId,
             productName: product?.name || 'Unknown',
-            variantId: variantId,
+            variantId: data.variantId,
             variantName: variant?.name,
-            amount: amount,
+            amount: data.amount,
             paymentMethod: paymentMethodType as any,
             paymentId: orderId,
             status: 'pending',
@@ -1719,7 +1870,7 @@ async function start() {
             payment: {
               orderId: orderId,
               payUrl: result.response.url,
-              amount: amount,
+              amount: data.amount,
               requisite: result.response.requisite,
             }
           }
@@ -1812,12 +1963,7 @@ async function start() {
     // Cancel CactusPay H2H details
     fastify.post('/payment/cactuspay/cancel', async (request, reply) => {
       try {
-        const { orderId } = request.body as any
-
-        if (!orderId) {
-          reply.code(400)
-          return { success: false, error: 'Order ID required' }
-        }
+        const { orderId } = validateBody(cancelPaymentSchema, request.body)
 
         const result = await cactusPay.cancelDetails(orderId)
 
@@ -1831,35 +1977,34 @@ async function start() {
       }
     })
 
+    // ============================================
+    // CHAT ENDPOINTS
+    // ============================================
+
     // Chat API
     fastify.post('/chats/create', async (request, reply) => {
       try {
-        const { buyerId, sellerId, productId, productName } = request.body as any
+        const data = validateBody(createChatSchema, request.body)
 
-        if (!buyerId || !sellerId || !productId) {
-          reply.code(400)
-          return { success: false, error: 'Missing required fields' }
-        }
-
-        const seller = mockProducts.find(p => p._id === productId)?.seller
+        const seller = mockProducts.find(p => p._id === data.productId)?.seller
         if (!seller) {
           reply.code(404)
           return { success: false, error: 'Seller not found' }
         }
 
         // Create a unique chat ID based on buyer, seller and product
-        const chatId = `chat-${buyerId}-${sellerId}-${productId}`
+        const chatId = `chat-${data.buyerId}-${data.sellerId}-${data.productId}`
 
         const chat = {
           id: chatId,
           type: 'seller',
-          title: `${seller.name} - ${productName}`,
+          title: `${seller.name} - ${data.productName || 'Product'}`,
           avatar: seller.avatar,
           lastMessage: null,
           lastMessageTime: new Date().toISOString(),
           unread: 0,
-          sellerId: sellerId,
-          productId: productId
+          sellerId: data.sellerId,
+          productId: data.productId
         }
 
         return { success: true, chat }
