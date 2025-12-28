@@ -77,11 +77,13 @@ export default function SearchBar() {
       <div className="px-4 py-3 sticky top-[57px] bg-light-bg dark:bg-dark-bg z-30">
         <div className="flex items-center gap-2">
           {/* Logo */}
-          <img
-            src="/logo.svg"
-            alt="FastPay"
-            className="h-16 w-auto object-contain flex-shrink-0"
-          />
+          <div className="h-16 w-16 flex-shrink-0 rounded-xl overflow-hidden bg-white dark:bg-white p-1">
+            <img
+              src="/logo.svg"
+              alt="FastPay"
+              className="h-full w-full object-contain"
+            />
+          </div>
 
           {/* Catalog Button */}
           <button
