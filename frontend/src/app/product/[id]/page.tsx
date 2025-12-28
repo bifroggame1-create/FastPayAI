@@ -9,16 +9,18 @@ import { Product, ProductVariant } from '@/types'
 import { productsApi, chatApi } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import { getTelegramUser } from '@/lib/telegram'
+import { useToast } from '@/components/Toast'
 
 export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const toast = useToast()
   const [product, setProduct] = useState<Product | null>(null)
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
-  const { toggleFavorite, isFavorite, addChat, addToCart } = useAppStore()
+  const { toggleFavorite, isFavorite, addChat, addToCart, language } = useAppStore()
 
   useEffect(() => {
     loadProduct()
@@ -314,6 +316,7 @@ export default function ProductDetailPage() {
                 variantId: selectedVariant?.id,
                 variantName: selectedVariant?.name
               })
+              toast.show(language === 'ru' ? 'Добавлено в корзину' : 'Added to cart', 'success')
             }}
             className="px-4 py-4 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl hover:border-accent-cyan transition-colors"
           >

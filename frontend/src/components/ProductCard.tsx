@@ -7,6 +7,7 @@ import { ru, enUS } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
 import { formatPrice } from '@/lib/currency'
 import { t } from '@/lib/i18n'
+import { useToast } from '@/components/Toast'
 
 interface ProductCardProps {
   product: Product
@@ -16,6 +17,7 @@ interface ProductCardProps {
 export default function ProductCard({ product, onClick }: ProductCardProps) {
   const router = useRouter()
   const { toggleFavorite, isFavorite, language, currency, addToCart } = useAppStore()
+  const toast = useToast()
   const favorite = isFavorite(product._id)
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -27,6 +29,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       price: product.price,
       quantity: 1
     })
+    toast.show(language === 'ru' ? 'Добавлено в корзину' : 'Added to cart', 'success')
   }
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
