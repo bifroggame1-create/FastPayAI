@@ -108,42 +108,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Реферальная система */}
-        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-6 mb-4 border border-light-border dark:border-dark-border">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Пригласи друзей</h3>
-            <span className="text-sm text-accent-cyan font-medium">+200₽ за друга</span>
-          </div>
-
-          <div className="bg-light-bg dark:bg-dark-bg rounded-xl p-4 mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Твой промокод</span>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(user.referralCode || '')
-                  alert('Промокод скопирован!')
-                }}
-                className="text-accent-cyan text-sm font-medium"
-              >
-                Копировать
-              </button>
-            </div>
-            <div className="font-mono text-2xl font-bold text-center py-2 text-light-text dark:text-dark-text">
-              {user.referralCode || 'LOADING...'}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-light-text-secondary dark:text-dark-text-secondary">Приглашено друзей</span>
-            <span className="font-semibold text-light-text dark:text-dark-text">{user.referralCount || 0}</span>
-          </div>
-
-          <div className="mt-4 p-3 bg-accent-blue/10 dark:bg-accent-blue/20 rounded-lg">
-            <p className="text-xs text-light-text dark:text-dark-text">
-              💰 Ты получаешь <span className="font-bold text-accent-cyan">200₽</span> за каждого друга<br />
-              🎁 Друг получает <span className="font-bold text-accent-cyan">100₽</span> при регистрации
-            </p>
-          </div>
-        </div>
+        <ReferralSection user={user} />
 
         <div className="bg-light-card dark:bg-dark-card rounded-2xl p-6 border border-light-border dark:border-dark-border">
           <h3 className="text-lg font-semibold mb-4 text-light-text dark:text-dark-text">Отзывы</h3>
@@ -196,6 +161,83 @@ export default function ProfilePage() {
       </div>
 
       <BottomNav />
+    </div>
+  )
+}
+
+// Referral Section Component
+function ReferralSection({ user }: { user: { id: string; referralCode?: string; referralCount?: number } }) {
+  const [copied, setCopied] = useState(false)
+  const botUsername = process.env.NEXT_PUBLIC_BOT_USERNAME || 'FastPayAI_bot'
+
+  // Generate referral link using user ID
+  const referralLink = `https://t.me/${botUsername}?start=ref_${user.id}`
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(referralLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const shareLink = () => {
+    const text = '🎁 Присоединяйся к FastPay и получи 100₽ на первую покупку!'
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`
+    window.open(shareUrl, '_blank')
+  }
+
+  return (
+    <div className="bg-light-card dark:bg-dark-card rounded-2xl p-6 mb-4 border border-light-border dark:border-dark-border">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Пригласи друзей</h3>
+        <span className="text-sm text-accent-cyan font-medium">+200₽ за друга</span>
+      </div>
+
+      {/* Referral Link */}
+      <div className="bg-light-bg dark:bg-dark-bg rounded-xl p-4 mb-4">
+        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-2">
+          Твоя пригласительная ссылка
+        </p>
+        <div className="flex items-center gap-2 bg-light-card dark:bg-dark-card rounded-lg p-3 border border-light-border dark:border-dark-border">
+          <span className="flex-1 text-sm text-light-text dark:text-dark-text truncate font-mono">
+            {referralLink}
+          </span>
+          <button
+            onClick={copyLink}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              copied
+                ? 'bg-green-500 text-white'
+                : 'bg-accent-cyan text-white hover:bg-accent-cyan/90'
+            }`}
+          >
+            {copied ? '✓' : 'Копировать'}
+          </button>
+        </div>
+      </div>
+
+      {/* Share Button */}
+      <button
+        onClick={shareLink}
+        className="w-full py-3 bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity mb-4"
+      >
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+        </svg>
+        Поделиться в Telegram
+      </button>
+
+      {/* Stats */}
+      <div className="flex items-center justify-between text-sm mb-4">
+        <span className="text-light-text-secondary dark:text-dark-text-secondary">Приглашено друзей</span>
+        <span className="font-semibold text-light-text dark:text-dark-text">{user.referralCount || 0}</span>
+      </div>
+
+      {/* Info */}
+      <div className="p-3 bg-accent-blue/10 dark:bg-accent-blue/20 rounded-lg">
+        <p className="text-xs text-light-text dark:text-dark-text">
+          💰 Ты получаешь <span className="font-bold text-accent-cyan">200₽</span> за каждого друга<br />
+          🎁 Друг получает <span className="font-bold text-accent-cyan">100₽</span> при регистрации
+        </p>
+      </div>
     </div>
   )
 }

@@ -3,10 +3,19 @@
 import { useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
 import { initTelegramWebApp, getTelegramUser, getTelegramStartParam } from '@/lib/telegram'
-import { userApi } from '@/lib/api'
+import { userApi, referralApi } from '@/lib/api'
+
+// Parse referral ID from start_param (format: ref_USER_ID)
+const parseReferrerId = (startParam: string | null): string | null => {
+  if (!startParam) return null
+  if (startParam.startsWith('ref_')) {
+    return startParam.substring(4) // Remove 'ref_' prefix
+  }
+  return null
+}
 
 export default function TelegramProvider({ children }: { children: React.ReactNode }) {
-  const { setUser } = useAppStore()
+  const { setUser, addNotification } = useAppStore()
 
   useEffect(() => {
     initTelegramWebApp()
@@ -14,6 +23,7 @@ export default function TelegramProvider({ children }: { children: React.ReactNo
     const loadUser = async () => {
       const telegramUser = getTelegramUser()
       const startParam = getTelegramStartParam() // Реферальный код из start param
+      const referrerId = parseReferrerId(startParam)
 
       if (telegramUser) {
         try {
@@ -24,7 +34,7 @@ export default function TelegramProvider({ children }: { children: React.ReactNo
             name: telegramUser.name, // Используем имя из Telegram (first_name + last_name)
             avatar: telegramUser.avatar || `https://i.pravatar.cc/150?u=${telegramUser.id}`,
             joinedAt: new Date().toISOString(),
-            referredBy: startParam || undefined, // Передаем реферальный код, если есть
+            referredBy: referrerId || undefined, // Передаем реферальный код, если есть
             stats: {
               rating: 0,
               reviewsCount: 0,
@@ -35,6 +45,28 @@ export default function TelegramProvider({ children }: { children: React.ReactNo
 
           const user = await userApi.create(userData)
           setUser(user)
+
+          // Track referral if user came via referral link
+          if (referrerId && referrerId !== telegramUser.id) {
+            try {
+              const result = await referralApi.trackReferral({
+                userId: telegramUser.id,
+                referrerId: referrerId
+              })
+
+              // If referral was successful and user got bonus
+              if (result.success && result.bonusAwarded) {
+                addNotification(
+                  'Бонус за регистрацию!',
+                  `Вы получили ${result.bonusAwarded}₽ за регистрацию по приглашению`,
+                  'referral'
+                )
+              }
+            } catch (e) {
+              // Referral tracking failed, but user creation succeeded
+              console.log('Referral tracking failed:', e)
+            }
+          }
         } catch (error) {
           console.error('Error loading user:', error)
           // Fallback: set user directly without API call

@@ -239,4 +239,24 @@ export const chatApi = {
   },
 }
 
+export const referralApi = {
+  // Track referral when user joins via referral link
+  trackReferral: async (params: { userId: string; referrerId: string }) => {
+    const { data } = await api.post('/referral/track', params)
+    return data
+  },
+
+  // Get referral stats for user
+  getStats: async (userId: string) => {
+    const { data } = await api.get(`/referral/stats/${userId}`)
+    return data
+  },
+
+  // Get list of referred users
+  getReferrals: async (userId: string) => {
+    const { data } = await api.get(`/referral/list/${userId}`)
+    return data
+  },
+}
+
 export default api
