@@ -1,207 +1,73 @@
-# ✅ ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ - CryptoBot оплата работает!
+# CryptoBot Integration - Final Configuration
 
-## Найденные и исправленные проблемы:
+## Quick Setup
 
-### 🔴 Проблема #1: Порядок импортов (КРИТИЧЕСКАЯ!)
+### 1. Get CryptoBot Token
 
-**Что было:**
-```typescript
-import { cryptoBot } from './cryptobot'  // cryptoBot создавался здесь
-dotenv.config()  // а переменные загружались ПОТОМ
+1. Open @CryptoBot in Telegram
+2. Send `/pay` command
+3. Create new application (or use existing)
+4. Copy API token (format: `12345:ABCDEFghijklmnop...`)
+
+### 2. Configure on Render
+
+1. Open Render Dashboard → Your Backend Service → Environment
+2. Add/Update variable:
+   - Name: `CRYPTOBOT_TOKEN`
+   - Value: your token (NO quotes, NO spaces)
+3. Click **Save Changes**
+4. Wait for automatic redeploy (2-3 minutes)
+
+### 3. Verify Configuration
+
+Open in browser:
+```
+https://your-backend-url.onrender.com/payment/test-cryptobot
 ```
 
-**Результат:** CryptoBot инициализировался БЕЗ токена, потому что `process.env.CRYPTOBOT_TOKEN` был undefined в момент создания экземпляра.
-
-**Что исправлено:**
-```typescript
-dotenv.config()  // СНАЧАЛА загружаем переменные
-import { cryptoBot } from './cryptobot'  // ПОТОМ создаем cryptoBot
-```
-
-### 🟡 Проблема #2: Неправильный URL фронтенда
-
-**Что было:** `https://fastpayai.onrender.com` (без `-back`)
-**Что стало:** `https://fastpayai-back.onrender.com` (правильный URL)
-
-### 🟡 Проблема #3: Дублирующий dotenv.config()
-
-**Что было:** dotenv.config() вызывался и в server-mock.ts и в cryptobot.ts
-**Что стало:** dotenv.config() вызывается ОДИН раз в самом начале server-mock.ts с явным путем
-
-### 🟡 Проблема #4: Недостаточное логирование
-
-**Что добавлено:**
-- Логирование всех переменных окружения при старте
-- Логирование состояния токена CryptoBot
-- Детальные ошибки при проблемах с оплатой
-
-## Все изменения в коде:
-
-### 1. backend/src/server-mock.ts
-
-```typescript
-// КРИТИЧЕСКИ ВАЖНО: Сначала загружаем .env, ПОТОМ импортируем модули
-import dotenv from 'dotenv'
-import path from 'path'
-
-dotenv.config({ path: path.join(__dirname, '../.env') })
-
-// ТЕПЕРЬ импортируем модули которые используют env переменные
-import { cryptoBot } from './cryptobot'
-...
-
-// Логирование при старте
-console.log('============================================================')
-console.log('🚀 FastPay Backend Starting...')
-console.log('Environment variables loaded:')
-console.log('  CRYPTOBOT_TOKEN:', process.env.CRYPTOBOT_TOKEN ? `✅ Set` : '❌ NOT SET')
-console.log('============================================================')
-```
-
-### 2. backend/src/cryptobot.ts
-
-```typescript
-// Убран дублирующий dotenv.config()
-// Добавлена автоматическая очистка токена от кавычек/пробелов
-constructor(token?: string) {
-  const rawToken = token || process.env.CRYPTOBOT_TOKEN || ''
-  this.token = rawToken.trim().replace(/['"]/g, '').replace(/\r?\n/g, '')
-
-  // Валидация формата токена
-  if (this.token && !/^\d+:[A-Za-z0-9_-]+$/.test(this.token)) {
-    console.warn('⚠️ CryptoBot token format looks invalid...')
-  }
-
-  if (this.token) {
-    console.log('✅ CryptoBot token initialized:', {
-      length: this.token.length,
-      preview: this.token.substring(0, 10) + '...',
-      formatValid: /^\d+:[A-Za-z0-9_-]+$/.test(this.token)
-    })
-  } else {
-    console.error('❌ CryptoBot token is empty or not configured')
-  }
-}
-```
-
-### 3. frontend/src/lib/api.ts
-
-```typescript
-// Исправлен hardcoded URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com'
-console.log('[FastPay] API URL:', API_URL)
-```
-
-## 🚀 ЧТО НУЖНО СДЕЛАТЬ СЕЙЧАС:
-
-### На Render (Backend):
-
-1. **Откройте:** https://dashboard.render.com → FastPay Backend
-2. **Перейдите:** Environment → Edit
-3. **Проверьте переменную CRYPTOBOT_TOKEN:**
-   ```
-   Name: CRYPTOBOT_TOKEN
-   Value: 73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS
-   ```
-   ⚠️ **ВАЖНО:** БЕЗ кавычек, БЕЗ пробелов!
-
-4. **Если токен уже есть:** нажмите **Manual Deploy** → **Deploy latest commit**
-5. **Если токена нет:** добавьте его и сохраните (автоматический деплой)
-
-### На Vercel (Frontend):
-
-1. **Откройте:** https://vercel.com → FastPay Frontend
-2. **Перейдите:** Settings → Environment Variables
-3. **Добавьте (если нет):**
-   ```
-   Name: NEXT_PUBLIC_API_URL
-   Value: https://fastpayai-back.onrender.com
-   ```
-4. **Redeploy:** Deployments → Redeploy latest
-
-## ✅ ПРОВЕРКА ПОСЛЕ ДЕПЛОЯ:
-
-### 1. Проверьте логи на Render:
-
-Должно быть:
-```
-✅ CryptoBot token initialized: { length: 43, preview: '73448:AAQ8...', formatValid: true }
-============================================================
-🚀 FastPay Backend Starting...
-============================================================
-Environment variables loaded:
-  PORT: 3001
-  HOST: 0.0.0.0
-  FRONTEND_URL: https://fast-pay-ai.vercel.app
-  MONGODB_URI: ✅ Set
-  CRYPTOBOT_TOKEN: ✅ Set (73448:AAQ8...)
-============================================================
-```
-
-**Если видите:**
-```
-❌ CryptoBot token is empty or not configured
-```
-Значит токен НЕ добавлен на Render! Вернитесь к шагу "На Render" выше.
-
-### 2. Проверьте test endpoint:
-
-Откройте в браузере:
-```
-https://fastpayai-back.onrender.com/payment/test-cryptobot
-```
-
-**Должно вернуть:**
+Expected response:
 ```json
 {
   "success": true,
   "configured": true,
   "bot_info": {
-    "app_id": 73448,
-    "name": "Pay Me Bitch",
+    "app_id": 12345,
+    "name": "Your App Name",
     "payment_processing_bot_username": "CryptoBot"
   }
 }
 ```
 
-### 3. Попробуйте оплату:
+### 4. Configure Webhook
 
-**С КОМПЬЮТЕРА:**
-1. https://fast-pay-ai.vercel.app
-2. Выбрать товар → Купить
-3. Выбрать TON или USDT
-4. Перейти к оплате
-5. Должно открыть CryptoBot
+1. Open @CryptoBot → Crypto Pay → Your App → Settings
+2. Set Webhook URL:
+```
+https://your-backend-url.onrender.com/payment/webhook
+```
 
-**С ТЕЛЕФОНА:**
-1. https://fast-pay-ai.vercel.app
-2. Те же шаги
-3. Должно открыть CryptoBot в Telegram
+## Troubleshooting
 
-## 🎯 ПОЧЕМУ ТЕПЕРЬ ЭТО БУДЕТ РАБОТАТЬ НАВСЕГДА:
+### "CRYPTOBOT_TOKEN not configured"
 
-1. ✅ **Порядок импортов исправлен** - dotenv загружается ДО создания cryptoBot
-2. ✅ **Автоматическая очистка токена** - кавычки/пробелы удаляются автоматически
-3. ✅ **Валидация токена** - при старте проверяется формат токена
-4. ✅ **Детальное логирование** - сразу видно если что-то не так
-5. ✅ **Правильный URL** - hardcoded fallback указывает на правильный backend
-6. ✅ **Понятные ошибки** - если что-то не так, сразу понятно что делать
+Token is missing or empty. Check:
+- Variable name is exactly `CRYPTOBOT_TOKEN`
+- Value is set without quotes
+- Service was redeployed after adding variable
 
-## 📄 Связанные файлы:
+### "Invalid character in header content"
 
-- `backend/src/server-mock.ts` - исправлен порядок импортов, добавлено логирование
-- `backend/src/cryptobot.ts` - убран дублирующий dotenv, добавлена очистка токена
-- `frontend/src/lib/api.ts` - исправлен URL backend
-- `frontend/src/app/checkout/page.tsx` - улучшено логирование
-- `backend/.env.example` - добавлены комментарии о токене
+Token contains invalid characters. The code now auto-cleans tokens, but to be safe:
+- Remove any quotes around the token
+- Remove any spaces before/after token
+- Ensure no newlines in the value
 
-## 🎉 ИТОГ:
+### Payment fails on mobile
 
-Все проблемы найдены и исправлены. Теперь:
-- ✅ Токен загружается правильно (до инициализации cryptoBot)
-- ✅ Автоматическая очистка токена от лишних символов
-- ✅ Правильный URL backend для mobile и desktop
-- ✅ Детальное логирование для диагностики
-- ✅ Понятные сообщения об ошибках
+Check that `FRONTEND_URL` is set correctly in Render environment.
 
-**После деплоя на Render оплата будет работать с первого раза! 🚀**
+## Security Notes
+
+- **NEVER** commit tokens to repository
+- Tokens should only be in environment variables
+- Webhook signature verification is enabled for security

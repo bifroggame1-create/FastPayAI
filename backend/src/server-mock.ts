@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import rateLimit from '@fastify/rate-limit'
 import dotenv from 'dotenv'
 import path from 'path'
 
@@ -17,6 +18,16 @@ import {
 } from './dataStore'
 import { searchProducts, getSearchSuggestions } from './searchUtils'
 import { convertRubToCrypto, CryptoAsset } from './cryptoConverter'
+
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://fast-pay-ai.vercel.app',
+  'https://fast-pay-ai-rgk8.vercel.app',
+  process.env.FRONTEND_URL,
+  // Allow localhost for development
+  'http://localhost:3000',
+  'http://localhost:3001',
+].filter(Boolean) as string[]
 
 // Log environment configuration on startup
 console.log('='.repeat(60))
@@ -923,9 +934,44 @@ if (mockPromoCodes.length === 0) {
 
 async function start() {
   try {
+    // Register rate limiting
+    await fastify.register(rateLimit, {
+      max: 100, // 100 requests
+      timeWindow: '1 minute',
+      // Higher limits for specific routes
+      keyGenerator: (request) => {
+        return request.ip || 'unknown'
+      },
+      errorResponseBuilder: (request, context) => {
+        return {
+          success: false,
+          error: 'Too many requests. Please try again later.',
+          retryAfter: context.after
+        }
+      }
+    })
+
+    // CORS configuration - allow specific origins
     await fastify.register(cors, {
-      origin: true, // Allow all origins for Telegram Mini App
-      credentials: true
+      origin: (origin, cb) => {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) {
+          cb(null, true)
+          return
+        }
+
+        // Check if origin is allowed
+        if (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app')) {
+          cb(null, true)
+          return
+        }
+
+        // Block other origins
+        cb(new Error('Not allowed by CORS'), false)
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
     })
 
     fastify.get('/products', async (request) => {
@@ -1327,14 +1373,28 @@ async function start() {
 
         console.log('Payment request received:', { amount, description, productId, variantId, asset, userId })
 
-        // Validate inputs
-        if (!amount || amount <= 0) {
+        // Input validation
+        if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 10000000) {
           reply.code(400)
-          return {
-            success: false,
-            error: 'Invalid amount'
-          }
+          return { success: false, error: 'Invalid amount: must be a positive number up to 10,000,000' }
         }
+
+        if (!productId || typeof productId !== 'string') {
+          reply.code(400)
+          return { success: false, error: 'Invalid productId' }
+        }
+
+        // Validate asset
+        const validAssets = ['TON', 'USDT', 'BTC', 'ETH', 'LTC', 'USDC']
+        if (asset && !validAssets.includes(asset)) {
+          reply.code(400)
+          return { success: false, error: `Invalid asset. Allowed: ${validAssets.join(', ')}` }
+        }
+
+        // Sanitize description to prevent injection
+        const sanitizedDescription = description
+          ? String(description).slice(0, 200).replace(/[<>]/g, '')
+          : undefined
 
         // Convert RUB amount to crypto (markup already applied on frontend)
         const cryptoAsset = (asset || 'USDT') as CryptoAsset
@@ -1365,7 +1425,7 @@ async function start() {
         const invoice = await cryptoBot.createInvoice({
           asset: cryptoAsset,
           amount: cryptoAmount,
-          description: description || 'Оплата заказа FastPay',
+          description: sanitizedDescription || 'Оплата заказа FastPay',
           paid_btn_name: 'callback',
           paid_btn_url: `${frontendUrl}/payment/success?orderId=${orderId}`,
           payload: JSON.stringify({ productId, variantId, orderId }),
@@ -1473,22 +1533,33 @@ async function start() {
     })
 
     // Webhook endpoint for CryptoBot payments
-    fastify.post('/payment/webhook', async (request, reply) => {
+    fastify.post('/payment/webhook', {
+      config: {
+        rawBody: true // Need raw body for signature verification
+      }
+    }, async (request, reply) => {
       try {
         const signature = request.headers['crypto-pay-api-signature'] as string
         const body = request.body as any
+        const rawBody = JSON.stringify(body)
 
         console.log('Received webhook:', body)
 
-        // TODO: Verify signature for security
-        // const crypto = require('crypto')
-        // const hash = crypto.createHmac('sha256', crypto.createHash('sha256').update(CRYPTOBOT_TOKEN).digest())
-        //   .update(JSON.stringify(body))
-        //   .digest('hex')
-        // if (hash !== signature) {
-        //   reply.code(401)
-        //   return { error: 'Invalid signature' }
-        // }
+        // Verify webhook signature for security
+        if (!signature) {
+          console.warn('⚠️ Webhook received without signature')
+          reply.code(401)
+          return { error: 'Missing signature' }
+        }
+
+        const isValidSignature = cryptoBot.verifyWebhookSignature(signature, rawBody)
+        if (!isValidSignature) {
+          console.error('❌ Invalid webhook signature')
+          reply.code(401)
+          return { error: 'Invalid signature' }
+        }
+
+        console.log('✅ Webhook signature verified')
 
         if (body.update_type === 'invoice_paid') {
           const invoice = body.payload
@@ -1566,13 +1637,28 @@ async function start() {
 
         console.log('CactusPay payment request:', { amount, description, productId, variantId, method, userId })
 
-        if (!amount || amount <= 0) {
+        // Input validation
+        if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 10000000) {
           reply.code(400)
-          return {
-            success: false,
-            error: 'Invalid amount'
-          }
+          return { success: false, error: 'Invalid amount: must be a positive number up to 10,000,000' }
         }
+
+        if (!productId || typeof productId !== 'string') {
+          reply.code(400)
+          return { success: false, error: 'Invalid productId' }
+        }
+
+        // Validate payment method
+        const validMethods = ['card', 'sbp', 'yoomoney', 'crypto', 'nspk']
+        if (method && !validMethods.includes(method)) {
+          reply.code(400)
+          return { success: false, error: `Invalid method. Allowed: ${validMethods.join(', ')}` }
+        }
+
+        // Sanitize description
+        const sanitizedDescription = description
+          ? String(description).slice(0, 200).replace(/[<>]/g, '')
+          : 'Оплата заказа FastPay'
 
         if (!cactusPay.isConfigured()) {
           reply.code(500)
@@ -1600,7 +1686,7 @@ async function start() {
         const result = await cactusPay.createPayment({
           amount: Math.round(amount),
           order_id: orderId,
-          description: description || 'Оплата заказа FastPay',
+          description: sanitizedDescription,
           method: method as PaymentMethod,
           user_ip: userIp,
         })

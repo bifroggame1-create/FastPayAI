@@ -7,13 +7,26 @@
 Добавьте следующие переменные:
 
 ```
-CRYPTOBOT_TOKEN=73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS
+CRYPTOBOT_TOKEN=<your_cryptobot_token>
+CACTUSPAY_TOKEN=<your_cactuspay_token>
 FRONTEND_URL=https://fast-pay-ai.vercel.app
 PORT=3001
 HOST=0.0.0.0
 ```
 
-### ⚠️ КРИТИЧЕСКИ ВАЖНО для CRYPTOBOT_TOKEN:
+### Как получить токены:
+
+**CRYPTOBOT_TOKEN:**
+1. Откройте @CryptoBot в Telegram
+2. Отправьте /pay
+3. Создайте новое приложение
+4. Скопируйте API токен (формат: `12345:ABCDEF...`)
+
+**CACTUSPAY_TOKEN:**
+1. Зарегистрируйтесь на https://cactuspay.pro
+2. Получите API токен в личном кабинете
+
+### КРИТИЧЕСКИ ВАЖНО:
 
 1. **БЕЗ кавычек** - вводите токен как есть, без `"` или `'`
 2. **БЕЗ пробелов** - до или после токена не должно быть пробелов
@@ -22,14 +35,13 @@ HOST=0.0.0.0
 
 **Правильно:**
 ```
-CRYPTOBOT_TOKEN=73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS
+CRYPTOBOT_TOKEN=12345:ABCDEFghijklmnop123456789
 ```
 
 **Неправильно:**
 ```
-CRYPTOBOT_TOKEN="73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS"    ❌ (есть кавычки)
-CRYPTOBOT_TOKEN= 73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS     ❌ (есть пробел)
-CRYPTOBOT_TOKEN=73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS      ❌ (пробел в конце)
+CRYPTOBOT_TOKEN="12345:ABCDEFghijklmnop123456789"    ❌ (есть кавычки)
+CRYPTOBOT_TOKEN= 12345:ABCDEFghijklmnop123456789     ❌ (есть пробел)
 ```
 
 ## После добавления переменных:
@@ -71,3 +83,4 @@ https://your-backend-url.onrender.com/payment/webhook
 - Все переменные должны быть **БЕЗ** кавычек
 - URL должны быть **БЕЗ** слеша в конце (кроме случаев когда это явно указано)
 - После изменения переменных обязательно дождитесь полного перезапуска сервиса
+- **НИКОГДА** не коммитьте токены в репозиторий!

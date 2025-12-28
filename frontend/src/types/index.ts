@@ -11,15 +11,19 @@ export interface Product {
   _id: string
   name: string
   price: number
+  oldPrice?: number // старая цена для скидок
   images: string[]
   condition: 'new' | 'used'
   category: string
   seller: Seller
   rating: number
+  reviewsCount?: number
+  salesCount?: number // количество продаж
   createdAt: string
   description?: string
   inStock: boolean
   variants?: ProductVariant[] // варианты услуги
+  badges?: ('sale' | 'hit' | 'new')[] // бейджи товара
 }
 
 export interface Seller {
@@ -95,3 +99,28 @@ export interface PromoCode {
 }
 
 export type FilterType = 'all' | 'new' | 'used'
+
+export interface Review {
+  _id: string
+  productId: string
+  userId: string
+  userName: string
+  userAvatar?: string
+  rating: number
+  text: string
+  orderId?: string
+  createdAt: string
+  isVerifiedPurchase?: boolean
+}
+
+export type SortType = 'popular' | 'price_asc' | 'price_desc' | 'rating' | 'newest'
+
+export interface ProductFilters {
+  category?: string
+  minPrice?: number
+  maxPrice?: number
+  minRating?: number
+  inStock?: boolean
+  search?: string
+  sort?: SortType
+}

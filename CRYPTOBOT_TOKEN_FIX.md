@@ -12,8 +12,8 @@ Invalid character in header content "Crypto-Pay-API-Token"
 HTTP заголовки не могут содержать определенные символы (переносы строк, некоторые спецсимволы).
 
 Токен CryptoBot мог содержать лишние символы если при добавлении в Render:
-- Были добавлены кавычки: `"73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS"`
-- Были добавлены пробелы: ` 73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS `
+- Были добавлены кавычки
+- Были добавлены пробелы
 - Был перенос строки в конце значения
 
 ## Исправление
@@ -25,9 +25,8 @@ HTTP заголовки не могут содержать определенн�
 ```typescript
 constructor(token?: string) {
   // Clean token - remove quotes, spaces, newlines
-  const rawToken = token || CRYPTOBOT_TOKEN || ''
+  const rawToken = token || process.env.CRYPTOBOT_TOKEN || ''
   this.token = rawToken.trim().replace(/['"]/g, '').replace(/\r?\n/g, '')
-  this.apiUrl = CRYPTOBOT_API_URL
 
   // Validate token format (should be like: 12345:ABCDEF...)
   if (this.token && !/^\d+:[A-Za-z0-9_-]+$/.test(this.token)) {
@@ -45,57 +44,9 @@ constructor(token?: string) {
 
 Добавлена проверка что токен соответствует правильному формату: `число:буквы_цифры`
 
-```typescript
-if (this.token && !/^\d+:[A-Za-z0-9_-]+$/.test(this.token)) {
-  console.warn('⚠️ CryptoBot token format looks invalid. Expected format: 12345:ABCDEF...')
-  console.warn('Token issues detected:', {
-    hasQuotes: ...,
-    hasSpaces: ...,
-    hasNewlines: ...,
-    invalidChars: ...
-  })
-}
-```
-
 ### 3. Детальное логирование
 
-При запуске сервера теперь будет выводиться информация о токене:
-
-**Если токен правильный:**
-```
-✅ CryptoBot token initialized: {
-  length: 43,
-  preview: '73448:AAQ8...',
-  formatValid: true
-}
-```
-
-**Если токен неправильный:**
-```
-⚠️ CryptoBot token format looks invalid. Expected format: 12345:ABCDEF...
-Token issues detected: {
-  hasQuotes: true,
-  hasSpaces: false,
-  hasNewlines: false,
-  invalidChars: ['"', '"']
-}
-```
-
-### 4. Обновлена документация (`RENDER_CONFIG.md`)
-
-Добавлен раздел с критически важными правилами:
-
-✅ **Правильно:**
-```
-CRYPTOBOT_TOKEN=73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS
-```
-
-❌ **Неправильно:**
-```
-CRYPTOBOT_TOKEN="73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS"    (кавычки)
-CRYPTOBOT_TOKEN= 73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS     (пробел)
-CRYPTOBOT_TOKEN=73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS      (пробел в конце)
-```
+При запуске сервера теперь будет выводиться информация о токене.
 
 ## Что нужно сделать на Render
 
@@ -105,7 +56,7 @@ CRYPTOBOT_TOKEN=73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS      (пробел в 
 2. **Удалите** существующую переменную `CRYPTOBOT_TOKEN`
 3. **Создайте новую** переменную:
    - Name: `CRYPTOBOT_TOKEN`
-   - Value: `73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS` (БЕЗ кавычек, БЕЗ пробелов)
+   - Value: ваш токен (БЕЗ кавычек, БЕЗ пробелов)
 4. Нажмите **Save Changes**
 5. Дождитесь автоматического перезапуска сервиса (2-3 минуты)
 
@@ -117,52 +68,7 @@ CRYPTOBOT_TOKEN=73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS      (пробел в 
 2. Нажмите **Deploy latest commit**
 3. Дождитесь завершения деплоя
 
-## Проверка после исправления
-
-1. Откройте в браузере: `https://fastpayai-back.onrender.com/payment/test-cryptobot`
-
-   **Должно вернуть:**
-   ```json
-   {
-     "success": true,
-     "configured": true,
-     "bot_info": {
-       "app_id": 73448,
-       "name": "Pay Me Bitch",
-       "payment_processing_bot_username": "CryptoBot"
-     }
-   }
-   ```
-
-2. Проверьте логи на Render:
-
-   **Должно быть:**
-   ```
-   ✅ CryptoBot token initialized: {
-     length: 43,
-     preview: '73448:AAQ8...',
-     formatValid: true
-   }
-   ```
-
-3. Попробуйте оплату:
-   - Откройте https://fast-pay-ai.vercel.app
-   - Выберите товар → Купить
-   - Выберите криптовалюту (TON или USDT)
-   - Нажмите "Перейти к оплате"
-   - Должно открыться окно CryptoBot
-
-## Почему теперь это будет работать всегда
-
-1. ✅ Автоматическая очистка токена от любых лишних символов
-2. ✅ Валидация формата токена при старте сервера
-3. ✅ Детальное логирование для быстрой диагностики
-4. ✅ Понятная документация с примерами правильного и неправильного добавления
-
-Теперь даже если токен будет добавлен с ошибкой - код автоматически его очистит! 🎉
-
 ## Связанные файлы
 
-- `backend/src/cryptobot.ts` - добавлена очистка и валидация токена
-- `RENDER_CONFIG.md` - обновлена документация с важными правилами
-- `CRYPTOBOT_TOKEN_FIX.md` - этот файл
+- `backend/src/cryptobot.ts` - очистка и валидация токена
+- `RENDER_CONFIG.md` - документация с важными правилами

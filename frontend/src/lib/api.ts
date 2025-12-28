@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Product, User, Order } from '@/types'
+import { Product, User, Order, Review, ProductFilters } from '@/types'
 
 // Use backend URL from environment variable, fallback to production Render URL
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com'
@@ -16,7 +16,7 @@ const api = axios.create({
 })
 
 export const productsApi = {
-  getAll: async (params?: { category?: string; condition?: string; search?: string }) => {
+  getAll: async (params?: ProductFilters & { category?: string; condition?: string; search?: string }) => {
     const { data } = await api.get<Product[]>('/products', { params })
     return data
   },
@@ -28,6 +28,28 @@ export const productsApi = {
 
   getFavorites: async (userId: string, favoriteIds: string[]) => {
     const { data } = await api.post<Product[]>('/products/favorites', { favoriteIds })
+    return data
+  },
+}
+
+export const reviewsApi = {
+  getByProduct: async (productId: string) => {
+    const { data } = await api.get<Review[]>(`/reviews/product/${productId}`)
+    return data
+  },
+
+  create: async (review: { productId: string; userId: string; userName: string; userAvatar?: string; rating: number; text: string; orderId?: string }) => {
+    const { data } = await api.post<Review>('/reviews', review)
+    return data
+  },
+
+  getByUser: async (userId: string) => {
+    const { data } = await api.get<Review[]>(`/reviews/user/${userId}`)
+    return data
+  },
+
+  canReview: async (userId: string, productId: string) => {
+    const { data } = await api.get<{ canReview: boolean; orderId?: string }>(`/reviews/can-review/${userId}/${productId}`)
     return data
   },
 }

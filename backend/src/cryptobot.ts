@@ -1,9 +1,9 @@
 import axios from 'axios'
+import crypto from 'crypto'
 
 const CRYPTOBOT_API_URL = 'https://pay.crypt.bot/api'
 
-// Fallback token for cases when Render env vars don't propagate correctly
-const FALLBACK_TOKEN = '73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS'
+// No fallback token - must be configured via environment variables
 
 interface CreateInvoiceParams {
   asset: string // Currency code (USDT, TON, BTC, etc.)
@@ -48,7 +48,7 @@ export class CryptoBotAPI {
   private ensureInitialized(): void {
     if (!this.initialized) {
       // Lazy load token from environment (after dotenv has loaded)
-      const envToken = process.env.CRYPTOBOT_TOKEN || FALLBACK_TOKEN
+      const envToken = process.env.CRYPTOBOT_TOKEN
 
       if (envToken) {
         this.token = envToken.trim().replace(/['"]/g, '').replace(/\r?\n/g, '')
@@ -59,15 +59,14 @@ export class CryptoBotAPI {
         console.log('✅ CryptoBot token initialized:', {
           length: this.token.length,
           preview: this.token.substring(0, 10) + '...',
-          formatValid: isValidFormat,
-          source: process.env.CRYPTOBOT_TOKEN ? 'env' : 'fallback'
+          formatValid: isValidFormat
         })
 
         if (!isValidFormat) {
           console.warn('⚠️ CryptoBot token format looks invalid. Expected format: 12345:ABCDEF...')
         }
       } else {
-        console.error('❌ CryptoBot token is empty or not configured')
+        console.error('❌ CryptoBot token is empty or not configured. Set CRYPTOBOT_TOKEN environment variable.')
       }
 
       this.initialized = true
@@ -158,13 +157,42 @@ export class CryptoBotAPI {
     return !!this.token
   }
 
-  getTokenInfo(): { configured: boolean; length: number; preview: string; source: string } {
+  getTokenInfo(): { configured: boolean; length: number; preview: string } {
     this.ensureInitialized()
     return {
       configured: !!this.token,
       length: this.token.length,
-      preview: this.token ? this.token.substring(0, 10) + '...' : 'not set',
-      source: process.env.CRYPTOBOT_TOKEN ? 'env' : 'fallback'
+      preview: this.token ? this.token.substring(0, 10) + '...' : 'not set'
+    }
+  }
+
+  /**
+   * Verify webhook signature from CryptoBot
+   * @param signature - The signature from 'crypto-pay-api-signature' header
+   * @param body - Raw request body as string
+   * @returns true if signature is valid
+   */
+  verifyWebhookSignature(signature: string, body: string): boolean {
+    this.ensureInitialized()
+
+    if (!this.token || !signature) {
+      return false
+    }
+
+    try {
+      // CryptoBot uses SHA-256 HMAC with token hash as key
+      const tokenHash = crypto.createHash('sha256').update(this.token).digest()
+      const expectedSignature = crypto.createHmac('sha256', tokenHash)
+        .update(body)
+        .digest('hex')
+
+      return crypto.timingSafeEqual(
+        Buffer.from(signature, 'hex'),
+        Buffer.from(expectedSignature, 'hex')
+      )
+    } catch (error) {
+      console.error('Webhook signature verification failed:', error)
+      return false
     }
   }
 }

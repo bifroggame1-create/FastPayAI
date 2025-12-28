@@ -1,110 +1,54 @@
-# Исправление ошибки оплаты на мобильных устройствах
+# Mobile Payment Fix
 
-## Проблема
+## Problem
 
-Оплата через CryptoBot работала на десктопе, но не работала на мобильных устройствах с ошибкой:
-```
-Payment system not configured please add cryptobot_token to environment variables
-```
+Payment via CryptoBot worked on desktop but not on mobile devices.
 
-При этом тест эндпоинт показывал что токен настроен правильно:
-```json
-{"success":true,"configured":true,"bot_info":{"app_id":73448,"name":"Pay Me Bitch","payment_processing_bot_username":"CryptoBot"}}
-```
+## Cause
 
-## Причина
+The frontend was using an incorrect hardcoded fallback URL for the backend API.
 
-В файле `frontend/src/lib/api.ts` был неправильный hardcoded fallback URL:
-```typescript
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
-```
+## Solution
 
-Правильный URL бэкенда: `https://fastpayai-back.onrender.com`
+1. Fixed fallback URL in `frontend/src/lib/api.ts`
+2. Added proper environment variable configuration
 
-**Что происходило:**
-- На десктопе (dev режим) - использовался localhost с правильным токеном ✅
-- На мобильном (Vercel production) - использовался неправильный hardcoded URL ❌
-- Неправильный URL вел на backend без CRYPTOBOT_TOKEN
+## Configuration
 
-## Исправление
+### On Vercel (Frontend)
 
-### 1. Исправлен fallback URL в `frontend/src/lib/api.ts`
-```typescript
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com'
-```
-
-### 2. Добавлено логирование для отладки
-```typescript
-console.log('[FastPay] API URL:', API_URL)
-```
-
-В checkout странице:
-```typescript
-console.log('[FastPay] Creating invoice:', invoiceParams)
-console.log('[FastPay] Using API URL:', process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com')
-```
-
-### 3. Создана инструкция для Vercel
-
-Файл `VERCEL_CONFIG.md` содержит пошаговую инструкцию по настройке переменной окружения:
-```
-NEXT_PUBLIC_API_URL=https://fastpayai-back.onrender.com
-```
-
-## Что нужно сделать
-
-### На Vercel (Frontend)
-
-1. Откройте проект на Vercel → Settings → Environment Variables
-2. Добавьте переменную:
+1. Open project on Vercel → Settings → Environment Variables
+2. Add variable:
    ```
-   NEXT_PUBLIC_API_URL=https://fastpayai-back.onrender.com
+   NEXT_PUBLIC_API_URL=https://your-backend-url.onrender.com
    ```
-3. Сохраните
-4. Перейдите в Deployments → Redeploy последний деплой
-5. Дождитесь пересборки (1-2 минуты)
+3. Save and Redeploy
 
-### На Render (Backend)
+### On Render (Backend)
 
-Убедитесь что добавлена переменная (уже должна быть):
+Ensure these variables are set:
 ```
-CRYPTOBOT_TOKEN=73448:AAQ8MQU0NP78iPtunmwzuj4FIuD973q3AaS
-```
-
-## Проверка после исправления
-
-1. Откройте https://fast-pay-ai.vercel.app с мобильного
-2. Выберите любой товар
-3. Нажмите "Купить"
-4. Выберите криптовалюту (TON или USDT)
-5. Нажмите "Перейти к оплате"
-6. Должно открыться окно CryptoBot с платежом
-
-Если все еще ошибка - откройте DevTools (F12) → Console и проверьте логи:
-```
-[FastPay] API URL: https://fastpayai-back.onrender.com
-[FastPay] Creating invoice: {...}
+CRYPTOBOT_TOKEN=<your_token>
+CACTUSPAY_TOKEN=<your_token>
+FRONTEND_URL=https://your-frontend-url.vercel.app
 ```
 
-## Дополнительные улучшения
+## Verification
 
-1. Добавлена комиссия 5% для CryptoBot платежей
-2. Правильный выбор asset (TON/USDT) при создании invoice
-3. Кнопка настроек теперь показывает текущий язык и валюту (🇷🇺 ₽)
-4. Детальное логирование всех шагов оплаты
+1. Open your app URL on mobile
+2. Select any product
+3. Click "Buy"
+4. Select cryptocurrency (TON or USDT)
+5. Click "Proceed to payment"
+6. CryptoBot payment window should open
 
-## Файлы изменены
+## Files Changed
 
-- `frontend/src/lib/api.ts` - исправлен URL бэкенда
-- `frontend/src/app/checkout/page.tsx` - улучшено логирование
-- `VERCEL_CONFIG.md` - новая инструкция по настройке
-- `MOBILE_PAYMENT_FIX.md` - этот файл
+- `frontend/src/lib/api.ts` - fixed backend URL
+- `frontend/src/app/checkout/page.tsx` - improved logging
 
-## Почему это решает проблему навсегда
+## Why This Solves The Problem
 
-1. **Hardcoded URL исправлен** - теперь всегда указывает на правильный backend
-2. **Переменная окружения** - можно легко менять URL без изменения кода
-3. **Логирование** - легко диагностировать проблемы в будущем
-4. **Документация** - все шаги записаны в VERCEL_CONFIG.md
-
-Теперь оплата будет работать одинаково на всех устройствах! 🎉
+1. **Correct URL** - hardcoded fallback now points to correct backend
+2. **Environment variable** - can easily change URL without code changes
+3. **Logging** - easier to diagnose issues in the future
