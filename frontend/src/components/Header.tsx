@@ -13,11 +13,13 @@ interface HeaderProps {
   onBack?: () => void
   rightAction?: React.ReactNode
   showNavButtons?: boolean
+  showCart?: boolean
 }
 
-export default function Header({ title, logo, showBack, onBack, rightAction, showNavButtons = true }: HeaderProps) {
-  const { unreadChats, language, currency } = useAppStore()
+export default function Header({ title, logo, showBack, onBack, rightAction, showNavButtons = true, showCart = true }: HeaderProps) {
+  const { unreadChats, language, currency, getCartItemCount } = useAppStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const cartCount = getCartItemCount()
 
   return (
     <header className="sticky top-0 z-50 bg-light-card dark:bg-dark-bg border-b border-light-border dark:border-dark-border px-4 py-3">
@@ -87,6 +89,21 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
                 <span className="font-medium">{currency === 'RUB' ? '₽' : currency === 'USD' ? '$' : '€'}</span>
               </button>
             </>
+          )}
+          {showCart && (
+            <Link
+              href="/cart"
+              className="relative flex items-center gap-1 px-3 py-1.5 rounded-lg bg-light-bg dark:bg-dark-card border border-light-border dark:border-dark-border text-sm text-light-text dark:text-dark-text hover:border-accent-cyan transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-accent-cyan text-white text-xs rounded-full flex items-center justify-center">
+                  {cartCount > 9 ? '9+' : cartCount}
+                </span>
+              )}
+            </Link>
           )}
           {rightAction}
         </div>

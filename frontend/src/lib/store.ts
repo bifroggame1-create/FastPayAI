@@ -2,6 +2,16 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Product, User } from '@/types'
 
+export interface CartItem {
+  productId: string
+  productName: string
+  productImage: string
+  variantId?: string
+  variantName?: string
+  price: number
+  quantity: number
+}
+
 export interface ChatMessage {
   id: string
   chatId: string
@@ -39,6 +49,10 @@ interface AppState {
   messages: ChatMessage[]
   unreadChats: number
 
+  // Cart
+  cart: CartItem[]
+  cartTotal: number
+
   setUser: (user: User | null) => void
   toggleFavorite: (productId: string) => void
   setSelectedCategory: (category: string) => void
@@ -54,6 +68,13 @@ interface AppState {
   addMessage: (message: ChatMessage) => void
   markChatAsRead: (chatId: string) => void
   addNotification: (title: string, message: string, type: 'referral' | 'purchase' | 'system') => void
+
+  // Cart actions
+  addToCart: (item: CartItem) => void
+  removeFromCart: (productId: string, variantId?: string) => void
+  updateCartQuantity: (productId: string, quantity: number, variantId?: string) => void
+  clearCart: () => void
+  getCartItemCount: () => number
 }
 
 export const useAppStore = create<AppState>()(
@@ -70,6 +91,8 @@ export const useAppStore = create<AppState>()(
       chats: [],
       messages: [],
       unreadChats: 0,
+      cart: [],
+      cartTotal: 0,
 
       setUser: (user) => set({ user }),
 
@@ -171,7 +194,58 @@ export const useAppStore = create<AppState>()(
           messages: [...state.messages, notificationMessage],
           unreadChats: state.unreadChats + 1
         }))
-      }
+      },
+
+      // Cart actions
+      addToCart: (item) => set((state) => {
+        const existingIndex = state.cart.findIndex(
+          i => i.productId === item.productId && i.variantId === item.variantId
+        )
+
+        let newCart: CartItem[]
+        if (existingIndex >= 0) {
+          newCart = [...state.cart]
+          newCart[existingIndex] = {
+            ...newCart[existingIndex],
+            quantity: newCart[existingIndex].quantity + item.quantity
+          }
+        } else {
+          newCart = [...state.cart, item]
+        }
+
+        const cartTotal = newCart.reduce((sum, i) => sum + i.price * i.quantity, 0)
+        return { cart: newCart, cartTotal }
+      }),
+
+      removeFromCart: (productId, variantId) => set((state) => {
+        const newCart = state.cart.filter(
+          i => !(i.productId === productId && i.variantId === variantId)
+        )
+        const cartTotal = newCart.reduce((sum, i) => sum + i.price * i.quantity, 0)
+        return { cart: newCart, cartTotal }
+      }),
+
+      updateCartQuantity: (productId, quantity, variantId) => set((state) => {
+        if (quantity <= 0) {
+          const newCart = state.cart.filter(
+            i => !(i.productId === productId && i.variantId === variantId)
+          )
+          const cartTotal = newCart.reduce((sum, i) => sum + i.price * i.quantity, 0)
+          return { cart: newCart, cartTotal }
+        }
+
+        const newCart = state.cart.map(i =>
+          i.productId === productId && i.variantId === variantId
+            ? { ...i, quantity }
+            : i
+        )
+        const cartTotal = newCart.reduce((sum, i) => sum + i.price * i.quantity, 0)
+        return { cart: newCart, cartTotal }
+      }),
+
+      clearCart: () => set({ cart: [], cartTotal: 0 }),
+
+      getCartItemCount: () => get().cart.reduce((sum, i) => sum + i.quantity, 0)
     }),
     {
       name: 'fastpay-storage',
@@ -181,7 +255,9 @@ export const useAppStore = create<AppState>()(
         language: state.language,
         currency: state.currency,
         chats: state.chats,
-        messages: state.messages
+        messages: state.messages,
+        cart: state.cart,
+        cartTotal: state.cartTotal
       })
     }
   )
