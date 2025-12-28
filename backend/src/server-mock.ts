@@ -1206,12 +1206,13 @@ async function start() {
 
         // Create invoice
         console.log('Creating CryptoBot invoice...')
+        const frontendUrl = process.env.FRONTEND_URL || 'https://fast-pay-ai.vercel.app'
         const invoice = await cryptoBot.createInvoice({
           asset: cryptoAsset,
           amount: cryptoAmount,
           description: description || 'Оплата заказа FastPay',
           paid_btn_name: 'callback',
-          paid_btn_url: `${process.env.FRONTEND_URL}/payment/success`,
+          paid_btn_url: `${frontendUrl}/payment/success`,
           payload: JSON.stringify({ productId, variantId }),
           allow_comments: false,
           allow_anonymous: true,
@@ -1232,22 +1233,23 @@ async function start() {
           }
         }
       } catch (error: any) {
+        const tokenInfo = cryptoBot.getTokenInfo()
+
         console.error('❌ Error creating invoice:', {
           message: error.message,
           response: error.response?.data,
           stack: error.stack,
-          cryptobotTokenSet: !!process.env.CRYPTOBOT_TOKEN
+          tokenInfo
         })
 
         // Check if error is due to missing token
-        if (!process.env.CRYPTOBOT_TOKEN || error.message?.includes('token')) {
+        if (!tokenInfo.configured || error.message?.includes('token')) {
           reply.code(500)
           return {
             success: false,
-            error: 'Payment system not configured. Please add CRYPTOBOT_TOKEN to environment variables on Render dashboard.',
+            error: 'Payment system not configured.',
             details: {
-              hint: 'Go to Render → Your Service → Environment → Add CRYPTOBOT_TOKEN',
-              tokenPresent: !!process.env.CRYPTOBOT_TOKEN,
+              tokenInfo,
               originalError: error.message
             }
           }
