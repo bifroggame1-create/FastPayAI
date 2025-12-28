@@ -12,9 +12,8 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (cart.length === 0) return
-    // For now, checkout with the first item
-    const item = cart[0]
-    router.push(`/checkout?productId=${item.productId}&variantId=${item.variantId || ''}&quantity=${item.quantity}`)
+    // Navigate to checkout with cart mode
+    router.push('/checkout?fromCart=true')
   }
 
   return (

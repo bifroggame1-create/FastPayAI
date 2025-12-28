@@ -5,18 +5,30 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Header from '@/components/Header'
 import { Product, ProductVariant } from '@/types'
 import { productsApi, promoApi, paymentApi } from '@/lib/api'
-import { useAppStore } from '@/lib/store'
+import { useAppStore, CartItem } from '@/lib/store'
 import { formatPrice } from '@/lib/currency'
 import { formatCryptoAmount } from '@/lib/cryptoConverter'
 import { t } from '@/lib/i18n'
 
+interface CheckoutItem {
+  productId: string
+  productName: string
+  productImage: string
+  variantId?: string
+  variantName?: string
+  price: number
+  quantity: number
+}
+
 function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, language, currency } = useAppStore()
+  const { user, language, currency, cart, clearCart } = useAppStore()
 
   const [product, setProduct] = useState<Product | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
+  const [checkoutItems, setCheckoutItems] = useState<CheckoutItem[]>([])
+  const [isCartCheckout, setIsCartCheckout] = useState(false)
   const [promoCode, setPromoCode] = useState('')
   const [promoError, setPromoError] = useState('')
   const [discount, setDiscount] = useState(0)
@@ -30,24 +42,47 @@ function CheckoutContent() {
 
   const loadCheckoutData = async () => {
     try {
+      const fromCart = searchParams.get('fromCart') === 'true'
       const productId = searchParams.get('productId')
       const variantId = searchParams.get('variantId')
 
-      if (!productId) {
-        router.push('/')
-        return
-      }
+      if (fromCart) {
+        // Cart checkout mode
+        if (cart.length === 0) {
+          router.push('/cart')
+          return
+        }
+        setIsCartCheckout(true)
+        setCheckoutItems(cart)
+      } else if (productId) {
+        // Single product checkout mode
+        const productData = await productsApi.getById(productId)
+        setProduct(productData)
 
-      const productData = await productsApi.getById(productId)
-      setProduct(productData)
+        let variant: ProductVariant | null = null
+        if (variantId && productData.variants) {
+          variant = productData.variants.find(v => v.id === variantId) || null
+        } else if (productData.variants && productData.variants.length > 0) {
+          variant = productData.variants[0]
+        }
 
-      if (variantId && productData.variants) {
-        const variant = productData.variants.find(v => v.id === variantId)
         if (variant) {
           setSelectedVariant(variant)
         }
-      } else if (productData.variants && productData.variants.length > 0) {
-        setSelectedVariant(productData.variants[0])
+
+        // Create checkout item from product
+        setCheckoutItems([{
+          productId: productData._id,
+          productName: productData.name,
+          productImage: productData.images[0] || '/placeholder.jpg',
+          variantId: variant?.id,
+          variantName: variant?.name,
+          price: variant?.price || productData.price,
+          quantity: 1
+        }])
+      } else {
+        router.push('/')
+        return
       }
     } catch (error) {
       console.error('Error loading checkout data:', error)
@@ -57,6 +92,10 @@ function CheckoutContent() {
     }
   }
 
+  // Calculate base total from all items
+  const itemsTotal = checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const totalQuantity = checkoutItems.reduce((sum, item) => sum + item.quantity, 0)
+
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) {
       setPromoError('Введите промокод')
@@ -64,8 +103,7 @@ function CheckoutContent() {
     }
 
     try {
-      const orderAmount = selectedVariant?.price || product?.price || 0
-      const result = await promoApi.validate(promoCode, orderAmount)
+      const result = await promoApi.validate(promoCode, itemsTotal)
 
       if (result.valid) {
         setDiscount(result.discount)
@@ -81,40 +119,54 @@ function CheckoutContent() {
   }
 
   const handleCheckout = async () => {
-    if (!product) return
+    if (checkoutItems.length === 0) return
+
+    // Generate description based on items
+    const getDescription = () => {
+      if (checkoutItems.length === 1) {
+        const item = checkoutItems[0]
+        return item.variantName
+          ? `Оплата: ${item.productName} - ${item.variantName}`
+          : `Оплата: ${item.productName}`
+      }
+      return `Оплата заказа (${totalQuantity} товаров)`
+    }
+
+    const openPaymentUrl = (url: string) => {
+      if (window.Telegram?.WebApp && (window.Telegram.WebApp as any).openLink) {
+        (window.Telegram.WebApp as any).openLink(url)
+      } else {
+        window.open(url, '_blank')
+      }
+      // Clear cart after initiating payment if it's a cart checkout
+      if (isCartCheckout) {
+        clearCart()
+      }
+    }
 
     // Для CryptoBot используем крипту
     if (paymentMethod === 'cryptobot') {
       try {
         setLoading(true)
 
-        const productName = selectedVariant
-          ? `${product.name} - ${selectedVariant.name}`
-          : product.name
-
         const invoiceParams = {
           amount: finalPrice,
-          description: `Оплата: ${productName}`,
-          productId: product._id,
-          variantId: selectedVariant?.id,
+          description: getDescription(),
+          productId: checkoutItems[0].productId,
+          variantId: checkoutItems[0].variantId,
           asset: selectedCrypto,
+          // Pass all items for multi-item orders
+          items: checkoutItems.length > 1 ? checkoutItems : undefined,
         }
 
         console.log('[FastPay] Creating invoice:', invoiceParams)
-        console.log('[FastPay] Using API URL:', process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai-back.onrender.com')
 
         const response = await paymentApi.createInvoice(invoiceParams)
 
         console.log('[FastPay] Invoice response:', response)
 
         if (response.success && response.invoice) {
-          // Открываем ссылку на оплату в Telegram
-          if (window.Telegram?.WebApp && (window.Telegram.WebApp as any).openLink) {
-            (window.Telegram.WebApp as any).openLink(response.invoice.payUrl)
-          } else {
-            // Fallback для веб-браузера
-            window.open(response.invoice.payUrl, '_blank')
-          }
+          openPaymentUrl(response.invoice.payUrl)
         } else {
           const errorMsg = response.error || 'Неизвестная ошибка'
           const details = response.details ? `\n\nДетали: ${JSON.stringify(response.details)}` : ''
@@ -130,7 +182,6 @@ function CheckoutContent() {
           errorMessage = error.message
         }
 
-        // Show detailed error for debugging
         if (error.response?.data?.details) {
           errorMessage += '\n\nДетали: ' + JSON.stringify(error.response.data.details)
         }
@@ -144,18 +195,15 @@ function CheckoutContent() {
       try {
         setLoading(true)
 
-        const productName = selectedVariant
-          ? `${product.name} - ${selectedVariant.name}`
-          : product.name
-
         const cactusMethod = paymentMethod === 'cactuspay-sbp' ? 'sbp' : 'card'
 
         const paymentParams = {
           amount: finalPrice,
-          description: `Оплата: ${productName}`,
-          productId: product._id,
-          variantId: selectedVariant?.id,
+          description: getDescription(),
+          productId: checkoutItems[0].productId,
+          variantId: checkoutItems[0].variantId,
           method: cactusMethod as 'sbp' | 'card',
+          items: checkoutItems.length > 1 ? checkoutItems : undefined,
         }
 
         console.log('[FastPay] Creating CactusPay payment:', paymentParams)
@@ -165,12 +213,7 @@ function CheckoutContent() {
         console.log('[FastPay] CactusPay response:', response)
 
         if (response.success && response.payment) {
-          // Open payment URL
-          if (window.Telegram?.WebApp && (window.Telegram.WebApp as any).openLink) {
-            (window.Telegram.WebApp as any).openLink(response.payment.payUrl)
-          } else {
-            window.open(response.payment.payUrl, '_blank')
-          }
+          openPaymentUrl(response.payment.payUrl)
         } else {
           const errorMsg = response.error || 'Неизвестная ошибка'
           alert('Ошибка создания платежа:\n' + errorMsg)
@@ -200,16 +243,15 @@ function CheckoutContent() {
     )
   }
 
-  if (!product) {
+  if (checkoutItems.length === 0 && !loading) {
     return (
       <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
-        <p className="text-light-text-secondary dark:text-dark-text-secondary">Товар не найден</p>
+        <p className="text-light-text-secondary dark:text-dark-text-secondary">Товары не найдены</p>
       </div>
     )
   }
 
-  const basePrice = selectedVariant?.price || product.price
-  const discountedPrice = basePrice - discount
+  const discountedPrice = itemsTotal - discount
 
   // Add 5% markup for CryptoBot payments (no markup for CactusPay)
   const cryptoBotMarkup = paymentMethod === 'cryptobot' ? discountedPrice * 0.05 : 0
@@ -230,33 +272,44 @@ function CheckoutContent() {
         {/* Order Summary */}
         <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 border border-light-border dark:border-dark-border">
           <h2 className="text-lg font-semibold mb-4 text-light-text dark:text-dark-text">
-            {t('yourOrder', language)}
+            {t('yourOrder', language)} {checkoutItems.length > 1 && `(${totalQuantity} шт.)`}
           </h2>
 
-          <div className="flex gap-4 mb-4">
-            <img
-              src={product.images[0]}
-              alt={product.name}
-              className="w-20 h-20 object-cover rounded-xl"
-            />
-            <div className="flex-1">
-              <h3 className="font-semibold text-light-text dark:text-dark-text">
-                {product.name}
-              </h3>
-              {selectedVariant && (
-                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                  {selectedVariant.name}
-                </p>
-              )}
-              <p className="text-accent-cyan font-bold mt-1">
-                {formatPrice(basePrice, currency)}
-              </p>
-              {paymentMethod === 'cryptobot' && (
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                  ≈ {formatCryptoAmount(basePrice, selectedCrypto)}
-                </p>
-              )}
-            </div>
+          <div className="space-y-3">
+            {checkoutItems.map((item, index) => (
+              <div key={`${item.productId}-${item.variantId || index}`} className="flex gap-4">
+                <img
+                  src={item.productImage}
+                  alt={item.productName}
+                  className="w-16 h-16 object-cover rounded-xl"
+                />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-light-text dark:text-dark-text truncate">
+                    {item.productName}
+                  </h3>
+                  {item.variantName && (
+                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                      {item.variantName}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-accent-cyan font-bold">
+                      {formatPrice(item.price, currency)}
+                    </p>
+                    {item.quantity > 1 && (
+                      <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                        × {item.quantity}
+                      </span>
+                    )}
+                  </div>
+                  {paymentMethod === 'cryptobot' && (
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                      ≈ {formatCryptoAmount(item.price * item.quantity, selectedCrypto)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -425,8 +478,8 @@ function CheckoutContent() {
         <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 border border-light-border dark:border-dark-border">
           <div className="space-y-2">
             <div className="flex justify-between text-light-text dark:text-dark-text">
-              <span>{t('productPrice', language)}:</span>
-              <span>{formatPrice(basePrice, currency)}</span>
+              <span>{checkoutItems.length > 1 ? `Товары (${totalQuantity} шт.)` : t('productPrice', language)}:</span>
+              <span>{formatPrice(itemsTotal, currency)}</span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between text-green-500">
