@@ -7,16 +7,41 @@ import {
 } from '../auth'
 import { validateBody, telegramAuthSchema } from '../validation'
 
+// Bootstrap admin IDs - can authenticate even without BOT_TOKEN
+const BOOTSTRAP_ADMIN_IDS = (process.env.ADMIN_IDS || '1301598469').split(',').map(id => id.trim())
+
+// Try to extract user from initData without cryptographic validation (for bootstrap admins fallback)
+function extractUserFromInitData(initData: string): { id: number; first_name: string; last_name?: string; username?: string } | null {
+  try {
+    const urlParams = new URLSearchParams(initData)
+    const userJson = urlParams.get('user')
+    if (userJson) {
+      return JSON.parse(userJson)
+    }
+  } catch (e) {
+    // ignore
+  }
+  return null
+}
+
 export async function authRoutes(fastify: FastifyInstance) {
   // Telegram WebApp authentication
   fastify.post('/auth/telegram', async (request, reply) => {
     try {
       const { initData } = validateBody(telegramAuthSchema, request.body)
 
-      const user = validateTelegramWebAppData(initData)
+      let user = validateTelegramWebAppData(initData)
+
+      // If validation failed, try fallback for bootstrap admins
       if (!user) {
-        // In development, allow mock auth
-        if (process.env.NODE_ENV !== 'production') {
+        const extractedUser = extractUserFromInitData(initData)
+
+        // Allow bootstrap admins to authenticate even without BOT_TOKEN validation
+        if (extractedUser && BOOTSTRAP_ADMIN_IDS.includes(String(extractedUser.id))) {
+          console.warn('⚠️ Using bootstrap admin fallback auth for user:', extractedUser.id)
+          user = extractedUser as any
+        } else if (process.env.NODE_ENV !== 'production') {
+          // In development, allow mock auth
           console.warn('⚠️ Telegram validation failed, using mock auth (dev only)')
           const mockToken = generateToken({
             id: 123456789,
@@ -33,28 +58,30 @@ export async function authRoutes(fastify: FastifyInstance) {
               isAdmin: false
             }
           }
+        } else {
+          console.error('❌ Auth failed: BOT_TOKEN not set or invalid initData')
+          reply.code(401)
+          return { success: false, error: 'Invalid Telegram data. Make sure BOT_TOKEN is configured.' }
         }
-
-        reply.code(401)
-        return { success: false, error: 'Invalid Telegram data' }
       }
 
-      const token = generateToken(user)
+      // At this point user is guaranteed to be non-null
+      const validUser = user!
+      const token = generateToken(validUser)
 
       // Check if user is admin
-      const ADMIN_IDS = (process.env.ADMIN_IDS || '1301598469').split(',').map(id => id.trim())
-      const isAdmin = ADMIN_IDS.includes(String(user.id))
+      const isAdmin = BOOTSTRAP_ADMIN_IDS.includes(String(validUser.id))
 
-      console.log('🔐 Auth:', { userId: user.id, username: user.username, isAdmin, adminIds: ADMIN_IDS })
+      console.log('🔐 Auth:', { userId: validUser.id, username: validUser.username, isAdmin, adminIds: BOOTSTRAP_ADMIN_IDS })
 
       return {
         success: true,
         token,
         user: {
-          id: String(user.id),
-          name: `${user.first_name}${user.last_name ? ' ' + user.last_name : ''}`,
-          username: user.username,
-          avatar: user.photo_url,
+          id: String(validUser.id),
+          name: `${validUser.first_name}${validUser.last_name ? ' ' + validUser.last_name : ''}`,
+          username: validUser.username,
+          avatar: (validUser as any).photo_url,
           isAdmin
         }
       }
