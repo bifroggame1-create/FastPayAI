@@ -52,21 +52,42 @@ function getAdminId(): string {
   return BOOTSTRAP_ADMIN_ID
 }
 
-// Add auth token and admin ID to ALL requests
+// Add auth token to requests
 api.interceptors.request.use((config) => {
   const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
-
-  // Always add X-Admin-Id header (doesn't hurt non-admin routes)
-  const adminId = getAdminId()
-  if (adminId) {
-    config.headers['X-Admin-Id'] = adminId
-  }
-
   return config
 })
+
+// Separate admin API instance with X-Admin-Id header ALWAYS set
+const adminApiInstance = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Admin-Id': BOOTSTRAP_ADMIN_ID
+  },
+  withCredentials: false,
+})
+
+// Log admin API requests for debugging
+adminApiInstance.interceptors.request.use((config) => {
+  console.log('[AdminAPI] Request:', config.method?.toUpperCase(), config.url)
+  console.log('[AdminAPI] Headers:', JSON.stringify(config.headers))
+  return config
+})
+
+adminApiInstance.interceptors.response.use(
+  (response) => {
+    console.log('[AdminAPI] Response:', response.status, response.config.url)
+    return response
+  },
+  (error) => {
+    console.error('[AdminAPI] Error:', error.response?.status, error.response?.data, error.config?.url)
+    throw error
+  }
+)
 
 export const productsApi = {
   getAll: async (params?: ProductFilters & { category?: string; condition?: string; search?: string }) => {
@@ -196,119 +217,119 @@ export const paymentApi = {
 }
 
 export const adminApi = {
-  // Products
+  // Products - using adminApiInstance with X-Admin-Id header
   createProduct: async (product: any) => {
-    const { data } = await api.post('/admin/products', product)
+    const { data } = await adminApiInstance.post('/admin/products', product)
     return data
   },
 
   updateProduct: async (id: string, updates: any) => {
-    const { data } = await api.put(`/admin/products/${id}`, updates)
+    const { data } = await adminApiInstance.put(`/admin/products/${id}`, updates)
     return data
   },
 
   deleteProduct: async (id: string) => {
-    const { data } = await api.delete(`/admin/products/${id}`)
+    const { data } = await adminApiInstance.delete(`/admin/products/${id}`)
     return data
   },
 
-  // Sellers
+  // Sellers - using adminApiInstance with X-Admin-Id header
   getSellers: async () => {
-    const { data } = await api.get('/admin/sellers')
+    const { data } = await adminApiInstance.get('/admin/sellers')
     return data
   },
 
   createSeller: async (seller: any) => {
-    const { data } = await api.post('/admin/sellers', seller)
+    const { data } = await adminApiInstance.post('/admin/sellers', seller)
     return data
   },
 
   updateSeller: async (id: string, updates: any) => {
-    const { data } = await api.put(`/admin/sellers/${id}`, updates)
+    const { data } = await adminApiInstance.put(`/admin/sellers/${id}`, updates)
     return data
   },
 
   deleteSeller: async (id: string) => {
-    const { data } = await api.delete(`/admin/sellers/${id}`)
+    const { data } = await adminApiInstance.delete(`/admin/sellers/${id}`)
     return data
   },
 
-  // Admins
+  // Admins - using adminApiInstance with X-Admin-Id header
   getAdmins: async () => {
-    const { data } = await api.get('/admin/admins')
+    const { data } = await adminApiInstance.get('/admin/admins')
     return data
   },
 
   addAdmin: async (admin: { userId?: string; username?: string; name?: string }) => {
-    const { data } = await api.post('/admin/admins', admin)
+    const { data } = await adminApiInstance.post('/admin/admins', admin)
     return data
   },
 
   removeAdmin: async (id: string) => {
-    const { data } = await api.delete(`/admin/admins/${id}`)
+    const { data } = await adminApiInstance.delete(`/admin/admins/${id}`)
     return data
   },
 
-  // Promo
+  // Promo - using adminApiInstance with X-Admin-Id header
   getPromoCodes: async () => {
-    const { data } = await api.get('/admin/promo')
+    const { data } = await adminApiInstance.get('/admin/promo')
     return data
   },
 
   createPromoCode: async (promo: any) => {
-    const { data } = await api.post('/admin/promo', promo)
+    const { data } = await adminApiInstance.post('/admin/promo', promo)
     return data
   },
 
   updatePromoCode: async (code: string, updates: any) => {
-    const { data } = await api.put(`/admin/promo/${code}`, updates)
+    const { data } = await adminApiInstance.put(`/admin/promo/${code}`, updates)
     return data
   },
 
   deletePromoCode: async (code: string) => {
-    const { data } = await api.delete(`/admin/promo/${code}`)
+    const { data } = await adminApiInstance.delete(`/admin/promo/${code}`)
     return data
   },
 
-  // Orders
+  // Orders - using adminApiInstance with X-Admin-Id header
   getOrders: async (params?: { status?: string; userId?: string; limit?: number; offset?: number }) => {
-    const { data } = await api.get('/admin/orders', { params })
+    const { data } = await adminApiInstance.get('/admin/orders', { params })
     return data
   },
 
   getOrder: async (id: string) => {
-    const { data } = await api.get(`/admin/orders/${id}`)
+    const { data } = await adminApiInstance.get(`/admin/orders/${id}`)
     return data
   },
 
   updateOrderStatus: async (id: string, status: string) => {
-    const { data } = await api.put(`/admin/orders/${id}/status`, { status })
+    const { data } = await adminApiInstance.put(`/admin/orders/${id}/status`, { status })
     return data
   },
 
   deliverOrder: async (id: string, deliveryData: string, deliveryNote?: string) => {
-    const { data } = await api.post(`/admin/orders/${id}/deliver`, { deliveryData, deliveryNote })
+    const { data } = await adminApiInstance.post(`/admin/orders/${id}/deliver`, { deliveryData, deliveryNote })
     return data
   },
 
   cancelOrder: async (id: string) => {
-    const { data } = await api.post(`/admin/orders/${id}/cancel`)
+    const { data } = await adminApiInstance.post(`/admin/orders/${id}/cancel`)
     return data
   },
 
   refundOrder: async (id: string) => {
-    const { data } = await api.post(`/admin/orders/${id}/refund`)
+    const { data } = await adminApiInstance.post(`/admin/orders/${id}/refund`)
     return data
   },
 
   getOrdersStats: async () => {
-    const { data } = await api.get('/admin/orders/stats')
+    const { data } = await adminApiInstance.get('/admin/orders/stats')
     return data
   },
 
-  // Delivery management
+  // Delivery management - using adminApiInstance with X-Admin-Id header
   getProductDelivery: async (productId: string) => {
-    const { data } = await api.get(`/admin/products/${productId}/delivery`)
+    const { data } = await adminApiInstance.get(`/admin/products/${productId}/delivery`)
     return data
   },
 
@@ -316,17 +337,17 @@ export const adminApi = {
     deliveryType?: 'manual' | 'auto'
     deliveryInstructions?: string
   }) => {
-    const { data } = await api.put(`/admin/products/${productId}/delivery`, settings)
+    const { data } = await adminApiInstance.put(`/admin/products/${productId}/delivery`, settings)
     return data
   },
 
   addDeliveryKeys: async (productId: string, keys: string[], variantId?: string) => {
-    const { data } = await api.post(`/admin/products/${productId}/delivery/keys`, { keys, variantId })
+    const { data } = await adminApiInstance.post(`/admin/products/${productId}/delivery/keys`, { keys, variantId })
     return data
   },
 
   removeDeliveryKey: async (productId: string, keyId: string) => {
-    const { data } = await api.delete(`/admin/products/${productId}/delivery/keys/${keyId}`)
+    const { data } = await adminApiInstance.delete(`/admin/products/${productId}/delivery/keys/${keyId}`)
     return data
   },
 }
