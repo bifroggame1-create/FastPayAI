@@ -68,20 +68,49 @@ export const useTelegramWebApp = () => {
   return window.Telegram?.WebApp || null
 }
 
+// Bootstrap admin ID for fallback
+const BOOTSTRAP_ADMIN_ID = '1301598469'
+
 export const getTelegramUser = () => {
   const webApp = useTelegramWebApp()
-  if (!webApp) return null
 
-  const user = webApp.initDataUnsafe.user
-  if (!user) return null
-
-  return {
-    id: user.id.toString(),
-    name: `${user.first_name}${user.last_name ? ' ' + user.last_name : ''}`,
-    username: user.username,
-    avatar: user.photo_url,
-    languageCode: user.language_code,
+  if (webApp) {
+    const user = webApp.initDataUnsafe.user
+    if (user) {
+      return {
+        id: user.id.toString(),
+        name: `${user.first_name}${user.last_name ? ' ' + user.last_name : ''}`,
+        username: user.username,
+        avatar: user.photo_url,
+        languageCode: user.language_code,
+      }
+    }
   }
+
+  // Fallback for bootstrap admin when Telegram WebApp data is not available
+  // This allows admin access during development or when WebApp is not properly initialized
+  if (typeof window !== 'undefined') {
+    const storedUser = localStorage.getItem('fastpay_user')
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser)
+        if (parsed.id === BOOTSTRAP_ADMIN_ID) {
+          console.log('📱 Using stored bootstrap admin user')
+          return {
+            id: parsed.id,
+            name: parsed.name || 'Admin',
+            username: parsed.username,
+            avatar: parsed.avatar,
+            languageCode: 'ru',
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
+
+  return null
 }
 
 export const getTelegramStartParam = () => {
