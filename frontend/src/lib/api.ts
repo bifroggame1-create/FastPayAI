@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Product, User, Order, Review, ProductFilters } from '@/types'
+import { Product, User, Order, Review, ProductFilters, SellerProfile } from '@/types'
 import { getToken } from './auth'
 import { getTelegramUser } from './telegram'
 
@@ -599,6 +599,15 @@ export const referralApi = {
   // Use bonus balance for checkout
   useBonus: async (userId: string, amount: number) => {
     const { data } = await api.post('/referral/use-bonus', { userId, amount })
+    return data
+  },
+}
+
+// Marketplace API - seller profiles, disputes, etc.
+export const marketplaceApi = {
+  // Get seller public profile with reputation
+  getSellerProfile: async (sellerId: string): Promise<SellerProfile> => {
+    const { data } = await api.get(`/sellers/${sellerId}/profile`)
     return data
   },
 }

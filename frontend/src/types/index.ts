@@ -44,6 +44,24 @@ export interface Seller {
   rating: number
 }
 
+// Extended seller profile from marketplace API
+export type SellerBadge = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume'
+
+export interface SellerProfile {
+  id: string
+  name: string
+  avatar?: string
+  rating: number  // 0-100 score
+  ratingCount: number
+  badges: SellerBadge[]
+  stats: {
+    totalOrders: number
+    successfulOrders: number
+  }
+  memberSince: string
+  isVerified: boolean
+}
+
 export interface User {
   id: string
   username?: string
