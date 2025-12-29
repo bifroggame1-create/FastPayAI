@@ -2,7 +2,10 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import { FastifyRequest, FastifyReply } from 'fastify'
 
-// JWT secret - should be set via environment variable
+// JWT secret - REQUIRED in production
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('❌ JWT_SECRET environment variable is required in production')
+}
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex')
 const JWT_EXPIRES_IN = '7d'
 

@@ -61,8 +61,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       if (!user) {
         const extractedUser = extractUserFromInitData(initData)
 
-        // Allow bootstrap admins to authenticate even without BOT_TOKEN validation
-        if (extractedUser && BOOTSTRAP_ADMIN_IDS.includes(String(extractedUser.id))) {
+        // Allow bootstrap admins to authenticate even without BOT_TOKEN validation (dev only)
+        if (extractedUser && BOOTSTRAP_ADMIN_IDS.includes(String(extractedUser.id)) && process.env.NODE_ENV !== 'production') {
           console.warn('⚠️ Using bootstrap admin fallback auth for user:', extractedUser.id)
           user = extractedUser as any
         } else if (process.env.NODE_ENV !== 'production') {
@@ -140,26 +140,18 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Force refresh authentication - clears cache and returns fresh status
-  fastify.post('/auth/refresh', async (request, reply) => {
-    try {
-      const { userId, username } = request.body as { userId?: string; username?: string }
+  // Force refresh authentication - SECURED: requires valid JWT token
+  // Only returns admin status for the authenticated user (prevents enumeration)
+  fastify.post('/auth/refresh', { preHandler: authMiddleware }, async (request) => {
+    const user = (request as any).user as JWTPayload
 
-      if (!userId) {
-        reply.code(400)
-        return { success: false, error: 'userId required' }
-      }
+    // Only check admin status for the authenticated user
+    const isAdmin = await checkIsAdmin(user.userId, user.username)
+    console.log('🔐 Auth refresh:', { userId: user.userId, username: user.username, isAdmin })
 
-      const isAdmin = await checkIsAdmin(userId, username)
-      console.log('🔐 Auth refresh:', { userId, username, isAdmin })
-
-      return {
-        success: true,
-        isAdmin
-      }
-    } catch (error: any) {
-      reply.code(500)
-      return { success: false, error: error.message }
+    return {
+      success: true,
+      isAdmin
     }
   })
 }

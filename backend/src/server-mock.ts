@@ -120,7 +120,9 @@ async function start() {
           cb(null, true)
           return
         }
-        if (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app')) {
+        // Only allow fast-pay-ai Vercel deployments (not all .vercel.app domains)
+        const isFastPayVercel = /^https:\/\/fast-pay-ai(-[a-z0-9]+)?\.vercel\.app$/.test(origin)
+        if (ALLOWED_ORIGINS.includes(origin) || isFastPayVercel) {
           cb(null, true)
           return
         }
