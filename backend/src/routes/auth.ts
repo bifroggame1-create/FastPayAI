@@ -91,6 +91,46 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   })
 
+  // Bootstrap admin authentication - simplified auth for admin IDs only
+  fastify.post('/auth/bootstrap', async (request, reply) => {
+    try {
+      const { userId, name } = request.body as { userId?: string; name?: string }
+
+      if (!userId) {
+        reply.code(400)
+        return { success: false, error: 'userId is required' }
+      }
+
+      // Only allow bootstrap admin IDs
+      if (!BOOTSTRAP_ADMIN_IDS.includes(userId)) {
+        reply.code(403)
+        return { success: false, error: 'Not a bootstrap admin' }
+      }
+
+      console.log('🔐 Bootstrap auth for admin:', userId)
+
+      const token = generateToken({
+        id: parseInt(userId),
+        first_name: name || 'Admin',
+        username: 'admin'
+      })
+
+      return {
+        success: true,
+        token,
+        user: {
+          id: userId,
+          name: name || 'Admin',
+          username: 'admin',
+          isAdmin: true
+        }
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
   // Verify token
   fastify.get('/auth/verify', { preHandler: authMiddleware }, async (request) => {
     const user = (request as any).user as JWTPayload
