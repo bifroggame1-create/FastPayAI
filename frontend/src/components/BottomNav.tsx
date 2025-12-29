@@ -4,48 +4,34 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
-import { authenticate, isAdmin as checkIsAdmin, getAuthUser, forceReauth, getStoredAdminStatus } from '@/lib/auth'
+import { initAuth, isAdmin as checkIsAdmin, getUser } from '@/lib/auth'
 
 export default function BottomNav() {
   const pathname = usePathname()
   const { isAdmin: storeIsAdmin, setIsAdmin } = useAppStore()
   const [localIsAdmin, setLocalIsAdmin] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
 
-  // Check and update admin status on mount
+  // Initialize auth on mount
   useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        console.log('🔐 BottomNav: Starting admin check...')
+    const init = async () => {
+      console.log('🔐 BottomNav: Initializing auth...')
 
-        // Always force fresh auth on first mount
-        await authenticate(true)
+      const user = await initAuth()
 
-        // Check admin status from multiple sources
-        const authUser = getAuthUser()
-        const storedAdmin = getStoredAdminStatus()
-        const checkAdmin = checkIsAdmin()
-
-        const finalIsAdmin = checkAdmin || storedAdmin || authUser?.isAdmin || false
-
-        console.log('🔐 BottomNav admin check:', {
-          checkIsAdmin: checkAdmin,
-          storedAdmin,
-          authUserIsAdmin: authUser?.isAdmin,
-          finalIsAdmin,
-          authUser
-        })
-
-        setLocalIsAdmin(finalIsAdmin)
-        setIsAdmin(finalIsAdmin)
-      } catch (error) {
-        console.error('❌ BottomNav auth error:', error)
-      } finally {
-        setIsLoading(false)
+      if (user) {
+        console.log('✅ BottomNav: User authenticated:', user.name, 'isAdmin:', user.isAdmin)
+        setLocalIsAdmin(user.isAdmin)
+        setIsAdmin(user.isAdmin)
+      } else {
+        // Fallback: check stored status
+        const adminStatus = checkIsAdmin()
+        console.log('🔐 BottomNav: No user, stored admin status:', adminStatus)
+        setLocalIsAdmin(adminStatus)
+        setIsAdmin(adminStatus)
       }
     }
 
-    checkAdmin()
+    init()
   }, [setIsAdmin])
 
   // Use local state as primary, fall back to store

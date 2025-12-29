@@ -6,7 +6,7 @@ import Header from '@/components/Header'
 import { useAppStore } from '@/lib/store'
 import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi } from '@/lib/api'
-import { authenticate, isAdmin as checkIsAdmin, getAuthUser, getStoredAdminStatus } from '@/lib/auth'
+import { initAuth, isAdmin as checkIsAdmin, getUser } from '@/lib/auth'
 
 type Tab = 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'orders' | 'admins'
 
@@ -121,22 +121,13 @@ export default function AdminPage() {
     const checkAccessAndLoad = async () => {
       console.log('🔧 Admin: Starting auth check...')
 
-      // Always force fresh auth on admin page
-      const authResult = await authenticate(true)
-      console.log('🔧 Admin: Auth result:', authResult)
+      // Initialize auth and get user
+      const authUser = await initAuth()
+      console.log('🔧 Admin: Auth user:', authUser)
 
-      // Check admin access from multiple sources
-      const authUser = getAuthUser()
-      const storedAdmin = getStoredAdminStatus()
-      const checkAdmin = checkIsAdmin()
-
-      const hasAccess = checkAdmin || storedAdmin || authUser?.isAdmin || false
-      console.log('🔧 Admin: hasAccess:', hasAccess, {
-        checkIsAdmin: checkAdmin,
-        storedAdmin,
-        authUserIsAdmin: authUser?.isAdmin,
-        authUser
-      })
+      // Check admin status
+      const hasAccess = authUser?.isAdmin || checkIsAdmin()
+      console.log('🔧 Admin: hasAccess:', hasAccess)
 
       setIsAdmin(hasAccess)
 
