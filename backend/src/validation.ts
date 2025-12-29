@@ -168,7 +168,9 @@ export const createSellerSchema = z.object({
   id: z.string().min(1).max(50),
   name: z.string().min(1).max(100),
   avatar: z.string().max(500).optional(),
-  rating: z.number().min(0).max(5).optional()
+  rating: z.number().min(0).max(5).optional(),
+  isVerified: z.boolean().optional(),
+  joinedAt: z.string().optional()
 })
 
 export const updateSellerSchema = createSellerSchema.partial()

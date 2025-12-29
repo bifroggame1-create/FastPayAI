@@ -41,6 +41,12 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       const token = generateToken(user)
 
+      // Check if user is admin
+      const ADMIN_IDS = (process.env.ADMIN_IDS || '1301598469').split(',').map(id => id.trim())
+      const isAdmin = ADMIN_IDS.includes(String(user.id))
+
+      console.log('🔐 Auth:', { userId: user.id, username: user.username, isAdmin, adminIds: ADMIN_IDS })
+
       return {
         success: true,
         token,
@@ -49,7 +55,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           name: `${user.first_name}${user.last_name ? ' ' + user.last_name : ''}`,
           username: user.username,
           avatar: user.photo_url,
-          isAdmin: (process.env.ADMIN_IDS || '').split(',').includes(String(user.id))
+          isAdmin
         }
       }
     } catch (error: any) {

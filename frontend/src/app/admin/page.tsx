@@ -224,9 +224,10 @@ export default function AdminPage() {
       // Reload products to get updated seller info
       const productsData = await productsApi.getAll({})
       setProducts(productsData)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving seller:', error)
-      alert('Ошибка сохранения продавца')
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || 'Ошибка сохранения продавца'
+      alert(errorMsg)
     }
   }
 
@@ -266,7 +267,8 @@ export default function AdminPage() {
       }
     } catch (error: any) {
       console.error('Error adding admin:', error)
-      alert(error.response?.data?.message || 'Ошибка добавления админа')
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || 'Ошибка добавления админа'
+      alert(errorMsg)
     }
   }
 
