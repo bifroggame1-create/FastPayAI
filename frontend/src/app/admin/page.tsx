@@ -162,11 +162,11 @@ export default function AdminPage() {
         adminApi.getAdmins().catch(() => [])
       ])
       setProducts(productsData)
-      setPromoCodes(promoData || [])
+      setPromoCodes(promoData?.promoCodes || promoData || [])
       setOrders(ordersData.orders || [])
       setOrdersStats(statsData.stats || {})
-      setSellers(sellersData || [])
-      setAdmins(adminsData || [])
+      setSellers(sellersData?.sellers || sellersData || [])
+      setAdmins(adminsData?.admins || adminsData || [])
 
       // Load files from localStorage
       const savedFiles = localStorage.getItem('admin-files')
