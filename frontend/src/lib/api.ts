@@ -61,7 +61,7 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Separate admin API instance with X-Admin-Id header ALWAYS set
+// Separate admin API instance with authentication via query params AND headers
 const adminApiInstance = axios.create({
   baseURL: API_URL,
   headers: {
@@ -71,22 +71,33 @@ const adminApiInstance = axios.create({
   withCredentials: false,
 })
 
-// Ensure X-Admin-Id is always set and log admin API requests
+// Ensure admin_id is sent via query params AND headers (belt and suspenders approach)
 adminApiInstance.interceptors.request.use((config) => {
-  // Force set X-Admin-Id header on every request
+  // Add admin_id to query params (works even if headers are stripped)
+  config.params = config.params || {}
+  config.params.admin_id = BOOTSTRAP_ADMIN_ID
+
+  // Also set header (in case query params don't work)
   config.headers['X-Admin-Id'] = BOOTSTRAP_ADMIN_ID
-  console.log('[AdminAPI] Request:', config.method?.toUpperCase(), config.url)
-  console.log('[AdminAPI] X-Admin-Id:', config.headers['X-Admin-Id'])
+
+  // For POST/PUT, also add to body
+  if (config.method === 'post' || config.method === 'put') {
+    if (typeof config.data === 'object' && config.data !== null) {
+      config.data._adminId = BOOTSTRAP_ADMIN_ID
+    }
+  }
+
+  console.log('[AdminAPI v3] Request:', config.method?.toUpperCase(), config.url, 'admin_id:', BOOTSTRAP_ADMIN_ID)
   return config
 })
 
 adminApiInstance.interceptors.response.use(
   (response) => {
-    console.log('[AdminAPI] Response:', response.status, response.config.url)
+    console.log('[AdminAPI v3] Response OK:', response.status)
     return response
   },
   (error) => {
-    console.error('[AdminAPI] Error:', error.response?.status, error.response?.data, error.config?.url)
+    console.error('[AdminAPI v3] Error:', error.response?.status, error.response?.data)
     throw error
   }
 )

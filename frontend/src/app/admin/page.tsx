@@ -490,7 +490,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
-      <Header title="Админ-панель v2.1" showBack onBack={() => router.push('/')} showNavButtons={false} />
+      <Header title="Админ-панель v3.0" showBack onBack={() => router.push('/')} showNavButtons={false} />
 
       {/* Tabs */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">

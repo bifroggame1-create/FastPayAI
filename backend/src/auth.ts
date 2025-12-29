@@ -167,18 +167,42 @@ export async function authMiddleware(
 
 /**
  * Admin middleware - checks if user is admin
- * Supports both JWT auth and bootstrap admin ID header
+ * Supports JWT auth, bootstrap admin ID header, and query parameter
  */
 export async function adminMiddleware(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
   // Check for bootstrap admin header first (bypass JWT for admin IDs)
-  const adminId = request.headers['x-admin-id'] as string
-  if (adminId && ADMIN_IDS.includes(adminId)) {
-    console.log('🔐 Admin access via X-Admin-Id header:', adminId)
+  const adminIdHeader = request.headers['x-admin-id'] as string
+  if (adminIdHeader && ADMIN_IDS.includes(adminIdHeader)) {
+    console.log('🔐 Admin access via X-Admin-Id header:', adminIdHeader)
     ;(request as any).user = {
-      userId: adminId,
+      userId: adminIdHeader,
+      isAdmin: true
+    }
+    return
+  }
+
+  // Check for admin_id in query parameters (fallback for browsers that strip headers)
+  const query = request.query as any
+  const adminIdQuery = query?.admin_id as string
+  if (adminIdQuery && ADMIN_IDS.includes(adminIdQuery)) {
+    console.log('🔐 Admin access via admin_id query param:', adminIdQuery)
+    ;(request as any).user = {
+      userId: adminIdQuery,
+      isAdmin: true
+    }
+    return
+  }
+
+  // Check for adminId in request body (for POST/PUT requests)
+  const body = request.body as any
+  const adminIdBody = body?._adminId as string
+  if (adminIdBody && ADMIN_IDS.includes(adminIdBody)) {
+    console.log('🔐 Admin access via _adminId in body:', adminIdBody)
+    ;(request as any).user = {
+      userId: adminIdBody,
       isAdmin: true
     }
     return
@@ -197,6 +221,9 @@ export async function adminMiddleware(
   }
 
   // No valid auth - return error
+  console.log('🔐 Admin access DENIED - no valid auth found')
+  console.log('🔐 Headers:', JSON.stringify(request.headers))
+  console.log('🔐 Query:', JSON.stringify(request.query))
   reply.code(401).send({ success: false, error: 'Admin authentication required' })
 }
 
