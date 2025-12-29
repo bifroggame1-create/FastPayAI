@@ -30,7 +30,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
     status: 'ok',
     timestamp: new Date().toISOString(),
     mode: 'production',
-    version: '2.1.0',
+    version: '2.2.0',
     buildTime: '2024-12-29T01:00:00Z',
     cache: {
       enabled: redis.isEnabled(),
