@@ -9,6 +9,7 @@ import { useAppStore, CartItem } from '@/lib/store'
 import { formatPrice } from '@/lib/currency'
 import { formatCryptoAmount } from '@/lib/cryptoConverter'
 import { t } from '@/lib/i18n'
+import { EscrowExplainer } from '@/components/TrustBanner'
 
 interface CheckoutItem {
   productId: string
@@ -33,8 +34,10 @@ function CheckoutContent() {
   const [promoError, setPromoError] = useState('')
   const [discount, setDiscount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [processing, setProcessing] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'cryptobot' | 'cactuspay-sbp' | 'cactuspay-card'>('cryptobot')
   const [selectedCrypto, setSelectedCrypto] = useState<'TON' | 'USDT'>('TON')
+  const [showPromo, setShowPromo] = useState(false)
 
   useEffect(() => {
     loadCheckoutData()
@@ -147,7 +150,7 @@ function CheckoutContent() {
     // Для CryptoBot используем крипту
     if (paymentMethod === 'cryptobot') {
       try {
-        setLoading(true)
+        setProcessing(true)
 
         const invoiceParams = {
           amount: finalPrice,
@@ -188,12 +191,12 @@ function CheckoutContent() {
 
         alert(errorMessage)
       } finally {
-        setLoading(false)
+        setProcessing(false)
       }
     } else if (paymentMethod === 'cactuspay-sbp' || paymentMethod === 'cactuspay-card') {
       // CactusPay payment (SBP or Card)
       try {
-        setLoading(true)
+        setProcessing(true)
 
         const cactusMethod = paymentMethod === 'cactuspay-sbp' ? 'sbp' : 'card'
 
@@ -230,7 +233,7 @@ function CheckoutContent() {
 
         alert(errorMessage)
       } finally {
-        setLoading(false)
+        setProcessing(false)
       }
     }
   }
@@ -313,36 +316,49 @@ function CheckoutContent() {
           </div>
         </div>
 
-        {/* Promo Code */}
-        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 border border-light-border dark:border-dark-border">
-          <h3 className="text-base font-semibold mb-3 text-light-text dark:text-dark-text">
-            Промокод
-          </h3>
-          <div className="flex gap-2 items-stretch">
-            <input
-              type="text"
-              value={promoCode}
-              onChange={(e) => {
-                setPromoCode(e.target.value.toUpperCase())
-                setPromoError('')
-              }}
-              placeholder="Введите промокод"
-              className="flex-1 px-4 py-3 rounded-xl bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text focus:outline-none focus:border-accent-cyan"
-            />
-            <button
-              onClick={handleApplyPromo}
-              className="px-4 py-3 bg-accent-cyan text-white rounded-xl font-medium hover:bg-accent-blue transition-colors whitespace-nowrap"
-            >
-              Применить
-            </button>
-          </div>
-          {promoError && (
-            <p className="text-red-500 text-sm mt-2">{promoError}</p>
-          )}
-          {discount > 0 && (
-            <p className="text-green-500 text-sm mt-2">
-              Скидка: -{discount.toLocaleString('ru-RU')} ₽
-            </p>
+        {/* Promo Code - Collapsible */}
+        <div className="bg-light-card dark:bg-dark-card rounded-2xl border border-light-border dark:border-dark-border overflow-hidden">
+          <button
+            onClick={() => setShowPromo(!showPromo)}
+            className="w-full p-4 flex items-center justify-between text-left"
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <span className="font-medium text-light-text dark:text-dark-text">
+                {discount > 0 ? `Промокод применён (-${discount.toLocaleString('ru-RU')} ₽)` : 'Есть промокод?'}
+              </span>
+            </div>
+            <svg className={`w-5 h-5 text-light-text-secondary transition-transform ${showPromo ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showPromo && (
+            <div className="px-4 pb-4 border-t border-light-border dark:border-dark-border pt-3">
+              <div className="flex gap-2 items-stretch">
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => {
+                    setPromoCode(e.target.value.toUpperCase())
+                    setPromoError('')
+                  }}
+                  placeholder="Введите промокод"
+                  className="flex-1 px-4 py-3 rounded-xl bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text focus:outline-none focus:border-accent-cyan"
+                />
+                <button
+                  onClick={handleApplyPromo}
+                  className="px-4 py-3 bg-accent-cyan text-white rounded-xl font-medium hover:bg-accent-blue transition-colors whitespace-nowrap"
+                >
+                  OK
+                </button>
+              </div>
+              {promoError && (
+                <p className="text-red-500 text-sm mt-2">{promoError}</p>
+              )}
+            </div>
           )}
         </div>
 
@@ -359,79 +375,92 @@ function CheckoutContent() {
           </div>
         )}
 
-        {/* Payment Method */}
-        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 border border-light-border dark:border-dark-border">
-          <h3 className="text-base font-semibold mb-3 text-light-text dark:text-dark-text">
+        {/* Payment Method - Grouped */}
+        <div className="space-y-3">
+          <h3 className="text-base font-semibold text-light-text dark:text-dark-text px-1">
             Способ оплаты
           </h3>
-          <div className="space-y-3">
+
+          {/* Crypto Section */}
+          <div className="bg-light-card dark:bg-dark-card rounded-2xl border border-light-border dark:border-dark-border overflow-hidden">
+            <div className="px-4 py-2 bg-light-bg dark:bg-dark-bg border-b border-light-border dark:border-dark-border">
+              <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Криптовалюта</span>
+            </div>
             <button
               onClick={() => setPaymentMethod('cryptobot')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+              className={`w-full p-4 transition-all text-left ${
                 paymentMethod === 'cryptobot'
-                  ? 'border-accent-cyan bg-accent-cyan/10'
-                  : 'border-light-border dark:border-dark-border'
+                  ? 'bg-accent-cyan/10'
+                  : ''
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 flex items-center justify-center rounded-lg overflow-hidden">
+                <div className={`w-10 h-10 flex items-center justify-center rounded-xl overflow-hidden ${paymentMethod === 'cryptobot' ? 'ring-2 ring-accent-cyan' : ''}`}>
                   <img
                     src="/payment-icons/cryptobot.jpg"
                     alt="CryptoBot"
                     className="w-10 h-10 object-cover"
                   />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="font-medium text-light-text dark:text-dark-text">CryptoBot</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    TON, USDT
+                    Мгновенная оплата через Telegram
                   </p>
+                </div>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cryptobot' ? 'border-accent-cyan bg-accent-cyan' : 'border-light-border dark:border-dark-border'}`}>
+                  {paymentMethod === 'cryptobot' && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                 </div>
               </div>
             </button>
 
             {paymentMethod === 'cryptobot' && (
-              <div className="ml-4 space-y-2">
-                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-2">
-                  Выберите криптовалюту:
-                </p>
+              <div className="px-4 pb-4 pt-2 border-t border-light-border dark:border-dark-border">
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSelectedCrypto('TON')}
-                    className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
+                    className={`flex-1 px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 ${
                       selectedCrypto === 'TON'
-                        ? 'border-accent-cyan bg-accent-cyan/10 text-accent-cyan font-semibold'
-                        : 'border-light-border dark:border-dark-border text-light-text dark:text-dark-text'
+                        ? 'bg-accent-cyan text-white font-semibold'
+                        : 'bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text'
                     }`}
                   >
-                    <img src="/payment-icons/ton.svg" alt="TON" className="w-6 h-6" />
+                    <img src="/payment-icons/ton.svg" alt="TON" className="w-5 h-5" />
                     TON
                   </button>
                   <button
                     onClick={() => setSelectedCrypto('USDT')}
-                    className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
+                    className={`flex-1 px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 ${
                       selectedCrypto === 'USDT'
-                        ? 'border-accent-cyan bg-accent-cyan/10 text-accent-cyan font-semibold'
-                        : 'border-light-border dark:border-dark-border text-light-text dark:text-dark-text'
+                        ? 'bg-accent-cyan text-white font-semibold'
+                        : 'bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text'
                     }`}
                   >
-                    <img src="/payment-icons/usdt.svg" alt="USDT" className="w-6 h-6" />
+                    <img src="/payment-icons/usdt.svg" alt="USDT" className="w-5 h-5" />
                     USDT
                   </button>
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Fiat Section */}
+          <div className="bg-light-card dark:bg-dark-card rounded-2xl border border-light-border dark:border-dark-border overflow-hidden">
+            <div className="px-4 py-2 bg-light-bg dark:bg-dark-bg border-b border-light-border dark:border-dark-border flex items-center justify-between">
+              <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Рубли ₽</span>
+              <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-600 dark:text-green-400 rounded-full">Без комиссии</span>
+            </div>
 
             <button
               onClick={() => setPaymentMethod('cactuspay-sbp')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+              className={`w-full p-4 transition-all text-left border-b border-light-border dark:border-dark-border ${
                 paymentMethod === 'cactuspay-sbp'
-                  ? 'border-accent-cyan bg-accent-cyan/10'
-                  : 'border-light-border dark:border-dark-border'
+                  ? 'bg-accent-cyan/10'
+                  : ''
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 flex items-center justify-center rounded-lg overflow-hidden">
+                <div className={`w-10 h-10 flex items-center justify-center rounded-xl overflow-hidden ${paymentMethod === 'cactuspay-sbp' ? 'ring-2 ring-accent-cyan' : ''}`}>
                   <img
                     src="/payment-icons/sbp.webp"
                     alt="СБП"
@@ -439,26 +468,28 @@ function CheckoutContent() {
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-light-text dark:text-dark-text">СБП (Система быстрых платежей)</p>
+                  <p className="font-medium text-light-text dark:text-dark-text">СБП</p>
                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    Оплата через QR-код или по номеру телефона
+                    QR-код или по номеру телефона
                   </p>
                 </div>
-                <span className="text-xs px-2 py-1 bg-green-500/20 text-green-500 rounded-full">Рубли</span>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cactuspay-sbp' ? 'border-accent-cyan bg-accent-cyan' : 'border-light-border dark:border-dark-border'}`}>
+                  {paymentMethod === 'cactuspay-sbp' && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                </div>
               </div>
             </button>
 
             <button
               onClick={() => setPaymentMethod('cactuspay-card')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+              className={`w-full p-4 transition-all text-left ${
                 paymentMethod === 'cactuspay-card'
-                  ? 'border-accent-cyan bg-accent-cyan/10'
-                  : 'border-light-border dark:border-dark-border'
+                  ? 'bg-accent-cyan/10'
+                  : ''
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center ${paymentMethod === 'cactuspay-card' ? 'ring-2 ring-accent-cyan' : ''}`}>
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
                 </div>
@@ -468,59 +499,78 @@ function CheckoutContent() {
                     Visa, Mastercard, МИР
                   </p>
                 </div>
-                <span className="text-xs px-2 py-1 bg-green-500/20 text-green-500 rounded-full">Рубли</span>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cactuspay-card' ? 'border-accent-cyan bg-accent-cyan' : 'border-light-border dark:border-dark-border'}`}>
+                  {paymentMethod === 'cactuspay-card' && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                </div>
               </div>
             </button>
           </div>
         </div>
 
-        {/* Price Summary */}
+        {/* Price Breakdown - Compact */}
         <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 border border-light-border dark:border-dark-border">
-          <div className="space-y-2">
-            <div className="flex justify-between text-light-text dark:text-dark-text">
-              <span>{checkoutItems.length > 1 ? `Товары (${totalQuantity} шт.)` : t('productPrice', language)}:</span>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between text-light-text-secondary dark:text-dark-text-secondary">
+              <span>{checkoutItems.length > 1 ? `${totalQuantity} товаров` : 'Товар'}</span>
               <span>{formatPrice(itemsTotal, currency)}</span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between text-green-500">
-                <span>{t('promoDiscount', language)}:</span>
+                <span>Скидка</span>
                 <span>-{formatPrice(discount, currency)}</span>
               </div>
             )}
             {paymentMethod === 'cryptobot' && cryptoBotMarkup > 0 && (
-              <div className="flex justify-between text-orange-500 text-sm">
-                <span>Комиссия CryptoBot (+5%):</span>
+              <div className="flex justify-between text-orange-500">
+                <span>Комиссия CryptoBot +5%</span>
                 <span>+{formatPrice(cryptoBotMarkup, currency)}</span>
               </div>
             )}
-            <div className="border-t border-light-border dark:border-dark-border pt-2 mt-2">
-              <div className="flex justify-between text-xl font-bold text-light-text dark:text-dark-text">
-                <span>{t('total', language)}:</span>
-                <span className="text-accent-cyan">{formatPrice(finalPrice, currency)}</span>
-              </div>
-              {paymentMethod === 'cryptobot' && (
-                <div className="flex justify-between text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                  <span>≈ {formatCryptoAmount(finalPrice, selectedCrypto)}</span>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
-        {/* Checkout Button */}
-        <button
-          onClick={handleCheckout}
-          className="w-full bg-accent-cyan text-white py-4 rounded-2xl font-semibold text-lg hover:bg-accent-blue transition-colors shadow-lg"
-        >
-          Перейти к оплате
-        </button>
+        {/* Escrow Protection Info */}
+        <EscrowExplainer variant="compact" />
+      </div>
 
-        {/* Security Info */}
-        <div className="flex items-center justify-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-          <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-          <span>Безопасная оплата через защищённое соединение</span>
+      {/* Sticky Checkout Footer */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-light-bg/95 dark:bg-dark-bg/95 backdrop-blur-sm border-t border-light-border dark:border-dark-border safe-area-bottom">
+        <div className="flex items-center gap-3">
+          {/* Price summary */}
+          <div className="flex-1">
+            <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+              {language === 'ru' ? 'Итого' : 'Total'}
+            </div>
+            <div className="text-xl font-bold text-accent-cyan">
+              {formatPrice(finalPrice, currency)}
+              {paymentMethod === 'cryptobot' && (
+                <span className="text-sm font-normal text-light-text-secondary dark:text-dark-text-secondary ml-1">
+                  ≈ {formatCryptoAmount(finalPrice, selectedCrypto)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Pay Button */}
+          <button
+            onClick={handleCheckout}
+            disabled={processing}
+            className="flex-1 bg-accent-cyan text-white py-3.5 px-6 rounded-xl font-bold text-base hover:bg-accent-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {processing ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>{language === 'ru' ? 'Создание...' : 'Creating...'}</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span>{language === 'ru' ? 'Оплатить' : 'Pay'}</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
