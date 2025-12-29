@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
-import { authenticate, isAdmin as checkAuthIsAdmin, getAuthUser } from '@/lib/auth'
+import { authenticate, isAdmin as checkAuthIsAdmin, getAuthUser, forceReauth } from '@/lib/auth'
+
+// Key to track if we've done initial auth refresh
+const AUTH_REFRESH_KEY = 'fastpay_auth_refreshed_v2'
 
 export default function BottomNav() {
   const pathname = usePathname()
@@ -14,6 +17,15 @@ export default function BottomNav() {
   // Check and update admin status on mount - backend is the source of truth
   useEffect(() => {
     const checkAdmin = async () => {
+      // Check if we need to force refresh (first time after update)
+      const needsRefresh = typeof window !== 'undefined' && !sessionStorage.getItem(AUTH_REFRESH_KEY)
+
+      if (needsRefresh) {
+        console.log('🔄 First load - forcing auth refresh')
+        forceReauth()
+        sessionStorage.setItem(AUTH_REFRESH_KEY, 'true')
+      }
+
       // Authenticate with backend to get fresh admin status
       await authenticate()
       const authUser = getAuthUser()

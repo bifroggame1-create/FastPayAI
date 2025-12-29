@@ -120,20 +120,46 @@ export async function authRoutes(fastify: FastifyInstance) {
   // This was a security vulnerability - allowed anyone to get admin tokens by knowing admin IDs
   // All authentication must now go through /auth/telegram with proper Telegram validation
 
-  // Verify token
+  // Verify token and return fresh admin status
   fastify.get('/auth/verify', { preHandler: authMiddleware }, async (request) => {
     const user = (request as any).user as JWTPayload
 
     // Check current admin status from database (may have changed since token was issued)
     const isAdmin = await checkIsAdmin(user.userId, user.username)
 
+    console.log('🔐 Token verify:', { userId: user.userId, username: user.username, isAdmin })
+
     return {
       success: true,
       user: {
         id: user.userId,
+        name: user.username || `User ${user.userId}`,
         username: user.username,
         isAdmin
       }
+    }
+  })
+
+  // Force refresh authentication - clears cache and returns fresh status
+  fastify.post('/auth/refresh', async (request, reply) => {
+    try {
+      const { userId, username } = request.body as { userId?: string; username?: string }
+
+      if (!userId) {
+        reply.code(400)
+        return { success: false, error: 'userId required' }
+      }
+
+      const isAdmin = await checkIsAdmin(userId, username)
+      console.log('🔐 Auth refresh:', { userId, username, isAdmin })
+
+      return {
+        success: true,
+        isAdmin
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
     }
   })
 }

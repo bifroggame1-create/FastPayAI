@@ -45,8 +45,20 @@ export function getAuthUser(): AuthUser | null {
   return authUser
 }
 
+// Force clear all auth data (call when admin status seems wrong)
+export function forceReauth(): void {
+  console.log('🔄 Force re-authentication requested')
+  clearAuth()
+  authPromise = null
+}
+
 // Authenticate with backend
-export async function authenticate(): Promise<boolean> {
+export async function authenticate(forceRefresh = false): Promise<boolean> {
+  // If force refresh, clear everything first
+  if (forceRefresh) {
+    forceReauth()
+  }
+
   // If already authenticating, wait for that
   if (authPromise) {
     return authPromise
@@ -54,7 +66,7 @@ export async function authenticate(): Promise<boolean> {
 
   // If already have token, verify it and get fresh admin status
   const existingToken = getToken()
-  if (existingToken) {
+  if (existingToken && !forceRefresh) {
     try {
       const res = await fetch(`${API_URL}/auth/verify`, {
         headers: {
@@ -64,13 +76,19 @@ export async function authenticate(): Promise<boolean> {
 
       if (res.ok) {
         const data = await res.json()
-        if (data.success) {
-          authUser = data.user
+        if (data.success && data.user) {
+          // Merge with existing user data to preserve name if missing
+          const existingUser = getAuthUser()
+          authUser = {
+            ...existingUser,
+            ...data.user,
+            isAdmin: data.user.isAdmin // Always use fresh isAdmin from server
+          }
           // Update localStorage with fresh admin status from server
           if (typeof window !== 'undefined') {
-            localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+            localStorage.setItem(USER_KEY, JSON.stringify(authUser))
           }
-          console.log('✅ Token verified, isAdmin:', data.user?.isAdmin)
+          console.log('✅ Token verified, isAdmin:', authUser?.isAdmin)
           return true
         }
       }
