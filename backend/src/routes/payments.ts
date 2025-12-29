@@ -12,6 +12,7 @@ import {
   sendPaymentNotification,
   sendDeliveryNotification as sendTelegramDeliveryNotification
 } from '../telegramNotifier'
+import { onOrderPaid, onOrderDelivered } from '../marketplace'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -290,6 +291,14 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         if (updatedOrder) {
           logger.info({ orderId: order.id }, 'Order marked as paid')
 
+          // Marketplace: Create escrow transaction
+          try {
+            await onOrderPaid(order.id)
+            logger.info({ orderId: order.id }, 'Escrow transaction created')
+          } catch (escrowError) {
+            logger.warn({ orderId: order.id, error: escrowError }, 'Failed to create escrow transaction')
+          }
+
           // Send Telegram notifications
           try {
             // Notify user about payment confirmation
@@ -319,6 +328,14 @@ export async function paymentRoutes(fastify: FastifyInstance) {
               orderId: order.id,
               delivered: true
             }, 'Auto-delivery successful')
+
+            // Marketplace: Update seller stats on delivery
+            try {
+              await onOrderDelivered(order.id)
+              logger.info({ orderId: order.id }, 'Seller stats updated for delivery')
+            } catch (statsError) {
+              logger.warn({ orderId: order.id, error: statsError }, 'Failed to update seller stats')
+            }
 
             // Send Telegram delivery notification
             try {
@@ -567,6 +584,14 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       if (updatedOrder) {
         logger.info({ orderId: updatedOrder.id }, 'Order marked as paid')
 
+        // Marketplace: Create escrow transaction
+        try {
+          await onOrderPaid(order_id)
+          logger.info({ orderId: order_id }, 'Escrow transaction created')
+        } catch (escrowError) {
+          logger.warn({ orderId: order_id, error: escrowError }, 'Failed to create escrow transaction')
+        }
+
         // Send Telegram notifications
         try {
           // Notify user about payment confirmation
@@ -596,6 +621,14 @@ export async function paymentRoutes(fastify: FastifyInstance) {
             orderId: updatedOrder.id,
             delivered: true
           }, 'Auto-delivery successful')
+
+          // Marketplace: Update seller stats on delivery
+          try {
+            await onOrderDelivered(updatedOrder.id)
+            logger.info({ orderId: updatedOrder.id }, 'Seller stats updated for delivery')
+          } catch (statsError) {
+            logger.warn({ orderId: updatedOrder.id, error: statsError }, 'Failed to update seller stats')
+          }
 
           // Send Telegram delivery notification
           try {

@@ -13,6 +13,7 @@ import { reviewRoutes } from './reviews'
 import { notificationRoutes } from './notifications'
 import { tagsRoutes } from './tags'
 import { fileRoutes } from './files'
+import { marketplaceRoutes } from './marketplace'
 
 export async function registerRoutes(fastify: FastifyInstance) {
   // Register all route modules
@@ -30,6 +31,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(notificationRoutes)
   await fastify.register(tagsRoutes)
   await fastify.register(fileRoutes)
+  await fastify.register(marketplaceRoutes)
 
   console.log('All routes registered')
 }
@@ -48,5 +50,6 @@ export {
   reviewRoutes,
   notificationRoutes,
   tagsRoutes,
-  fileRoutes
+  fileRoutes,
+  marketplaceRoutes
 }

@@ -150,13 +150,49 @@ export function getReviewsCollection(): Collection<Review> {
   return getDB().collection<Review>('reviews')
 }
 
+// Seller reputation stats
+export interface SellerStats {
+  totalOrders: number
+  successfulOrders: number
+  refundsCount: number
+  disputesCount: number
+  disputesLost: number
+  replacementsCount: number
+  totalRevenue: number
+  averageDeliveryTime?: number // minutes
+  lastOrderAt?: string
+}
+
+// Seller balance for escrow system
+export interface SellerBalance {
+  available: number      // can withdraw
+  frozen: number         // pending release
+  pendingWithdrawal: number
+  totalWithdrawn: number
+  totalEarned: number
+}
+
+// Seller badges
+export type SellerBadge = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky'
+
 export interface Seller {
   _id?: string | ObjectId
   id: string
   name: string
   avatar?: string
-  rating?: number
+  rating: number               // 0-100 score
+  ratingCount: number          // number of ratings
   createdAt: string
+  // Reputation
+  stats: SellerStats
+  balance: SellerBalance
+  badges: SellerBadge[]
+  // Settings
+  escrowDays: number           // days to hold funds (default 3, new sellers 7)
+  maxReplacementsPerOrder: number
+  isVerified: boolean
+  isBlocked: boolean
+  blockReason?: string
 }
 
 export interface Chat {
@@ -206,15 +242,111 @@ export interface UploadedFile {
   uploadedBy?: string
 }
 
+// Dispute system
+export type DisputeStatus = 'open' | 'seller_response' | 'admin_review' | 'resolved' | 'rejected'
+export type DisputeResolution = 'refund' | 'replacement' | 'partial_refund' | 'rejected' | 'buyer_fault'
+export type DisputeReason = 'invalid_key' | 'not_delivered' | 'wrong_product' | 'other'
+
+export interface DisputeMessage {
+  id: string
+  senderId: string
+  senderType: 'buyer' | 'seller' | 'admin'
+  senderName: string
+  content: string
+  attachments?: string[]
+  createdAt: string
+}
+
+export interface Dispute {
+  _id?: string | ObjectId
+  id: string
+  orderId: string
+  productId: string
+  productName: string
+  buyerId: string
+  buyerName: string
+  sellerId: string
+  sellerName: string
+  amount: number
+  reason: DisputeReason
+  description: string
+  status: DisputeStatus
+  resolution?: DisputeResolution
+  resolutionNote?: string
+  resolvedBy?: string
+  resolvedAt?: string
+  messages: DisputeMessage[]
+  // Replacement tracking
+  replacementKeyId?: string
+  replacementCount: number
+  // Timestamps
+  createdAt: string
+  updatedAt: string
+  sellerResponseDeadline: string  // 24h to respond
+  autoResolveAt?: string          // auto-resolve in buyer favor if no response
+}
+
+export function getDisputesCollection(): Collection<Dispute> {
+  return getDB().collection<Dispute>('disputes')
+}
+
+// Escrow transaction
+export type EscrowStatus = 'frozen' | 'released' | 'refunded' | 'disputed'
+
+export interface EscrowTransaction {
+  _id?: string | ObjectId
+  id: string
+  orderId: string
+  sellerId: string
+  buyerId: string
+  amount: number
+  status: EscrowStatus
+  frozenAt: string
+  releaseAt: string           // scheduled release time
+  releasedAt?: string
+  refundedAt?: string
+  disputeId?: string
+  createdAt: string
+}
+
+export function getEscrowCollection(): Collection<EscrowTransaction> {
+  return getDB().collection<EscrowTransaction>('escrow')
+}
+
+// Key replacement tracking
+export interface KeyReplacement {
+  _id?: string | ObjectId
+  id: string
+  orderId: string
+  productId: string
+  sellerId: string
+  buyerId: string
+  originalKeyId: string
+  replacementKeyId?: string
+  reason: string
+  status: 'pending' | 'replaced' | 'escalated' | 'rejected'
+  disputeId?: string
+  createdAt: string
+  resolvedAt?: string
+}
+
+export function getKeyReplacementsCollection(): Collection<KeyReplacement> {
+  return getDB().collection<KeyReplacement>('keyReplacements')
+}
+
 // Audit log for tracking admin actions
 export type AuditAction =
   | 'create' | 'update' | 'delete'
   | 'status_change' | 'deliver' | 'cancel' | 'refund'
   | 'add_keys' | 'remove_key' | 'restore'
+  | 'dispute_open' | 'dispute_resolve' | 'dispute_escalate'
+  | 'escrow_release' | 'escrow_refund'
+  | 'key_replace' | 'seller_block' | 'seller_verify'
 
 export type AuditEntityType =
   | 'product' | 'order' | 'user' | 'seller'
   | 'admin' | 'promo_code' | 'review' | 'file' | 'backup'
+  | 'dispute' | 'escrow' | 'key_replacement'
 
 export interface AuditLog {
   _id?: string | ObjectId
@@ -307,6 +439,35 @@ async function createIndexes(database: Db): Promise<void> {
 
     // Products tags index
     await database.collection('products').createIndex({ tags: 1 })
+
+    // Disputes
+    await database.collection('disputes').createIndex({ id: 1 }, { unique: true })
+    await database.collection('disputes').createIndex({ orderId: 1 })
+    await database.collection('disputes').createIndex({ buyerId: 1 })
+    await database.collection('disputes').createIndex({ sellerId: 1 })
+    await database.collection('disputes').createIndex({ status: 1 })
+    await database.collection('disputes').createIndex({ autoResolveAt: 1 }, { sparse: true })
+
+    // Escrow
+    await database.collection('escrow').createIndex({ id: 1 }, { unique: true })
+    await database.collection('escrow').createIndex({ orderId: 1 }, { unique: true })
+    await database.collection('escrow').createIndex({ sellerId: 1 })
+    await database.collection('escrow').createIndex({ status: 1 })
+    await database.collection('escrow').createIndex({ releaseAt: 1 })
+
+    // Key replacements
+    await database.collection('keyReplacements').createIndex({ id: 1 }, { unique: true })
+    await database.collection('keyReplacements').createIndex({ orderId: 1 })
+    await database.collection('keyReplacements').createIndex({ sellerId: 1 })
+    await database.collection('keyReplacements').createIndex({ status: 1 })
+
+    // Sellers - additional indexes for reputation
+    await database.collection('sellers').createIndex({ rating: -1 })
+    await database.collection('sellers').createIndex({ 'stats.totalOrders': -1 })
+    await database.collection('sellers').createIndex({ badges: 1 })
+
+    // Orders - seller index for stats
+    await database.collection('orders').createIndex({ 'seller.id': 1 })
 
     console.log('✅ Database indexes created')
   } catch (error) {
