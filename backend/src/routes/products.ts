@@ -1,8 +1,9 @@
 import { FastifyInstance } from 'fastify'
 import { validateQuery, productQuerySchema, favoriteIdsSchema } from '../validation'
 import { searchProducts, getSearchSuggestions } from '../searchUtils'
+import { loadProducts, getProductById } from '../dataStore'
 
-// Products will be injected via decorator
+// Products decorator for backward compatibility with admin routes
 declare module 'fastify' {
   interface FastifyInstance {
     products: any[]
@@ -10,10 +11,15 @@ declare module 'fastify' {
 }
 
 export async function productRoutes(fastify: FastifyInstance) {
-  // Get all products with optional filtering
+  // Get all products with optional filtering - NOW READS FROM MONGODB
   fastify.get('/products', async (request) => {
     const query = validateQuery(productQuerySchema, request.query)
-    let products = fastify.products
+
+    // Always load fresh from MongoDB for data consistency
+    let products = await loadProducts()
+
+    // Update in-memory cache for admin routes compatibility
+    fastify.products = products
 
     // Apply category filter
     if (query.category) {
@@ -33,23 +39,25 @@ export async function productRoutes(fastify: FastifyInstance) {
     return products
   })
 
-  // Search suggestions
+  // Search suggestions - load from MongoDB
   fastify.get('/products/search/suggestions', async (request) => {
     const { q } = request.query as any
-    return getSearchSuggestions(fastify.products, q || '')
+    const products = await loadProducts()
+    return getSearchSuggestions(products, q || '')
   })
 
-  // Get single product by ID
+  // Get single product by ID - load from MongoDB
   fastify.get('/products/:id', async (request) => {
     const { id } = request.params as any
-    const product = fastify.products.find(p => p._id === id)
+    const product = await getProductById(id)
     return product || { error: 'Product not found' }
   })
 
-  // Get favorite products by IDs
+  // Get favorite products by IDs - load from MongoDB
   fastify.post('/products/favorites', async (request) => {
     const { favoriteIds } = request.body as any
     if (!favoriteIds || favoriteIds.length === 0) return []
-    return fastify.products.filter(p => favoriteIds.includes(p._id))
+    const products = await loadProducts()
+    return products.filter(p => favoriteIds.includes(p._id))
   })
 }

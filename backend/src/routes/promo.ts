@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { validateBody, validatePromoSchema } from '../validation'
-import { getPromoByCode, incrementPromoUsage } from '../dataStore'
+import { getPromoByCode, incrementPromoUsage, loadPromoCodes } from '../dataStore'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -62,9 +62,10 @@ export async function promoRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Get active promo codes (public)
+  // Get active promo codes (public) - NOW READS FROM MONGODB
   fastify.get('/promo/active', async () => {
-    const activePromos = fastify.promoCodes.filter(p => p.isActive && (!p.expiresAt || new Date(p.expiresAt) > new Date()))
+    const promoCodes = await loadPromoCodes()
+    const activePromos = promoCodes.filter(p => p.isActive && (!p.expiresAt || new Date(p.expiresAt) > new Date()))
     return activePromos.map(p => ({
       code: p.code,
       description: p.description,
