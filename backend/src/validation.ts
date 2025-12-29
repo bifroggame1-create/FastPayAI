@@ -51,7 +51,7 @@ export const createProductSchema = z.object({
   name: z.string().min(1).max(200),
   price: z.number().positive().max(10000000),
   oldPrice: z.number().positive().max(10000000).optional(),
-  images: z.array(z.string().max(500)).min(1).max(10),
+  images: z.array(z.string().max(500000)).min(1).max(10), // Allow base64 images up to ~375KB
   condition: z.enum(['new', 'used']),
   category: z.string().min(1).max(50),
   description: z.string().max(5000).optional(),
@@ -60,7 +60,7 @@ export const createProductSchema = z.object({
   seller: z.object({
     id: z.string().min(1).max(50),
     name: z.string().min(1).max(100),
-    avatar: z.string().max(500).optional(),
+    avatar: z.string().max(500000).optional(), // Allow base64 avatars
     rating: z.number().min(0).max(5).optional()
   })
 })
@@ -167,7 +167,7 @@ export const updatePromoSchema = createPromoSchema.partial()
 export const createSellerSchema = z.object({
   id: z.string().min(1).max(50),
   name: z.string().min(1).max(100),
-  avatar: z.string().max(500).optional(),
+  avatar: z.string().max(500000).optional(), // Allow base64 avatars
   rating: z.number().min(0).max(5).optional(),
   isVerified: z.boolean().optional(),
   joinedAt: z.string().optional()
