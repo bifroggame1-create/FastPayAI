@@ -6,9 +6,34 @@ import {
   JWTPayload
 } from '../auth'
 import { validateBody, telegramAuthSchema } from '../validation'
+import { getAdminByUserId, getAdminByUsername } from '../dataStore'
 
 // Bootstrap admin IDs - can authenticate even without BOT_TOKEN
 const BOOTSTRAP_ADMIN_IDS = (process.env.ADMIN_IDS || '1301598469').split(',').map(id => id.trim())
+
+// Check if user is admin (bootstrap IDs or in database)
+async function checkIsAdmin(userId: string, username?: string): Promise<boolean> {
+  // Check bootstrap admin IDs first
+  if (BOOTSTRAP_ADMIN_IDS.includes(userId)) {
+    return true
+  }
+
+  // Check database for admin by userId
+  const adminByUserId = await getAdminByUserId(userId)
+  if (adminByUserId) {
+    return true
+  }
+
+  // Check database for admin by username
+  if (username) {
+    const adminByUsername = await getAdminByUsername(username.toLowerCase())
+    if (adminByUsername) {
+      return true
+    }
+  }
+
+  return false
+}
 
 // Try to extract user from initData without cryptographic validation (for bootstrap admins fallback)
 function extractUserFromInitData(initData: string): { id: number; first_name: string; last_name?: string; username?: string } | null {
@@ -69,10 +94,10 @@ export async function authRoutes(fastify: FastifyInstance) {
       const validUser = user!
       const token = generateToken(validUser)
 
-      // Check if user is admin
-      const isAdmin = BOOTSTRAP_ADMIN_IDS.includes(String(validUser.id))
+      // Check if user is admin (bootstrap IDs or in database)
+      const isAdmin = await checkIsAdmin(String(validUser.id), validUser.username)
 
-      console.log('🔐 Auth:', { userId: validUser.id, username: validUser.username, isAdmin, adminIds: BOOTSTRAP_ADMIN_IDS })
+      console.log('🔐 Auth:', { userId: validUser.id, username: validUser.username, isAdmin })
 
       return {
         success: true,
@@ -94,17 +119,19 @@ export async function authRoutes(fastify: FastifyInstance) {
   // Bootstrap admin authentication - simplified auth for admin IDs only
   fastify.post('/auth/bootstrap', async (request, reply) => {
     try {
-      const { userId, name } = request.body as { userId?: string; name?: string }
+      const { userId, name, username } = request.body as { userId?: string; name?: string; username?: string }
 
       if (!userId) {
         reply.code(400)
         return { success: false, error: 'userId is required' }
       }
 
-      // Only allow bootstrap admin IDs
-      if (!BOOTSTRAP_ADMIN_IDS.includes(userId)) {
+      // Check if user is admin (bootstrap IDs or in database)
+      const isAdmin = await checkIsAdmin(userId, username)
+
+      if (!isAdmin) {
         reply.code(403)
-        return { success: false, error: 'Not a bootstrap admin' }
+        return { success: false, error: 'Not an admin' }
       }
 
       console.log('🔐 Bootstrap auth for admin:', userId)
@@ -112,7 +139,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       const token = generateToken({
         id: parseInt(userId),
         first_name: name || 'Admin',
-        username: 'admin'
+        username: username || 'admin'
       })
 
       return {
@@ -121,7 +148,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         user: {
           id: userId,
           name: name || 'Admin',
-          username: 'admin',
+          username: username || 'admin',
           isAdmin: true
         }
       }
@@ -134,12 +161,16 @@ export async function authRoutes(fastify: FastifyInstance) {
   // Verify token
   fastify.get('/auth/verify', { preHandler: authMiddleware }, async (request) => {
     const user = (request as any).user as JWTPayload
+
+    // Check current admin status from database (may have changed since token was issued)
+    const isAdmin = await checkIsAdmin(user.userId, user.username)
+
     return {
       success: true,
       user: {
         id: user.userId,
         username: user.username,
-        isAdmin: user.isAdmin
+        isAdmin
       }
     }
   })
