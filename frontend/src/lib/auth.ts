@@ -5,6 +5,11 @@
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
 
+// Debug logging (disabled in production)
+const DEBUG = process.env.NODE_ENV === 'development'
+const log = (...args: any[]) => DEBUG && console.log(...args)
+const logError = (...args: any[]) => DEBUG && console.error(...args)
+
 // Storage keys
 const STORAGE = {
   TOKEN: 'fp_token',
@@ -41,7 +46,7 @@ function getTelegramUser(): { id: string; firstName: string; username?: string }
       }
     }
   } catch (e) {
-    console.error('Error getting Telegram user:', e)
+    logError('Error getting Telegram user:', e)
   }
 
   return null
@@ -160,13 +165,13 @@ export function isAdmin(): boolean {
  * Returns true if successful, false otherwise
  */
 export async function authenticate(): Promise<boolean> {
-  console.log('🔐 Starting authentication...')
+  log('🔐 Starting authentication...')
 
   // Try to get Telegram data
   let initData = getTelegramInitData()
   const tgUser = getTelegramUser()
 
-  console.log('🔐 Telegram data:', {
+  log('🔐 Telegram data:', {
     hasInitData: !!initData,
     initDataLength: initData?.length || 0,
     tgUser
@@ -180,12 +185,12 @@ export async function authenticate(): Promise<boolean> {
       username: tgUser.username
     })
     initData = `user=${encodeURIComponent(userJson)}&auth_date=${Math.floor(Date.now() / 1000)}`
-    console.log('🔐 Constructed initData from user')
+    log('🔐 Constructed initData from user')
   }
 
   // If still no data, cannot authenticate
   if (!initData || initData.length === 0) {
-    console.error('❌ No Telegram data available')
+    logError('❌ No Telegram data available')
     return false
   }
 
@@ -198,7 +203,7 @@ export async function authenticate(): Promise<boolean> {
     })
 
     const data = await response.json()
-    console.log('🔐 Auth response:', data)
+    log('🔐 Auth response:', data)
 
     if (data.success && data.token && data.user) {
       const user: AuthUser = {
@@ -210,14 +215,14 @@ export async function authenticate(): Promise<boolean> {
       }
 
       saveAuth(data.token, user)
-      console.log('✅ Authenticated:', user.name, 'isAdmin:', user.isAdmin)
+      log('✅ Authenticated:', user.name, 'isAdmin:', user.isAdmin)
       return true
     }
 
-    console.error('❌ Auth failed:', data.error)
+    logError('❌ Auth failed:', data.error)
     return false
   } catch (error) {
-    console.error('❌ Auth error:', error)
+    logError('❌ Auth error:', error)
     return false
   }
 }
@@ -248,7 +253,7 @@ export async function verifyToken(): Promise<boolean> {
 
     return false
   } catch (error) {
-    console.error('Token verification error:', error)
+    logError('Token verification error:', error)
     return false
   }
 }
@@ -259,14 +264,14 @@ export async function verifyToken(): Promise<boolean> {
  */
 async function refreshAdminStatus(userId: string, username?: string): Promise<boolean> {
   try {
-    console.log('🔐 Refreshing admin status for:', userId, username)
+    log('🔐 Refreshing admin status for:', userId, username)
     const response = await fetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, username })
     })
     const data = await response.json()
-    console.log('🔐 Refresh response:', data)
+    log('🔐 Refresh response:', data)
 
     if (data.success && data.isAdmin) {
       // Update stored admin status
@@ -280,7 +285,7 @@ async function refreshAdminStatus(userId: string, username?: string): Promise<bo
     }
     return false
   } catch (error) {
-    console.error('❌ Refresh admin status error:', error)
+    logError('❌ Refresh admin status error:', error)
     return false
   }
 }
@@ -290,23 +295,23 @@ async function refreshAdminStatus(userId: string, username?: string): Promise<bo
  * Tries to authenticate or verify existing token
  */
 export async function initAuth(): Promise<AuthUser | null> {
-  console.log('🔐 Initializing auth...')
+  log('🔐 Initializing auth...')
 
   // Get Telegram user first (we need this for fallback)
   const tgUser = getTelegramUser()
-  console.log('🔐 Telegram user:', tgUser)
+  log('🔐 Telegram user:', tgUser)
 
   // First try to verify existing token
   const { token, user } = loadAuth()
 
   if (token) {
-    console.log('🔐 Found existing token, verifying...')
+    log('🔐 Found existing token, verifying...')
     const valid = await verifyToken()
     if (valid) {
-      console.log('✅ Token valid, user:', getUser()?.name)
+      log('✅ Token valid, user:', getUser()?.name)
       return getUser()
     }
-    console.log('🔐 Token invalid, re-authenticating...')
+    log('🔐 Token invalid, re-authenticating...')
     clearAuth()
   }
 
@@ -320,7 +325,7 @@ export async function initAuth(): Promise<AuthUser | null> {
   // Fallback: if we have Telegram user but auth failed,
   // still try to get admin status directly
   if (tgUser) {
-    console.log('🔐 Auth failed but have TG user, checking admin status directly...')
+    log('🔐 Auth failed but have TG user, checking admin status directly...')
     const isAdminUser = await refreshAdminStatus(tgUser.id, tgUser.username)
 
     // Create a basic user object
@@ -338,7 +343,7 @@ export async function initAuth(): Promise<AuthUser | null> {
       localStorage.setItem(STORAGE.ADMIN, isAdminUser ? '1' : '0')
     }
 
-    console.log('🔐 Created basic user:', basicUser)
+    log('🔐 Created basic user:', basicUser)
     return basicUser
   }
 

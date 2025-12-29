@@ -183,6 +183,18 @@ export interface Admin {
   addedBy?: string
 }
 
+// Uploaded files (images, etc.)
+export interface UploadedFile {
+  _id?: string | ObjectId
+  id: string
+  name: string
+  type: string
+  size: number
+  data: string  // base64 data
+  uploadedAt: string
+  uploadedBy?: string
+}
+
 // Connect to MongoDB
 export async function connectDB(): Promise<Db> {
   if (db) return db
@@ -289,6 +301,10 @@ export function getChatMessagesCollection(): Collection<ChatMessage> {
 
 export function getAdminsCollection(): Collection<Admin> {
   return getDB().collection<Admin>('admins')
+}
+
+export function getFilesCollection(): Collection<UploadedFile> {
+  return getDB().collection<UploadedFile>('files')
 }
 
 // Close connection

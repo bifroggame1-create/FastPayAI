@@ -78,7 +78,7 @@ interface UploadedFile {
   name: string
   type: string
   size: number
-  url: string
+  data: string  // base64 data URL
   uploadedAt: string
 }
 
@@ -119,16 +119,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     const checkAccessAndLoad = async () => {
-      console.log('🔧 Admin: Starting auth check...')
-
-      // Initialize auth and get user
       const authUser = await initAuth()
-      console.log('🔧 Admin: Auth user:', authUser)
-
-      // Check admin status
       const hasAccess = authUser?.isAdmin || checkIsAdmin()
-      console.log('🔧 Admin: hasAccess:', hasAccess)
-
       setIsAdmin(hasAccess)
 
       if (hasAccess) {
@@ -143,13 +135,15 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, promoData, ordersData, statsData, sellersData, adminsData] = await Promise.all([
+      const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData] = await Promise.all([
         productsApi.getAll({}),
         adminApi.getPromoCodes().catch(() => []),
         adminApi.getOrders().catch(() => ({ orders: [], total: 0 })),
         adminApi.getOrdersStats().catch(() => ({ stats: {} })),
         adminApi.getSellers().catch(() => []),
-        adminApi.getAdmins().catch(() => [])
+        adminApi.getAdmins().catch(() => []),
+        adminApi.getFiles().catch(() => ({ files: [] })),
+        adminApi.getReviews().catch(() => ({ reviews: [] }))
       ])
       setProducts(productsData)
       setPromoCodes(promoData?.promoCodes || promoData || [])
@@ -157,14 +151,10 @@ export default function AdminPage() {
       setOrdersStats(statsData.stats || {})
       setSellers(sellersData?.sellers || sellersData || [])
       setAdmins(adminsData?.admins || adminsData || [])
-
-      // Load files from localStorage
-      const savedFiles = localStorage.getItem('admin-files')
-      if (savedFiles) {
-        setUploadedFiles(JSON.parse(savedFiles))
-      }
+      setUploadedFiles(filesData?.files || [])
+      setReviews(reviewsData?.reviews || [])
     } catch (error) {
-      console.error('Error loading data:', error)
+      // Error loading data
     } finally {
       setLoading(false)
     }
@@ -251,14 +241,12 @@ export default function AdminPage() {
     }
 
     try {
-      console.log('[Admin] Adding admin:', input, newAdminName)
       const isUsername = input.startsWith('@')
       const result = await adminApi.addAdmin({
         userId: isUsername ? undefined : input,
         username: isUsername ? input.substring(1) : undefined,
         name: newAdminName.trim() || undefined
       })
-      console.log('[Admin] Add admin result:', result)
 
       if (result.success) {
         setAdmins([...admins, result.admin])
@@ -269,9 +257,6 @@ export default function AdminPage() {
         alert('Ошибка: ' + (result.error || 'Неизвестная ошибка'))
       }
     } catch (error: any) {
-      console.error('[Admin] Error adding admin:', error)
-      console.error('[Admin] Response data:', error.response?.data)
-      console.error('[Admin] Status:', error.response?.status)
       const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || 'Ошибка добавления админа'
       alert('Ошибка (' + (error.response?.status || 'сеть') + '): ' + errorMsg)
     }
@@ -289,14 +274,51 @@ export default function AdminPage() {
     }
   }
 
-  const handleSaveReview = (review: Review) => {
-    if (reviews.find(r => r.id === review.id)) {
-      setReviews(reviews.map(r => r.id === review.id ? review : r))
-    } else {
-      setReviews([...reviews, { ...review, id: String(Date.now()) }])
+  const handleSaveReview = async (review: Review) => {
+    try {
+      if (reviews.find(r => r.id === review.id)) {
+        // Update existing review
+        const result = await adminApi.updateReview(review.id, {
+          userName: review.userName,
+          rating: review.rating,
+          text: review.text
+        })
+        if (result.success) {
+          setReviews(reviews.map(r => r.id === review.id ? result.review : r))
+          alert('Отзыв обновлён')
+        }
+      } else {
+        // Create new review
+        const result = await adminApi.createReview({
+          productId: review.productId,
+          userName: review.userName,
+          rating: review.rating,
+          text: review.text
+        })
+        if (result.success) {
+          setReviews([result.review, ...reviews])
+          alert('Отзыв создан')
+        }
+      }
+      setEditingReview(null)
+    } catch (error) {
+      console.error('Error saving review:', error)
+      alert('Ошибка сохранения отзыва')
     }
-    setEditingReview(null)
-    alert('Отзыв сохранён')
+  }
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!confirm('Удалить отзыв?')) return
+    try {
+      const result = await adminApi.deleteReview(reviewId)
+      if (result.success) {
+        setReviews(reviews.filter(r => r.id !== reviewId))
+        alert('Отзыв удалён')
+      }
+    } catch (error) {
+      console.error('Error deleting review:', error)
+      alert('Ошибка удаления отзыва')
+    }
   }
 
   const handleSavePromo = async (promo: PromoCode) => {
@@ -330,36 +352,48 @@ export default function AdminPage() {
     }
   }
 
-  const handleFileUpload = (files: FileList | null) => {
+  const handleFileUpload = async (files: FileList | null) => {
     if (!files) return
 
-    Array.from(files).forEach(file => {
+    for (const file of Array.from(files)) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`Файл ${file.name} слишком большой. Максимум 5MB`)
+        continue
+      }
+
       const reader = new FileReader()
-      reader.onload = () => {
-        const newFile: UploadedFile = {
-          id: String(Date.now()) + Math.random().toString(36).substr(2, 9),
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          url: reader.result as string,
-          uploadedAt: new Date().toISOString()
+      reader.onload = async () => {
+        try {
+          const result = await adminApi.uploadFile({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            data: reader.result as string
+          })
+          if (result.success) {
+            setUploadedFiles(prev => [result.file, ...prev])
+          }
+        } catch (error) {
+          console.error('Error uploading file:', error)
+          alert(`Ошибка загрузки файла ${file.name}`)
         }
-        setUploadedFiles(prev => {
-          const updated = [newFile, ...prev]
-          localStorage.setItem('admin-files', JSON.stringify(updated))
-          return updated
-        })
       }
       reader.readAsDataURL(file)
-    })
+    }
   }
 
-  const handleDeleteFile = (fileId: string) => {
-    setUploadedFiles(prev => {
-      const updated = prev.filter(f => f.id !== fileId)
-      localStorage.setItem('admin-files', JSON.stringify(updated))
-      return updated
-    })
+  const handleDeleteFile = async (fileId: string) => {
+    if (!confirm('Удалить файл?')) return
+    try {
+      const result = await adminApi.deleteFile(fileId)
+      if (result.success) {
+        setUploadedFiles(prev => prev.filter(f => f.id !== fileId))
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error)
+      alert('Ошибка удаления файла')
+    }
   }
 
   const copyToClipboard = (text: string) => {
@@ -968,7 +1002,7 @@ export default function AdminPage() {
                     className="bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border overflow-hidden"
                   >
                     {file.type.startsWith('image/') ? (
-                      <img src={file.url} alt={file.name} className="w-full h-32 object-cover" />
+                      <img src={file.data} alt={file.name} className="w-full h-32 object-cover" />
                     ) : (
                       <div className="w-full h-32 flex items-center justify-center bg-light-bg dark:bg-dark-bg">
                         <svg className="w-12 h-12 text-light-text-secondary dark:text-dark-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -983,7 +1017,7 @@ export default function AdminPage() {
                       </p>
                       <div className="flex gap-1 mt-2">
                         <button
-                          onClick={() => copyToClipboard(file.url)}
+                          onClick={() => copyToClipboard(file.data)}
                           className="flex-1 py-1 bg-accent-cyan text-white text-xs rounded"
                         >
                           Копировать
@@ -1402,10 +1436,10 @@ function ProductEditor({
                     {uploadedFiles.filter(f => f.type.startsWith('image/')).map(file => (
                       <button
                         key={file.id}
-                        onClick={() => selectImage(file.url)}
+                        onClick={() => selectImage(file.data)}
                         className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-accent-cyan"
                       >
-                        <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                        <img src={file.data} alt={file.name} className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
@@ -1540,10 +1574,10 @@ function SellerEditor({
                 {uploadedFiles.filter(f => f.type.startsWith('image/')).map(file => (
                   <button
                     key={file.id}
-                    onClick={() => selectImage(file.url)}
+                    onClick={() => selectImage(file.data)}
                     className="aspect-square rounded-full overflow-hidden border-2 border-transparent hover:border-accent-cyan"
                   >
-                    <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                    <img src={file.data} alt={file.name} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

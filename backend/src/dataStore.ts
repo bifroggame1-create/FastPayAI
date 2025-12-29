@@ -512,4 +512,33 @@ export async function deleteSeller(sellerId: string): Promise<boolean> {
   return result.deletedCount > 0
 }
 
+// ============================================
+// Files (for persistent image/file storage)
+// ============================================
+
+import { getFilesCollection, UploadedFile } from './database'
+
+export { UploadedFile }
+
+export async function getFiles(): Promise<UploadedFile[]> {
+  const files = await getFilesCollection().find({}).sort({ uploadedAt: -1 }).toArray()
+  return files.map(f => toClientDoc(f))
+}
+
+export async function getFileById(fileId: string): Promise<UploadedFile | null> {
+  const file = await getFilesCollection().findOne({ id: fileId })
+  return file ? toClientDoc(file) : null
+}
+
+export async function saveFile(file: UploadedFile): Promise<UploadedFile> {
+  const collection = getFilesCollection()
+  const result = await collection.insertOne(file as any)
+  return { ...file, _id: result.insertedId.toString() }
+}
+
+export async function deleteFile(fileId: string): Promise<boolean> {
+  const result = await getFilesCollection().deleteOne({ id: fileId })
+  return result.deletedCount > 0
+}
+
 console.log('✅ DataStore module loaded (MongoDB)')

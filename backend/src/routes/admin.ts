@@ -611,4 +611,166 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return { success: false, error: error.message }
     }
   })
+
+  // ============================================
+  // FILES (for persistent image storage)
+  // ============================================
+
+  // Get all files
+  fastify.get('/admin/files', { preHandler: adminMiddleware }, async () => {
+    const { getFiles } = await import('../dataStore')
+    const files = await getFiles()
+    return { success: true, files }
+  })
+
+  // Upload file (base64)
+  fastify.post('/admin/files', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { name, type, size, data } = request.body as {
+        name: string
+        type: string
+        size: number
+        data: string
+      }
+
+      if (!name || !type || !data) {
+        reply.code(400)
+        return { success: false, error: 'Missing required fields: name, type, data' }
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024
+      if (size > maxSize) {
+        reply.code(400)
+        return { success: false, error: 'File too large. Max size: 5MB' }
+      }
+
+      const { saveFile } = await import('../dataStore')
+      const file = await saveFile({
+        id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name,
+        type,
+        size,
+        data,
+        uploadedAt: new Date().toISOString()
+      })
+
+      return { success: true, file }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get file by ID (returns base64 data)
+  fastify.get('/admin/files/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { getFileById } = await import('../dataStore')
+    const file = await getFileById(id)
+
+    if (!file) {
+      reply.code(404)
+      return { success: false, error: 'File not found' }
+    }
+
+    return { success: true, file }
+  })
+
+  // Delete file
+  fastify.delete('/admin/files/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { deleteFile } = await import('../dataStore')
+    const deleted = await deleteFile(id)
+
+    if (!deleted) {
+      reply.code(404)
+      return { success: false, error: 'File not found' }
+    }
+
+    return { success: true }
+  })
+
+  // ============================================
+  // REVIEWS (admin management)
+  // ============================================
+
+  // Get all reviews
+  fastify.get('/admin/reviews', { preHandler: adminMiddleware }, async () => {
+    const { getReviewsCollection, toClientDoc } = await import('../database')
+    const reviews = await getReviewsCollection().find({}).sort({ createdAt: -1 }).toArray()
+    return { success: true, reviews: reviews.map(r => toClientDoc(r)) }
+  })
+
+  // Create review (admin can create fake reviews)
+  fastify.post('/admin/reviews', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { productId, userName, rating, text } = request.body as {
+        productId: string
+        userName: string
+        rating: number
+        text: string
+      }
+
+      if (!productId || !userName || !rating || !text) {
+        reply.code(400)
+        return { success: false, error: 'Missing required fields' }
+      }
+
+      const { getReviewsCollection, toClientDoc } = await import('../database')
+      const review = {
+        id: `review-${Date.now()}`,
+        productId,
+        userId: 'admin',
+        userName,
+        rating: Math.min(5, Math.max(1, rating)),
+        text,
+        createdAt: new Date().toISOString()
+      }
+
+      const result = await getReviewsCollection().insertOne(review as any)
+      return { success: true, review: { ...review, _id: result.insertedId.toString() } }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Update review
+  fastify.put('/admin/reviews/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const updates = request.body as { userName?: string; rating?: number; text?: string }
+
+      const { getReviewsCollection, toClientDoc } = await import('../database')
+      const result = await getReviewsCollection().findOneAndUpdate(
+        { id },
+        { $set: updates },
+        { returnDocument: 'after' }
+      )
+
+      if (!result) {
+        reply.code(404)
+        return { success: false, error: 'Review not found' }
+      }
+
+      return { success: true, review: toClientDoc(result) }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Delete review
+  fastify.delete('/admin/reviews/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { getReviewsCollection } = await import('../database')
+    const result = await getReviewsCollection().deleteOne({ id })
+
+    if (result.deletedCount === 0) {
+      reply.code(404)
+      return { success: false, error: 'Review not found' }
+    }
+
+    return { success: true }
+  })
 }

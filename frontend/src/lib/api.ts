@@ -310,6 +310,43 @@ export const adminApi = {
     const { data } = await adminApiInstance.delete(`/admin/products/${productId}/delivery/keys/${keyId}`)
     return data
   },
+
+  // Files - persistent storage in MongoDB
+  getFiles: async () => {
+    const { data } = await adminApiInstance.get('/admin/files')
+    return data
+  },
+
+  uploadFile: async (file: { name: string; type: string; size: number; data: string }) => {
+    const { data } = await adminApiInstance.post('/admin/files', file)
+    return data
+  },
+
+  deleteFile: async (id: string) => {
+    const { data } = await adminApiInstance.delete(`/admin/files/${id}`)
+    return data
+  },
+
+  // Reviews - admin management
+  getReviews: async () => {
+    const { data } = await adminApiInstance.get('/admin/reviews')
+    return data
+  },
+
+  createReview: async (review: { productId: string; userName: string; rating: number; text: string }) => {
+    const { data } = await adminApiInstance.post('/admin/reviews', review)
+    return data
+  },
+
+  updateReview: async (id: string, updates: { userName?: string; rating?: number; text?: string }) => {
+    const { data } = await adminApiInstance.put(`/admin/reviews/${id}`, updates)
+    return data
+  },
+
+  deleteReview: async (id: string) => {
+    const { data } = await adminApiInstance.delete(`/admin/reviews/${id}`)
+    return data
+  },
 }
 
 export const chatApi = {

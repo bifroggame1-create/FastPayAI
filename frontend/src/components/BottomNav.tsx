@@ -14,18 +14,14 @@ export default function BottomNav() {
   // Initialize auth on mount
   useEffect(() => {
     const init = async () => {
-      console.log('🔐 BottomNav: Initializing auth...')
-
       const user = await initAuth()
 
       if (user) {
-        console.log('✅ BottomNav: User authenticated:', user.name, 'isAdmin:', user.isAdmin)
         setLocalIsAdmin(user.isAdmin)
         setIsAdmin(user.isAdmin)
       } else {
         // Fallback: check stored status
         const adminStatus = checkIsAdmin()
-        console.log('🔐 BottomNav: No user, stored admin status:', adminStatus)
         setLocalIsAdmin(adminStatus)
         setIsAdmin(adminStatus)
       }
