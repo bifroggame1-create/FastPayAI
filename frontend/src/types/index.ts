@@ -44,6 +44,7 @@ export interface User {
   referredBy?: string
   referralCount?: number
   bonusBalance?: number // бонусный баланс в рублях
+  isAdmin?: boolean // флаг админа
 }
 
 export interface UserStats {

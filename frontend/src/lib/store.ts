@@ -36,6 +36,7 @@ export interface Chat {
 
 interface AppState {
   user: User | null
+  isAdmin: boolean
   favorites: string[]
   selectedCategory: string
   selectedFilter: 'all' | 'new' | 'used'
@@ -57,6 +58,7 @@ interface AppState {
   cartTotal: number
 
   setUser: (user: User | null) => void
+  setIsAdmin: (isAdmin: boolean) => void
   toggleFavorite: (productId: string) => void
   setSelectedCategory: (category: string) => void
   setSelectedFilter: (filter: 'all' | 'new' | 'used') => void
@@ -84,6 +86,7 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       user: null,
+      isAdmin: false,
       favorites: [],
       selectedCategory: 'all',
       selectedFilter: 'all',
@@ -99,6 +102,7 @@ export const useAppStore = create<AppState>()(
       cartTotal: 0,
 
       setUser: (user) => set({ user }),
+      setIsAdmin: (isAdmin) => set({ isAdmin }),
 
       toggleFavorite: (productId) => set((state) => ({
         favorites: state.favorites.includes(productId)
@@ -261,7 +265,8 @@ export const useAppStore = create<AppState>()(
         chats: state.chats,
         messages: state.messages,
         cart: state.cart,
-        cartTotal: state.cartTotal
+        cartTotal: state.cartTotal,
+        isAdmin: state.isAdmin
       })
     }
   )
