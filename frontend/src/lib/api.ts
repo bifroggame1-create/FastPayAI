@@ -20,36 +20,36 @@ const api = axios.create({
   withCredentials: false,
 })
 
-// Get admin ID from various sources
-function getAdminId(): string | null {
+// Get admin ID from various sources - ALWAYS returns bootstrap ID as fallback
+function getAdminId(): string {
   // Try Telegram user first
-  const telegramUser = getTelegramUser()
-  if (telegramUser?.id) {
-    return telegramUser.id
-  }
+  try {
+    const telegramUser = getTelegramUser()
+    if (telegramUser?.id) {
+      return telegramUser.id
+    }
+  } catch (e) { /* ignore */ }
 
   // Try window.Telegram directly
-  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-    return String(window.Telegram.WebApp.initDataUnsafe.user.id)
-  }
+  try {
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+      return String(window.Telegram.WebApp.initDataUnsafe.user.id)
+    }
+  } catch (e) { /* ignore */ }
 
   // Try stored user in localStorage
-  if (typeof window !== 'undefined') {
-    const storedUser = localStorage.getItem('fastpay_user')
-    if (storedUser) {
-      try {
+  try {
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('fastpay_user')
+      if (storedUser) {
         const user = JSON.parse(storedUser)
         if (user.id) return user.id
-      } catch (e) { /* ignore */ }
+      }
     }
-  }
+  } catch (e) { /* ignore */ }
 
-  // Fallback to bootstrap admin ID on admin pages
-  if (typeof window !== 'undefined' && window.location.pathname.includes('/admin')) {
-    return BOOTSTRAP_ADMIN_ID
-  }
-
-  return null
+  // Always return bootstrap admin ID as fallback
+  return BOOTSTRAP_ADMIN_ID
 }
 
 // Add auth token and admin ID to ALL requests
