@@ -19,8 +19,11 @@ const api = axios.create({
 // Add auth token to all requests
 api.interceptors.request.use((config) => {
   const token = getToken()
+  console.log('[FastPay] API request:', config.url, 'token:', token ? 'present' : 'MISSING')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  } else {
+    console.warn('[FastPay] No auth token available for request:', config.url)
   }
   return config
 })

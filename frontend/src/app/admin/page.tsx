@@ -123,13 +123,22 @@ export default function AdminPage() {
 
   useEffect(() => {
     const checkAccessAndLoad = async () => {
+      console.log('🔧 Admin: Starting auth check...')
+
       // First authenticate with backend to get JWT token
-      await authenticate()
+      const authResult = await authenticate()
+      console.log('🔧 Admin: Auth result:', authResult)
 
       // Check admin access - bootstrap admins always have access
       const telegramUser = getTelegramUser()
+      console.log('🔧 Admin: telegramUser:', telegramUser?.id, telegramUser?.name)
+
       const userId = user?.id || telegramUser?.id || (typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() : null)
+      console.log('🔧 Admin: userId:', userId)
+
       const hasAccess = !!(userId && BOOTSTRAP_ADMIN_IDS.includes(userId)) || checkIsAdmin()
+      console.log('🔧 Admin: hasAccess:', hasAccess, 'checkIsAdmin():', checkIsAdmin())
+
       setIsAdmin(hasAccess)
 
       if (hasAccess) {

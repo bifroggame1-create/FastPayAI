@@ -134,6 +134,7 @@ export async function authenticate(): Promise<boolean> {
   // Authenticate with backend
   authPromise = (async () => {
     try {
+      console.log('🔐 Calling /auth/telegram with initData length:', initData.length)
       const res = await fetch(`${API_URL}/auth/telegram`, {
         method: 'POST',
         headers: {
@@ -142,7 +143,9 @@ export async function authenticate(): Promise<boolean> {
         body: JSON.stringify({ initData })
       })
 
+      console.log('🔐 Auth response status:', res.status)
       const data = await res.json()
+      console.log('🔐 Auth response:', data.success ? 'success' : 'failed', data.error || '')
 
       if (data.success && data.token) {
         authToken = data.token
@@ -153,14 +156,14 @@ export async function authenticate(): Promise<boolean> {
           localStorage.setItem(USER_KEY, JSON.stringify(data.user))
         }
 
-        console.log('✅ Authenticated:', authUser?.name)
+        console.log('✅ Authenticated:', authUser?.name, 'isAdmin:', authUser?.isAdmin)
         return true
       } else {
-        console.error('Authentication failed:', data.error)
+        console.error('❌ Authentication failed:', data.error)
         return false
       }
     } catch (e) {
-      console.error('Authentication error:', e)
+      console.error('❌ Authentication error:', e)
       return false
     } finally {
       authPromise = null
