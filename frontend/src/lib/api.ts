@@ -1,9 +1,13 @@
 import axios from 'axios'
 import { Product, User, Order, Review, ProductFilters } from '@/types'
 import { getToken } from './auth'
+import { getTelegramUser } from './telegram'
 
 // Use backend URL from environment variable, fallback to production Render URL
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
+
+// Bootstrap admin ID for fallback
+const BOOTSTRAP_ADMIN_ID = '1301598469'
 
 // Log the API URL for debugging
 console.log('[FastPay] API URL:', API_URL)
@@ -16,15 +20,53 @@ const api = axios.create({
   withCredentials: false,
 })
 
-// Add auth token to all requests
+// Get admin ID from various sources
+function getAdminId(): string | null {
+  // Try Telegram user first
+  const telegramUser = getTelegramUser()
+  if (telegramUser?.id) {
+    return telegramUser.id
+  }
+
+  // Try window.Telegram directly
+  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+    return String(window.Telegram.WebApp.initDataUnsafe.user.id)
+  }
+
+  // Try stored user in localStorage
+  if (typeof window !== 'undefined') {
+    const storedUser = localStorage.getItem('fastpay_user')
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser)
+        if (user.id) return user.id
+      } catch (e) { /* ignore */ }
+    }
+  }
+
+  // Fallback to bootstrap admin ID on admin pages
+  if (typeof window !== 'undefined' && window.location.pathname.includes('/admin')) {
+    return BOOTSTRAP_ADMIN_ID
+  }
+
+  return null
+}
+
+// Add auth token and admin ID to all requests
 api.interceptors.request.use((config) => {
   const token = getToken()
-  console.log('[FastPay] API request:', config.url, 'token:', token ? 'present' : 'MISSING')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
-  } else {
-    console.warn('[FastPay] No auth token available for request:', config.url)
   }
+
+  // Always add X-Admin-Id header for admin routes
+  if (config.url?.includes('/admin')) {
+    const adminId = getAdminId()
+    if (adminId) {
+      config.headers['X-Admin-Id'] = adminId
+    }
+  }
+
   return config
 })
 

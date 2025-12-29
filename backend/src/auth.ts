@@ -167,20 +167,37 @@ export async function authMiddleware(
 
 /**
  * Admin middleware - checks if user is admin
+ * Supports both JWT auth and bootstrap admin ID header
  */
 export async function adminMiddleware(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
-  // First run auth middleware
-  await authMiddleware(request, reply)
-  if (reply.sent) return
-
-  const user = (request as any).user as JWTPayload
-  if (!user.isAdmin) {
-    reply.code(403).send({ success: false, error: 'Admin access required' })
+  // Check for bootstrap admin header first (bypass JWT for admin IDs)
+  const adminId = request.headers['x-admin-id'] as string
+  if (adminId && ADMIN_IDS.includes(adminId)) {
+    console.log('🔐 Admin access via X-Admin-Id header:', adminId)
+    ;(request as any).user = {
+      userId: adminId,
+      isAdmin: true
+    }
     return
   }
+
+  // Try JWT auth
+  const token = extractToken(request.headers.authorization)
+  if (token) {
+    const payload = verifyToken(token)
+    if (payload) {
+      ;(request as any).user = payload
+      if (payload.isAdmin) {
+        return
+      }
+    }
+  }
+
+  // No valid auth - return error
+  reply.code(401).send({ success: false, error: 'Admin authentication required' })
 }
 
 /**
