@@ -3,15 +3,20 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
+import { isAdmin as checkIsAdmin, getAuthUser } from '@/lib/auth'
 
-const ADMIN_IDS = ['1301598469']
+// Bootstrap admin IDs - always have access
+const BOOTSTRAP_ADMIN_IDS = ['1301598469']
 
 export default function BottomNav() {
   const pathname = usePathname()
   const { user } = useAppStore()
 
   const userId = user?.id || (typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() : null)
-  const isAdmin = userId && ADMIN_IDS.includes(userId)
+
+  // Check admin: bootstrap IDs OR from auth (which checks database via backend)
+  const authUser = getAuthUser()
+  const isAdmin = (userId && BOOTSTRAP_ADMIN_IDS.includes(userId)) || checkIsAdmin() || authUser?.isAdmin
 
   const navItems = [
     {

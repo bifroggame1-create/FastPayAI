@@ -52,7 +52,7 @@ export async function authenticate(): Promise<boolean> {
     return authPromise
   }
 
-  // If already have token, verify it
+  // If already have token, verify it and get fresh admin status
   const existingToken = getToken()
   if (existingToken) {
     try {
@@ -66,6 +66,11 @@ export async function authenticate(): Promise<boolean> {
         const data = await res.json()
         if (data.success) {
           authUser = data.user
+          // Update localStorage with fresh admin status from server
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+          }
+          console.log('✅ Token verified, isAdmin:', data.user?.isAdmin)
           return true
         }
       }
