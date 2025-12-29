@@ -17,9 +17,11 @@ import {
   addProduct,
   updateProduct,
   deleteProduct,
+  getProductById,
   addPromoCode,
   updatePromoCode,
   deletePromoCode,
+  getPromoByCode,
   getOrdersWithFilters,
   countOrders,
   getOrderStats,
@@ -28,15 +30,30 @@ import {
   loadAdmins,
   addAdmin,
   deleteAdmin,
+  getAdminById,
   getAdminByUserId,
   getAdminByUsername,
   loadSellers,
   addSeller,
   updateSeller,
   deleteSeller,
+  getSellerById,
+  loadTags,
+  getTagById,
+  getTagByName,
+  addTag,
+  updateTag,
+  deleteTag,
+  countProductsByTag,
   Order,
   OrderStatus,
-  Admin
+  Admin,
+  Tag,
+  logAdminAction,
+  getAuditLogs,
+  getAuditLogsByEntity,
+  AuditAction,
+  AuditEntityType
 } from '../dataStore'
 import { createBackup, restoreFromBackup, getBackupStats, validateBackup } from '../backup'
 import { addDeliveryKeys, removeDeliveryKey, getDeliveryStats } from '../delivery'
@@ -46,6 +63,31 @@ declare module 'fastify' {
     products: any[]
     promoCodes: any[]
   }
+}
+
+// Helper to extract admin info from request for audit logging
+function getAdminInfo(request: any): { adminId: string; adminName?: string; ipAddress?: string; userAgent?: string } {
+  const user = request.user || {}
+  return {
+    adminId: user.userId || 'unknown',
+    adminName: user.username || undefined,
+    ipAddress: request.ip || request.headers['x-forwarded-for'] || undefined,
+    userAgent: request.headers['user-agent'] || undefined
+  }
+}
+
+// Helper to sanitize object for logging (remove sensitive/large data)
+function sanitizeForLog(obj: any): any {
+  if (!obj) return obj
+  const sanitized = { ...obj }
+  // Remove large fields like base64 data
+  if (sanitized.data && typeof sanitized.data === 'string' && sanitized.data.length > 100) {
+    sanitized.data = `[base64 data, ${sanitized.data.length} chars]`
+  }
+  if (sanitized.deliveryKeys && Array.isArray(sanitized.deliveryKeys)) {
+    sanitized.deliveryKeys = `[${sanitized.deliveryKeys.length} keys]`
+  }
+  return sanitized
 }
 
 export async function adminRoutes(fastify: FastifyInstance) {
@@ -65,6 +107,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
       const saved = await addProduct(newProduct as any)
       fastify.products.unshift(saved)
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'create',
+        entityType: 'product',
+        entityId: saved._id?.toString() || newProduct._id,
+        changes: { after: sanitizeForLog(saved) }
+      })
+
       return { success: true, product: saved }
     } catch (error: any) {
       reply.code(error.statusCode || 500)
@@ -77,6 +130,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params as any
       const updates = validateBody(updateProductSchema, request.body)
+
+      // Get product before update for audit log
+      const before = await getProductById(id)
+
       const updated = await updateProduct(id, updates)
       if (!updated) {
         reply.code(404)
@@ -84,6 +141,20 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
       const index = fastify.products.findIndex(p => p._id === id)
       if (index !== -1) fastify.products[index] = updated
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'product',
+        entityId: id,
+        changes: {
+          before: sanitizeForLog(before),
+          after: sanitizeForLog(updated)
+        }
+      })
+
       return { success: true, product: updated }
     } catch (error: any) {
       reply.code(error.statusCode || 500)
@@ -94,6 +165,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // Delete product
   fastify.delete('/admin/products/:id', { preHandler: adminMiddleware }, async (request, reply) => {
     const { id } = request.params as any
+
+    // Get product before deletion for audit log
+    const before = await getProductById(id)
+
     const deleted = await deleteProduct(id)
     if (!deleted) {
       reply.code(404)
@@ -101,6 +176,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
     const index = fastify.products.findIndex(p => p._id === id)
     if (index !== -1) fastify.products.splice(index, 1)
+
+    // Log the action
+    const adminInfo = getAdminInfo(request)
+    await logAdminAction({
+      ...adminInfo,
+      action: 'delete',
+      entityType: 'product',
+      entityId: id,
+      changes: { before: sanitizeForLog(before) }
+    })
+
     return { success: true }
   })
 
@@ -164,6 +250,19 @@ export async function adminRoutes(fastify: FastifyInstance) {
         product.deliveryKeys.push(...addedKeys)
       }
 
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'add_keys',
+        entityType: 'product',
+        entityId: id,
+        metadata: {
+          keysAdded: addedKeys.length,
+          variantId
+        }
+      })
+
       return {
         success: true,
         addedCount: addedKeys.length,
@@ -193,6 +292,16 @@ export async function adminRoutes(fastify: FastifyInstance) {
         product.deliveryKeys = product.deliveryKeys.filter((k: any) => k.id !== keyId)
       }
 
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'remove_key',
+        entityType: 'product',
+        entityId: id,
+        metadata: { keyId }
+      })
+
       return { success: true }
     } catch (error: any) {
       reply.code(500)
@@ -208,6 +317,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
         deliveryType?: 'manual' | 'auto'
         deliveryInstructions?: string
       }
+
+      // Get product before update for audit log
+      const before = await getProductById(id)
 
       const updates: any = {}
       if (deliveryType !== undefined) updates.deliveryType = deliveryType
@@ -225,6 +337,20 @@ export async function adminRoutes(fastify: FastifyInstance) {
       if (product) {
         Object.assign(product, updates)
       }
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'product',
+        entityId: id,
+        changes: {
+          before: { deliveryType: before?.deliveryType, deliveryInstructions: before?.deliveryInstructions },
+          after: updates
+        },
+        metadata: { field: 'delivery_settings' }
+      })
 
       return { success: true, product: updated }
     } catch (error: any) {
@@ -256,6 +382,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
         id: sellerData.id || String(Date.now()),
         createdAt: new Date().toISOString()
       } as any)
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'create',
+        entityType: 'seller',
+        entityId: seller.id,
+        changes: { after: seller }
+      })
+
       return { success: true, seller }
     } catch (error: any) {
       reply.code(error.statusCode || 500)
@@ -268,6 +405,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params as any
       const updates = validateBody(updateSellerSchema, request.body)
+
+      // Get seller before update for audit log
+      const before = await getSellerById(id)
+
       const updated = await updateSeller(id, updates)
       if (!updated) {
         reply.code(404)
@@ -280,6 +421,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
           await updateProduct(p._id, { seller: p.seller })
         }
       }
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'seller',
+        entityId: id,
+        changes: { before: before || undefined, after: updated || undefined }
+      })
+
       return { success: true, seller: updated }
     } catch (error: any) {
       reply.code(error.statusCode || 500)
@@ -291,11 +443,26 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.delete('/admin/sellers/:id', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
       const { id } = request.params as any
+
+      // Get seller before deletion for audit log
+      const before = await getSellerById(id)
+
       const deleted = await deleteSeller(id)
       if (!deleted) {
         reply.code(404)
         return { success: false, error: 'Seller not found' }
       }
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'delete',
+        entityType: 'seller',
+        entityId: id,
+        changes: { before: before || undefined }
+      })
+
       return { success: true }
     } catch (error: any) {
       reply.code(500)
@@ -352,6 +519,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
 
       const saved = await addAdmin(admin)
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'create',
+        entityType: 'admin',
+        entityId: saved.id,
+        changes: { after: saved }
+      })
+
       return { success: true, admin: saved }
     } catch (error: any) {
       reply.code(500)
@@ -363,11 +541,26 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.delete('/admin/admins/:id', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
       const { id } = request.params as any
+
+      // Get admin before deletion for audit log
+      const before = await getAdminById(id)
+
       const deleted = await deleteAdmin(id)
       if (!deleted) {
         reply.code(404)
         return { success: false, error: 'Admin not found' }
       }
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'delete',
+        entityType: 'admin',
+        entityId: id,
+        changes: { before: before || undefined }
+      })
+
       return { success: true }
     } catch (error: any) {
       reply.code(500)
@@ -395,6 +588,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
       await addPromoCode(newPromo as any)
       fastify.promoCodes.push(newPromo)
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'create',
+        entityType: 'promo_code',
+        entityId: newPromo.code,
+        changes: { after: newPromo }
+      })
+
       return { success: true, promo: newPromo }
     } catch (error: any) {
       reply.code(error.statusCode || 500)
@@ -407,6 +611,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
     try {
       const { code } = request.params as any
       const updates = validateBody(updatePromoSchema, request.body)
+
+      // Get promo code before update for audit log
+      const before = await getPromoByCode(code)
+
       const updated = await updatePromoCode(code, updates)
       if (!updated) {
         reply.code(404)
@@ -414,6 +622,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
       const index = fastify.promoCodes.findIndex(p => p.code === code.toUpperCase())
       if (index !== -1) fastify.promoCodes[index] = { ...fastify.promoCodes[index], ...updates }
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'promo_code',
+        entityId: code.toUpperCase(),
+        changes: { before: before || undefined, after: updated || undefined }
+      })
+
       return { success: true, promo: updated }
     } catch (error: any) {
       reply.code(error.statusCode || 500)
@@ -424,6 +643,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // Delete promo code
   fastify.delete('/admin/promo/:code', { preHandler: adminMiddleware }, async (request, reply) => {
     const { code } = request.params as any
+
+    // Get promo code before deletion for audit log
+    const before = await getPromoByCode(code)
+
     const deleted = await deletePromoCode(code)
     if (!deleted) {
       reply.code(404)
@@ -431,6 +654,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
     const index = fastify.promoCodes.findIndex(p => p.code === code.toUpperCase())
     if (index !== -1) fastify.promoCodes.splice(index, 1)
+
+    // Log the action
+    const adminInfo = getAdminInfo(request)
+    await logAdminAction({
+      ...adminInfo,
+      action: 'delete',
+      entityType: 'promo_code',
+      entityId: code.toUpperCase(),
+      changes: { before: before || undefined }
+    })
+
     return { success: true }
   })
 
@@ -489,6 +723,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const { id } = request.params as any
       const { status } = validateBody(updateOrderStatusSchema, request.body)
 
+      // Get order before update for audit log
+      const before = await getOrderById(id)
+
       const updates: Partial<Order> = { status }
       if (status === 'delivered') {
         updates.deliveredAt = new Date().toISOString()
@@ -499,6 +736,19 @@ export async function adminRoutes(fastify: FastifyInstance) {
         reply.code(404)
         return { success: false, error: 'Order not found' }
       }
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'status_change',
+        entityType: 'order',
+        entityId: id,
+        changes: {
+          before: { status: before?.status },
+          after: { status: updatedOrder.status }
+        }
+      })
 
       return { success: true, order: updatedOrder }
     } catch (error: any) {
@@ -512,6 +762,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params as any
       const { deliveryData, deliveryNote } = validateBody(deliverOrderSchema, request.body)
+
+      // Get order before update for audit log
+      const before = await getOrderById(id)
 
       const updatedOrder = await updateOrder(id, {
         status: 'delivered',
@@ -527,6 +780,19 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       console.log('Order delivered:', id, { deliveryData, deliveryNote })
 
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'deliver',
+        entityType: 'order',
+        entityId: id,
+        changes: {
+          before: { status: before?.status },
+          after: { status: 'delivered', deliveryData, deliveryNote }
+        }
+      })
+
       return { success: true, order: updatedOrder }
     } catch (error: any) {
       reply.code(error.statusCode || 500)
@@ -538,6 +804,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.post('/admin/orders/:id/cancel', { preHandler: adminMiddleware }, async (request, reply) => {
     const { id } = request.params as any
 
+    // Get order before update for audit log
+    const before = await getOrderById(id)
+
     const updatedOrder = await updateOrder(id, {
       status: 'cancelled'
     })
@@ -547,12 +816,28 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return { success: false, error: 'Order not found' }
     }
 
+    // Log the action
+    const adminInfo = getAdminInfo(request)
+    await logAdminAction({
+      ...adminInfo,
+      action: 'cancel',
+      entityType: 'order',
+      entityId: id,
+      changes: {
+        before: { status: before?.status },
+        after: { status: 'cancelled' }
+      }
+    })
+
     return { success: true, order: updatedOrder }
   })
 
   // Refund order
   fastify.post('/admin/orders/:id/refund', { preHandler: adminMiddleware }, async (request, reply) => {
     const { id } = request.params as any
+
+    // Get order before update for audit log
+    const before = await getOrderById(id)
 
     const updatedOrder = await updateOrder(id, {
       status: 'refunded'
@@ -562,6 +847,19 @@ export async function adminRoutes(fastify: FastifyInstance) {
       reply.code(404)
       return { success: false, error: 'Order not found' }
     }
+
+    // Log the action
+    const adminInfo = getAdminInfo(request)
+    await logAdminAction({
+      ...adminInfo,
+      action: 'refund',
+      entityType: 'order',
+      entityId: id,
+      changes: {
+        before: { status: before?.status },
+        after: { status: 'refunded' }
+      }
+    })
 
     return { success: true, order: updatedOrder }
   })
@@ -605,6 +903,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
 
       const result = await restoreFromBackup(backup)
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'restore',
+        entityType: 'backup',
+        entityId: backup.createdAt || 'unknown',
+        metadata: { restored: result.restored }
+      })
+
       return { success: true, restored: result.restored }
     } catch (error: any) {
       reply.code(500)
@@ -655,6 +964,16 @@ export async function adminRoutes(fastify: FastifyInstance) {
         uploadedAt: new Date().toISOString()
       })
 
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'create',
+        entityType: 'file',
+        entityId: file.id,
+        changes: { after: { id: file.id, name: file.name, type: file.type, size: file.size } }
+      })
+
       return { success: true, file }
     } catch (error: any) {
       reply.code(500)
@@ -679,13 +998,27 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // Delete file
   fastify.delete('/admin/files/:id', { preHandler: adminMiddleware }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { deleteFile } = await import('../dataStore')
+    const { deleteFile, getFileById } = await import('../dataStore')
+
+    // Get file before deletion for audit log
+    const before = await getFileById(id)
+
     const deleted = await deleteFile(id)
 
     if (!deleted) {
       reply.code(404)
       return { success: false, error: 'File not found' }
     }
+
+    // Log the action
+    const adminInfo = getAdminInfo(request)
+    await logAdminAction({
+      ...adminInfo,
+      action: 'delete',
+      entityType: 'file',
+      entityId: id,
+      changes: { before: before ? { id: before.id, name: before.name, type: before.type, size: before.size } : undefined }
+    })
 
     return { success: true }
   })
@@ -728,6 +1061,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
 
       const result = await getReviewsCollection().insertOne(review as any)
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'create',
+        entityType: 'review',
+        entityId: review.id,
+        changes: { after: review }
+      })
+
       return { success: true, review: { ...review, _id: result.insertedId.toString() } }
     } catch (error: any) {
       reply.code(500)
@@ -742,6 +1086,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const updates = request.body as { userName?: string; rating?: number; text?: string }
 
       const { getReviewsCollection, toClientDoc } = await import('../database')
+
+      // Get review before update for audit log
+      const before = await getReviewsCollection().findOne({ id })
+
       const result = await getReviewsCollection().findOneAndUpdate(
         { id },
         { $set: updates },
@@ -753,6 +1101,19 @@ export async function adminRoutes(fastify: FastifyInstance) {
         return { success: false, error: 'Review not found' }
       }
 
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'review',
+        entityId: id,
+        changes: {
+          before: before ? toClientDoc(before) : undefined,
+          after: toClientDoc(result)
+        }
+      })
+
       return { success: true, review: toClientDoc(result) }
     } catch (error: any) {
       reply.code(500)
@@ -763,7 +1124,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // Delete review
   fastify.delete('/admin/reviews/:id', { preHandler: adminMiddleware }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { getReviewsCollection } = await import('../database')
+    const { getReviewsCollection, toClientDoc } = await import('../database')
+
+    // Get review before deletion for audit log
+    const review = await getReviewsCollection().findOne({ id })
+
     const result = await getReviewsCollection().deleteOne({ id })
 
     if (result.deletedCount === 0) {
@@ -771,6 +1136,602 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return { success: false, error: 'Review not found' }
     }
 
+    // Log the action
+    const adminInfo = getAdminInfo(request)
+    await logAdminAction({
+      ...adminInfo,
+      action: 'delete',
+      entityType: 'review',
+      entityId: id,
+      changes: { before: review ? toClientDoc(review) : undefined }
+    })
+
     return { success: true }
   })
+
+  // ============================================
+  // AUDIT LOGS
+  // ============================================
+
+  // Get audit logs with filters and pagination
+  fastify.get('/admin/audit-logs', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const {
+        action,
+        entityType,
+        entityId,
+        adminId,
+        startDate,
+        endDate,
+        limit = 50,
+        offset = 0
+      } = request.query as {
+        action?: AuditAction
+        entityType?: AuditEntityType
+        entityId?: string
+        adminId?: string
+        startDate?: string
+        endDate?: string
+        limit?: number
+        offset?: number
+      }
+
+      const filters: any = {}
+      if (action) filters.action = action
+      if (entityType) filters.entityType = entityType
+      if (entityId) filters.entityId = entityId
+      if (adminId) filters.adminId = adminId
+      if (startDate) filters.startDate = startDate
+      if (endDate) filters.endDate = endDate
+
+      const result = await getAuditLogs(filters, Number(limit), Number(offset))
+
+      return {
+        success: true,
+        logs: result.logs,
+        total: result.total,
+        limit: Number(limit),
+        offset: Number(offset)
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get audit logs for a specific entity
+  fastify.get('/admin/audit-logs/:entityType/:entityId', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { entityType, entityId } = request.params as { entityType: AuditEntityType; entityId: string }
+      const { limit = 50, offset = 0 } = request.query as { limit?: number; offset?: number }
+
+      const result = await getAuditLogsByEntity(entityType, entityId, Number(limit), Number(offset))
+
+      return {
+        success: true,
+        logs: result.logs,
+        total: result.total,
+        limit: Number(limit),
+        offset: Number(offset)
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // CSV IMPORT
+  // ============================================
+
+  // Import products from CSV
+  fastify.post('/admin/import/products', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { csv } = request.body as { csv: string }
+      if (!csv) {
+        reply.code(400)
+        return { success: false, error: 'CSV data required' }
+      }
+
+      const { importProductsFromCSV } = await import('../csvImporter')
+      const result = await importProductsFromCSV(csv)
+
+      // Log action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'create',
+        entityType: 'product',
+        entityId: 'bulk_import',
+        metadata: { imported: result.imported, errors: result.errors.length }
+      })
+
+      return result
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get CSV template
+  fastify.get('/admin/import/template', { preHandler: adminMiddleware }, async () => {
+    const { getCSVTemplate } = await import('../csvImporter')
+    return { success: true, template: getCSVTemplate() }
+  })
+
+  // ============================================
+  // EXTENDED STATISTICS
+  // ============================================
+
+  // Dashboard stats
+  fastify.get('/admin/stats/dashboard', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { period = '30d' } = request.query as { period?: string }
+      const { getDashboardStats } = await import('../statistics')
+      const stats = await getDashboardStats(period as any)
+      return { success: true, stats }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Revenue chart
+  fastify.get('/admin/stats/revenue', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { period = '30d', groupBy = 'day' } = request.query as { period?: string; groupBy?: string }
+      const { getRevenueChart } = await import('../statistics')
+      const data = await getRevenueChart(period as any, groupBy as any)
+      return { success: true, data }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Orders chart
+  fastify.get('/admin/stats/orders-chart', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { period = '30d', groupBy = 'day' } = request.query as { period?: string; groupBy?: string }
+      const { getOrdersChart } = await import('../statistics')
+      const data = await getOrdersChart(period as any, groupBy as any)
+      return { success: true, data }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Top products
+  fastify.get('/admin/stats/top-products', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { period = '30d', limit = 10 } = request.query as { period?: string; limit?: number }
+      const { getTopProducts } = await import('../statistics')
+      const data = await getTopProducts(period as any, Number(limit))
+      return { success: true, data }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Payment method stats
+  fastify.get('/admin/stats/payment-methods', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { period = '30d' } = request.query as { period?: string }
+      const { getPaymentMethodStats } = await import('../statistics')
+      const data = await getPaymentMethodStats(period as any)
+      return { success: true, data }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // User growth chart
+  fastify.get('/admin/stats/user-growth', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { period = '30d', groupBy = 'day' } = request.query as { period?: string; groupBy?: string }
+      const { getUserGrowthChart } = await import('../statistics')
+      const data = await getUserGrowthChart(period as any, groupBy as any)
+      return { success: true, data }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Category stats
+  fastify.get('/admin/stats/categories', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { period = '30d' } = request.query as { period?: string }
+      const { getCategoryStats } = await import('../statistics')
+      const data = await getCategoryStats(period as any)
+      return { success: true, data }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // 2FA MANAGEMENT
+  // ============================================
+
+  // Setup 2FA
+  fastify.post('/admin/2fa/setup', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      if (!user?.userId) {
+        reply.code(401)
+        return { success: false, error: 'Not authenticated' }
+      }
+
+      const { setup2FA } = await import('../twoFactorAuth')
+      const result = await setup2FA(user.userId)
+      return { success: true, ...result }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Enable 2FA
+  fastify.post('/admin/2fa/enable', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const { code } = request.body as { code: string }
+
+      if (!user?.userId || !code) {
+        reply.code(400)
+        return { success: false, error: 'Code required' }
+      }
+
+      const { enable2FA } = await import('../twoFactorAuth')
+      const enabled = enable2FA(user.userId, code)
+
+      if (!enabled) {
+        reply.code(400)
+        return { success: false, error: 'Invalid code' }
+      }
+
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Disable 2FA
+  fastify.post('/admin/2fa/disable', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const { code } = request.body as { code: string }
+
+      if (!user?.userId || !code) {
+        reply.code(400)
+        return { success: false, error: 'Code required' }
+      }
+
+      const { disable2FA } = await import('../twoFactorAuth')
+      const disabled = disable2FA(user.userId, code)
+
+      if (!disabled) {
+        reply.code(400)
+        return { success: false, error: 'Invalid code' }
+      }
+
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Check 2FA status
+  fastify.get('/admin/2fa/status', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      if (!user?.userId) {
+        reply.code(401)
+        return { success: false, error: 'Not authenticated' }
+      }
+
+      const { is2FAEnabled, getBackupCodesCount } = await import('../twoFactorAuth')
+      return {
+        success: true,
+        enabled: is2FAEnabled(user.userId),
+        backupCodesRemaining: getBackupCodesCount(user.userId)
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Regenerate backup codes
+  fastify.post('/admin/2fa/backup-codes', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      if (!user?.userId) {
+        reply.code(401)
+        return { success: false, error: 'Not authenticated' }
+      }
+
+      const { regenerateBackupCodes } = await import('../twoFactorAuth')
+      const codes = regenerateBackupCodes(user.userId)
+
+      if (!codes) {
+        reply.code(400)
+        return { success: false, error: '2FA not enabled' }
+      }
+
+      return { success: true, backupCodes: codes }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // ADMIN ROLES
+  // ============================================
+
+  // Get all roles
+  fastify.get('/admin/roles', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { getAllRoles } = await import('../adminRoles')
+      const roles = await getAllRoles()
+      return { success: true, roles }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Create role
+  fastify.post('/admin/roles', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const roleData = request.body as any
+      const { createRole } = await import('../adminRoles')
+      const role = await createRole(roleData)
+
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'create',
+        entityType: 'admin',
+        entityId: role.id,
+        metadata: { type: 'role', name: role.name }
+      })
+
+      return { success: true, role }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Update role
+  fastify.put('/admin/roles/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const updates = request.body as any
+      const { updateRole } = await import('../adminRoles')
+      const role = await updateRole(id, updates)
+
+      if (!role) {
+        reply.code(404)
+        return { success: false, error: 'Role not found' }
+      }
+
+      return { success: true, role }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Delete role
+  fastify.delete('/admin/roles/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const { deleteRole } = await import('../adminRoles')
+      const deleted = await deleteRole(id)
+
+      if (!deleted) {
+        reply.code(400)
+        return { success: false, error: 'Cannot delete system role' }
+      }
+
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Assign role to admin
+  fastify.post('/admin/roles/assign', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { adminId, roleId } = request.body as { adminId: string; roleId: string }
+      const user = (request as any).user
+
+      const { assignRole } = await import('../adminRoles')
+      const assignment = await assignRole(adminId, roleId, user?.userId)
+
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'admin',
+        entityId: adminId,
+        metadata: { type: 'role_assignment', roleId }
+      })
+
+      return { success: true, assignment }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get admin's role
+  fastify.get('/admin/roles/admin/:adminId', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { adminId } = request.params as { adminId: string }
+      const { getAdminRole } = await import('../adminRoles')
+      const role = await getAdminRole(adminId)
+      return { success: true, role }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // WEBHOOKS
+  // ============================================
+
+  // Get all webhooks
+  fastify.get('/admin/webhooks', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { getAllWebhooks } = await import('../webhooks')
+      const webhooks = await getAllWebhooks()
+      // Hide secrets
+      const safeWebhooks = webhooks.map(w => ({ ...w, secret: '***' }))
+      return { success: true, webhooks: safeWebhooks }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get webhook by ID
+  fastify.get('/admin/webhooks/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const { getWebhookById } = await import('../webhooks')
+      const webhook = await getWebhookById(id)
+
+      if (!webhook) {
+        reply.code(404)
+        return { success: false, error: 'Webhook not found' }
+      }
+
+      return { success: true, webhook: { ...webhook, secret: '***' } }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Create webhook
+  fastify.post('/admin/webhooks', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const webhookData = request.body as any
+      const { createWebhook } = await import('../webhooks')
+      const webhook = await createWebhook(webhookData)
+
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'create',
+        entityType: 'backup', // Using 'backup' as closest type for webhooks
+        entityId: webhook.id,
+        metadata: { type: 'webhook', name: webhook.name, url: webhook.url }
+      })
+
+      return { success: true, webhook }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Update webhook
+  fastify.put('/admin/webhooks/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const updates = request.body as any
+      const { updateWebhook } = await import('../webhooks')
+      const webhook = await updateWebhook(id, updates)
+
+      if (!webhook) {
+        reply.code(404)
+        return { success: false, error: 'Webhook not found' }
+      }
+
+      return { success: true, webhook: { ...webhook, secret: '***' } }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Delete webhook
+  fastify.delete('/admin/webhooks/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const { deleteWebhook } = await import('../webhooks')
+      const deleted = await deleteWebhook(id)
+
+      if (!deleted) {
+        reply.code(404)
+        return { success: false, error: 'Webhook not found' }
+      }
+
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Regenerate webhook secret
+  fastify.post('/admin/webhooks/:id/regenerate-secret', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const { regenerateSecret } = await import('../webhooks')
+      const secret = await regenerateSecret(id)
+
+      if (!secret) {
+        reply.code(404)
+        return { success: false, error: 'Webhook not found' }
+      }
+
+      return { success: true, secret }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Test webhook
+  fastify.post('/admin/webhooks/:id/test', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const { testWebhook } = await import('../webhooks')
+      const result = await testWebhook(id)
+      return { ...result }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get webhook delivery logs
+  fastify.get('/admin/webhooks/:id/logs', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const { limit = 50 } = request.query as { limit?: number }
+      const { getDeliveryLogs } = await import('../webhooks')
+      const logs = await getDeliveryLogs(id, Number(limit))
+      return { success: true, logs }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
 }
+

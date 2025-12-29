@@ -7,6 +7,11 @@ import { addOrder, updateOrder, getOrderById, Order, incrementPromoUsage } from 
 import { processAutoDelivery } from '../delivery'
 import { sendPaymentConfirmation, sendAdminNewOrderNotification } from '../email'
 import { logger } from '../logger'
+import {
+  sendOrderNotification,
+  sendPaymentNotification,
+  sendDeliveryNotification as sendTelegramDeliveryNotification
+} from '../telegramNotifier'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -285,6 +290,17 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         if (updatedOrder) {
           logger.info({ orderId: order.id }, 'Order marked as paid')
 
+          // Send Telegram notifications
+          try {
+            // Notify user about payment confirmation
+            await sendPaymentNotification(updatedOrder)
+
+            // Notify admins about new paid order
+            await sendOrderNotification(updatedOrder)
+          } catch (notifyError) {
+            logger.warn({ orderId: order.id, error: notifyError }, 'Failed to send Telegram notifications')
+          }
+
           // Increment promo code usage after successful payment
           if (updatedOrder.promoCode) {
             try {
@@ -303,6 +319,13 @@ export async function paymentRoutes(fastify: FastifyInstance) {
               orderId: order.id,
               delivered: true
             }, 'Auto-delivery successful')
+
+            // Send Telegram delivery notification
+            try {
+              await sendTelegramDeliveryNotification(updatedOrder)
+            } catch (notifyError) {
+              logger.warn({ orderId: order.id, error: notifyError }, 'Failed to send Telegram delivery notification')
+            }
           } else {
             logger.info({
               orderId: order.id,
@@ -544,6 +567,17 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       if (updatedOrder) {
         logger.info({ orderId: updatedOrder.id }, 'Order marked as paid')
 
+        // Send Telegram notifications
+        try {
+          // Notify user about payment confirmation
+          await sendPaymentNotification(updatedOrder)
+
+          // Notify admins about new paid order
+          await sendOrderNotification(updatedOrder)
+        } catch (notifyError) {
+          logger.warn({ orderId: updatedOrder.id, error: notifyError }, 'Failed to send Telegram notifications')
+        }
+
         // Increment promo code usage after successful payment
         if (updatedOrder.promoCode) {
           try {
@@ -562,6 +596,13 @@ export async function paymentRoutes(fastify: FastifyInstance) {
             orderId: updatedOrder.id,
             delivered: true
           }, 'Auto-delivery successful')
+
+          // Send Telegram delivery notification
+          try {
+            await sendTelegramDeliveryNotification(updatedOrder)
+          } catch (notifyError) {
+            logger.warn({ orderId: updatedOrder.id, error: notifyError }, 'Failed to send Telegram delivery notification')
+          }
         } else {
           logger.info({
             orderId: updatedOrder.id,

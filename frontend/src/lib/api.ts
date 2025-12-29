@@ -347,6 +347,183 @@ export const adminApi = {
     const { data } = await adminApiInstance.delete(`/admin/reviews/${id}`)
     return data
   },
+
+  // Tags - product categorization
+  getTags: async () => {
+    const { data } = await adminApiInstance.get('/admin/tags')
+    return data
+  },
+
+  createTag: async (tag: { name: string; color?: string }) => {
+    const { data } = await adminApiInstance.post('/admin/tags', tag)
+    return data
+  },
+
+  updateTag: async (id: string, updates: { name?: string; color?: string }) => {
+    const { data } = await adminApiInstance.put(`/admin/tags/${id}`, updates)
+    return data
+  },
+
+  deleteTag: async (id: string) => {
+    const { data } = await adminApiInstance.delete(`/admin/tags/${id}`)
+    return data
+  },
+
+  // CSV Import
+  importProducts: async (csv: string) => {
+    const { data } = await adminApiInstance.post('/admin/import/products', { csv })
+    return data
+  },
+
+  getCSVTemplate: async () => {
+    const { data } = await adminApiInstance.get('/admin/import/template')
+    return data
+  },
+
+  // Extended Statistics
+  getDashboardStats: async (period: string = '30d') => {
+    const { data } = await adminApiInstance.get('/admin/stats/dashboard', { params: { period } })
+    return data
+  },
+
+  getRevenueChart: async (period: string = '30d', groupBy: string = 'day') => {
+    const { data } = await adminApiInstance.get('/admin/stats/revenue', { params: { period, groupBy } })
+    return data
+  },
+
+  getOrdersChart: async (period: string = '30d', groupBy: string = 'day') => {
+    const { data } = await adminApiInstance.get('/admin/stats/orders-chart', { params: { period, groupBy } })
+    return data
+  },
+
+  getTopProducts: async (period: string = '30d', limit: number = 10) => {
+    const { data } = await adminApiInstance.get('/admin/stats/top-products', { params: { period, limit } })
+    return data
+  },
+
+  getPaymentMethodStats: async (period: string = '30d') => {
+    const { data } = await adminApiInstance.get('/admin/stats/payment-methods', { params: { period } })
+    return data
+  },
+
+  getUserGrowthChart: async (period: string = '30d', groupBy: string = 'day') => {
+    const { data } = await adminApiInstance.get('/admin/stats/user-growth', { params: { period, groupBy } })
+    return data
+  },
+
+  getCategoryStats: async (period: string = '30d') => {
+    const { data } = await adminApiInstance.get('/admin/stats/categories', { params: { period } })
+    return data
+  },
+
+  // 2FA Management
+  setup2FA: async () => {
+    const { data } = await adminApiInstance.post('/admin/2fa/setup')
+    return data
+  },
+
+  enable2FA: async (code: string) => {
+    const { data } = await adminApiInstance.post('/admin/2fa/enable', { code })
+    return data
+  },
+
+  disable2FA: async (code: string) => {
+    const { data } = await adminApiInstance.post('/admin/2fa/disable', { code })
+    return data
+  },
+
+  get2FAStatus: async () => {
+    const { data } = await adminApiInstance.get('/admin/2fa/status')
+    return data
+  },
+
+  regenerateBackupCodes: async () => {
+    const { data } = await adminApiInstance.post('/admin/2fa/backup-codes')
+    return data
+  },
+
+  // Admin Roles
+  getRoles: async () => {
+    const { data } = await adminApiInstance.get('/admin/roles')
+    return data
+  },
+
+  createRole: async (role: { name: string; description?: string; permissions: string[] }) => {
+    const { data } = await adminApiInstance.post('/admin/roles', role)
+    return data
+  },
+
+  updateRole: async (id: string, updates: { name?: string; description?: string; permissions?: string[] }) => {
+    const { data } = await adminApiInstance.put(`/admin/roles/${id}`, updates)
+    return data
+  },
+
+  deleteRole: async (id: string) => {
+    const { data } = await adminApiInstance.delete(`/admin/roles/${id}`)
+    return data
+  },
+
+  assignRole: async (adminId: string, roleId: string) => {
+    const { data } = await adminApiInstance.post('/admin/roles/assign', { adminId, roleId })
+    return data
+  },
+
+  getAdminRole: async (adminId: string) => {
+    const { data } = await adminApiInstance.get(`/admin/roles/admin/${adminId}`)
+    return data
+  },
+
+  // Webhooks
+  getWebhooks: async () => {
+    const { data } = await adminApiInstance.get('/admin/webhooks')
+    return data
+  },
+
+  getWebhook: async (id: string) => {
+    const { data } = await adminApiInstance.get(`/admin/webhooks/${id}`)
+    return data
+  },
+
+  createWebhook: async (webhook: { name: string; url: string; events: string[]; isActive: boolean; headers?: Record<string, string> }) => {
+    const { data } = await adminApiInstance.post('/admin/webhooks', webhook)
+    return data
+  },
+
+  updateWebhook: async (id: string, updates: { name?: string; url?: string; events?: string[]; isActive?: boolean; headers?: Record<string, string> }) => {
+    const { data } = await adminApiInstance.put(`/admin/webhooks/${id}`, updates)
+    return data
+  },
+
+  deleteWebhook: async (id: string) => {
+    const { data } = await adminApiInstance.delete(`/admin/webhooks/${id}`)
+    return data
+  },
+
+  regenerateWebhookSecret: async (id: string) => {
+    const { data } = await adminApiInstance.post(`/admin/webhooks/${id}/regenerate-secret`)
+    return data
+  },
+
+  testWebhook: async (id: string) => {
+    const { data } = await adminApiInstance.post(`/admin/webhooks/${id}/test`)
+    return data
+  },
+
+  getWebhookLogs: async (id: string, limit: number = 50) => {
+    const { data } = await adminApiInstance.get(`/admin/webhooks/${id}/logs`, { params: { limit } })
+    return data
+  },
+
+  // Audit Logs
+  getAuditLogs: async (params?: { action?: string; entityType?: string; entityId?: string; adminId?: string; startDate?: string; endDate?: string; limit?: number; offset?: number }) => {
+    const { data } = await adminApiInstance.get('/admin/audit-logs', { params })
+    return data
+  },
+
+  getEntityAuditLogs: async (entityType: string, entityId: string, limit: number = 50, offset: number = 0) => {
+    const { data } = await adminApiInstance.get(`/admin/audit-logs/${entityType}/${entityId}`, { params: { limit, offset } })
+    return data
+  },
 }
 
 export const chatApi = {

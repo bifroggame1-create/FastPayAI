@@ -34,7 +34,8 @@ export const telegramAuthSchema = z.object({
 export const productQuerySchema = z.object({
   category: z.string().max(50).optional(),
   condition: z.enum(['new', 'used', 'all']).optional(),
-  search: z.string().max(100).optional()
+  search: z.string().max(100).optional(),
+  tags: z.union([z.string(), z.array(z.string())]).optional()
 })
 
 export const productVariantSchema = z.object({

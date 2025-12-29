@@ -10,6 +10,8 @@ import { healthRoutes } from './health'
 import { analyticsRoutes } from './analytics'
 import { referralRoutes } from './referral'
 import { reviewRoutes } from './reviews'
+import { notificationRoutes } from './notifications'
+import { tagsRoutes } from './tags'
 
 export async function registerRoutes(fastify: FastifyInstance) {
   // Register all route modules
@@ -24,8 +26,10 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(analyticsRoutes)
   await fastify.register(referralRoutes)
   await fastify.register(reviewRoutes)
+  await fastify.register(notificationRoutes)
+  await fastify.register(tagsRoutes)
 
-  console.log('✅ All routes registered')
+  console.log('All routes registered')
 }
 
 export {
@@ -39,5 +43,7 @@ export {
   healthRoutes,
   analyticsRoutes,
   referralRoutes,
-  reviewRoutes
+  reviewRoutes,
+  notificationRoutes,
+  tagsRoutes
 }

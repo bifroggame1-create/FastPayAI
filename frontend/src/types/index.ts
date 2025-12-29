@@ -24,6 +24,17 @@ export interface Product {
   inStock: boolean
   variants?: ProductVariant[] // варианты услуги
   badges?: ('sale' | 'hit' | 'new')[] // бейджи товара
+  tags?: string[] // теги товара (массив ID тегов)
+}
+
+// Tag for product categorization
+export interface Tag {
+  _id?: string
+  id: string
+  name: string
+  color?: string // hex color for display
+  createdAt: string
+  productCount?: number // computed field
 }
 
 export interface Seller {
@@ -124,4 +135,5 @@ export interface ProductFilters {
   inStock?: boolean
   search?: string
   sort?: SortType
+  tags?: string[] // filter by tag IDs
 }

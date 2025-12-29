@@ -31,6 +31,17 @@ export interface Product {
   deliveryType?: DeliveryType  // 'manual' | 'auto'
   deliveryKeys?: DeliveryKey[] // Pool of keys/codes for auto-delivery
   deliveryInstructions?: string // Instructions to show after delivery
+  // Tags/labels for product categorization
+  tags?: string[] // Array of tag IDs
+}
+
+// Tag for product categorization and filtering
+export interface Tag {
+  _id?: string | ObjectId
+  id: string
+  name: string
+  color?: string  // Optional hex color for display (e.g., "#FF5733")
+  createdAt: string
 }
 
 export interface ProductVariant {
@@ -195,6 +206,34 @@ export interface UploadedFile {
   uploadedBy?: string
 }
 
+// Audit log for tracking admin actions
+export type AuditAction =
+  | 'create' | 'update' | 'delete'
+  | 'status_change' | 'deliver' | 'cancel' | 'refund'
+  | 'add_keys' | 'remove_key' | 'restore'
+
+export type AuditEntityType =
+  | 'product' | 'order' | 'user' | 'seller'
+  | 'admin' | 'promo_code' | 'review' | 'file' | 'backup'
+
+export interface AuditLog {
+  _id?: string | ObjectId
+  id: string
+  action: AuditAction
+  entityType: AuditEntityType
+  entityId: string
+  adminId: string
+  adminName?: string
+  changes?: {
+    before?: Record<string, any>
+    after?: Record<string, any>
+  }
+  metadata?: Record<string, any>  // Additional context like key count, etc.
+  ipAddress?: string
+  userAgent?: string
+  timestamp: string
+}
+
 // Connect to MongoDB
 export async function connectDB(): Promise<Db> {
   if (db) return db
@@ -256,6 +295,19 @@ async function createIndexes(database: Db): Promise<void> {
     await database.collection('reviews').createIndex({ userId: 1 })
     await database.collection('reviews').createIndex({ orderId: 1 })
 
+    // Audit logs
+    await database.collection('auditLogs').createIndex({ timestamp: -1 })
+    await database.collection('auditLogs').createIndex({ entityType: 1, entityId: 1 })
+    await database.collection('auditLogs').createIndex({ adminId: 1 })
+    await database.collection('auditLogs').createIndex({ action: 1 })
+
+    // Tags
+    await database.collection('tags').createIndex({ id: 1 }, { unique: true })
+    await database.collection('tags').createIndex({ name: 1 })
+
+    // Products tags index
+    await database.collection('products').createIndex({ tags: 1 })
+
     console.log('✅ Database indexes created')
   } catch (error) {
     console.error('⚠️ Error creating indexes:', error)
@@ -305,6 +357,14 @@ export function getAdminsCollection(): Collection<Admin> {
 
 export function getFilesCollection(): Collection<UploadedFile> {
   return getDB().collection<UploadedFile>('files')
+}
+
+export function getAuditLogsCollection(): Collection<AuditLog> {
+  return getDB().collection<AuditLog>('auditLogs')
+}
+
+export function getTagsCollection(): Collection<Tag> {
+  return getDB().collection<Tag>('tags')
 }
 
 // Close connection

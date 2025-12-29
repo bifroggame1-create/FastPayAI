@@ -36,6 +36,15 @@ export async function productRoutes(fastify: FastifyInstance) {
       products = searchProducts(products, query.search)
     }
 
+    // Apply tag filter
+    if (query.tags) {
+      // Support both single tag and array of tags
+      const tagIds = Array.isArray(query.tags) ? query.tags : [query.tags]
+      products = products.filter(p =>
+        p.tags && p.tags.some((tagId: string) => tagIds.includes(tagId))
+      )
+    }
+
     return products
   })
 

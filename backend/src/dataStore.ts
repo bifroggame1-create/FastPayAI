@@ -7,6 +7,8 @@ import {
   getChatsCollection,
   getChatMessagesCollection,
   getAdminsCollection,
+  getAuditLogsCollection,
+  getTagsCollection,
   toClientDoc,
   Product,
   Order,
@@ -16,13 +18,17 @@ import {
   Seller,
   Chat,
   ChatMessage,
-  Admin
+  Admin,
+  AuditLog,
+  AuditAction,
+  AuditEntityType,
+  Tag
 } from './database'
 import { ObjectId } from 'mongodb'
 import { redis, CACHE_KEYS, CACHE_TTL } from './redis'
 
 // Re-export types
-export { Order, OrderStatus, Product, User, PromoCode, Seller, Chat, ChatMessage, Admin }
+export { Order, OrderStatus, Product, User, PromoCode, Seller, Chat, ChatMessage, Admin, AuditLog, AuditAction, AuditEntityType, Tag }
 
 // ============================================
 // Products
@@ -539,6 +545,214 @@ export async function saveFile(file: UploadedFile): Promise<UploadedFile> {
 export async function deleteFile(fileId: string): Promise<boolean> {
   const result = await getFilesCollection().deleteOne({ id: fileId })
   return result.deletedCount > 0
+}
+
+// ============================================
+// Audit Logs
+// ============================================
+
+export interface AuditLogFilters {
+  action?: AuditAction
+  entityType?: AuditEntityType
+  entityId?: string
+  adminId?: string
+  startDate?: string
+  endDate?: string
+}
+
+export interface LogAdminActionParams {
+  action: AuditAction
+  entityType: AuditEntityType
+  entityId: string
+  adminId: string
+  adminName?: string
+  changes?: {
+    before?: Record<string, any>
+    after?: Record<string, any>
+  }
+  metadata?: Record<string, any>
+  ipAddress?: string
+  userAgent?: string
+}
+
+/**
+ * Log an admin action to the audit log
+ */
+export async function logAdminAction(params: LogAdminActionParams): Promise<AuditLog> {
+  const auditLog: AuditLog = {
+    id: `audit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    action: params.action,
+    entityType: params.entityType,
+    entityId: params.entityId,
+    adminId: params.adminId,
+    adminName: params.adminName,
+    changes: params.changes,
+    metadata: params.metadata,
+    ipAddress: params.ipAddress,
+    userAgent: params.userAgent,
+    timestamp: new Date().toISOString()
+  }
+
+  const collection = getAuditLogsCollection()
+  const result = await collection.insertOne(auditLog as any)
+  return { ...auditLog, _id: result.insertedId.toString() }
+}
+
+/**
+ * Get audit logs with filters and pagination
+ */
+export async function getAuditLogs(
+  filters: AuditLogFilters = {},
+  limit = 50,
+  offset = 0
+): Promise<{ logs: AuditLog[]; total: number }> {
+  const collection = getAuditLogsCollection()
+  const query: any = {}
+
+  if (filters.action) query.action = filters.action
+  if (filters.entityType) query.entityType = filters.entityType
+  if (filters.entityId) query.entityId = filters.entityId
+  if (filters.adminId) query.adminId = filters.adminId
+
+  // Date range filtering
+  if (filters.startDate || filters.endDate) {
+    query.timestamp = {}
+    if (filters.startDate) query.timestamp.$gte = filters.startDate
+    if (filters.endDate) query.timestamp.$lte = filters.endDate
+  }
+
+  const [logs, total] = await Promise.all([
+    collection
+      .find(query)
+      .sort({ timestamp: -1 })
+      .skip(offset)
+      .limit(limit)
+      .toArray(),
+    collection.countDocuments(query)
+  ])
+
+  return {
+    logs: logs.map(log => toClientDoc(log)),
+    total
+  }
+}
+
+/**
+ * Get audit logs for a specific entity
+ */
+export async function getAuditLogsByEntity(
+  entityType: AuditEntityType,
+  entityId: string,
+  limit = 50,
+  offset = 0
+): Promise<{ logs: AuditLog[]; total: number }> {
+  return getAuditLogs({ entityType, entityId }, limit, offset)
+}
+
+/**
+ * Get audit logs by admin
+ */
+export async function getAuditLogsByAdmin(
+  adminId: string,
+  limit = 50,
+  offset = 0
+): Promise<{ logs: AuditLog[]; total: number }> {
+  return getAuditLogs({ adminId }, limit, offset)
+}
+
+/**
+ * Count total audit logs (optionally with filters)
+ */
+export async function countAuditLogs(filters: AuditLogFilters = {}): Promise<number> {
+  const collection = getAuditLogsCollection()
+  const query: any = {}
+
+  if (filters.action) query.action = filters.action
+  if (filters.entityType) query.entityType = filters.entityType
+  if (filters.entityId) query.entityId = filters.entityId
+  if (filters.adminId) query.adminId = filters.adminId
+
+  if (filters.startDate || filters.endDate) {
+    query.timestamp = {}
+    if (filters.startDate) query.timestamp.$gte = filters.startDate
+    if (filters.endDate) query.timestamp.$lte = filters.endDate
+  }
+
+  return collection.countDocuments(query)
+}
+
+/**
+ * Delete old audit logs (for cleanup)
+ */
+export async function deleteOldAuditLogs(olderThanDays: number): Promise<number> {
+  const collection = getAuditLogsCollection()
+  const cutoffDate = new Date()
+  cutoffDate.setDate(cutoffDate.getDate() - olderThanDays)
+
+  const result = await collection.deleteMany({
+    timestamp: { $lt: cutoffDate.toISOString() }
+  })
+
+  return result.deletedCount
+}
+
+// ============================================
+// Tags
+// ============================================
+
+export async function loadTags(): Promise<Tag[]> {
+  const tags = await getTagsCollection().find({}).sort({ name: 1 }).toArray()
+  return tags.map(t => toClientDoc(t))
+}
+
+export async function getTagById(tagId: string): Promise<Tag | null> {
+  const tag = await getTagsCollection().findOne({ id: tagId })
+  return tag ? toClientDoc(tag) : null
+}
+
+export async function getTagByName(name: string): Promise<Tag | null> {
+  const tag = await getTagsCollection().findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } })
+  return tag ? toClientDoc(tag) : null
+}
+
+export async function addTag(tag: Tag): Promise<Tag> {
+  const collection = getTagsCollection()
+  const result = await collection.insertOne(tag as any)
+  return { ...tag, _id: result.insertedId.toString() }
+}
+
+export async function updateTag(tagId: string, updates: Partial<Tag>): Promise<Tag | null> {
+  const result = await getTagsCollection().findOneAndUpdate(
+    { id: tagId },
+    { $set: updates },
+    { returnDocument: 'after' }
+  )
+  return result ? toClientDoc(result) : null
+}
+
+export async function deleteTag(tagId: string): Promise<boolean> {
+  const result = await getTagsCollection().deleteOne({ id: tagId })
+
+  // Also remove this tag from all products that have it
+  if (result.deletedCount > 0) {
+    await getProductsCollection().updateMany(
+      { tags: tagId },
+      { $pull: { tags: tagId } as any }
+    )
+    // Invalidate products cache since we modified products
+    await redis.invalidateProducts()
+  }
+
+  return result.deletedCount > 0
+}
+
+export async function getProductsByTag(tagId: string): Promise<Product[]> {
+  const products = await getProductsCollection().find({ tags: tagId }).toArray()
+  return products.map(p => toClientDoc(p))
+}
+
+export async function countProductsByTag(tagId: string): Promise<number> {
+  return getProductsCollection().countDocuments({ tags: tagId })
 }
 
 console.log('✅ DataStore module loaded (MongoDB)')
