@@ -71,10 +71,12 @@ const adminApiInstance = axios.create({
   withCredentials: false,
 })
 
-// Log admin API requests for debugging
+// Ensure X-Admin-Id is always set and log admin API requests
 adminApiInstance.interceptors.request.use((config) => {
+  // Force set X-Admin-Id header on every request
+  config.headers['X-Admin-Id'] = BOOTSTRAP_ADMIN_ID
   console.log('[AdminAPI] Request:', config.method?.toUpperCase(), config.url)
-  console.log('[AdminAPI] Headers:', JSON.stringify(config.headers))
+  console.log('[AdminAPI] X-Admin-Id:', config.headers['X-Admin-Id'])
   return config
 })
 
