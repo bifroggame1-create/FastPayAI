@@ -98,7 +98,7 @@ export interface Order {
   paymentId?: string
   status: OrderStatus
   promoCode?: string // promo code used for this order
-  deliveryData?: string
+  deliveryData?: string | { iv: string; content: string; tag: string } // plaintext or AES-256-GCM encrypted
   deliveryNote?: string
   createdAt: string
   paidAt?: string

@@ -714,6 +714,19 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return { success: false, error: 'Order not found' }
     }
 
+    // Decrypt delivery data if encrypted
+    if (order.deliveryData) {
+      try {
+        const { safeDecrypt } = await import('../deliveryCrypto')
+        const decrypted = safeDecrypt(order.deliveryData)
+        if (decrypted) {
+          order.deliveryData = decrypted
+        }
+      } catch (err) {
+        // Keep as-is if decryption fails
+      }
+    }
+
     return { success: true, order }
   })
 
@@ -766,9 +779,18 @@ export async function adminRoutes(fastify: FastifyInstance) {
       // Get order before update for audit log
       const before = await getOrderById(id)
 
+      // Encrypt delivery data before storage
+      let encryptedDeliveryData: any = deliveryData
+      try {
+        const { encryptDeliveryData } = await import('../deliveryCrypto')
+        encryptedDeliveryData = encryptDeliveryData(deliveryData)
+      } catch (err) {
+        console.warn('[Admin] DELIVERY_SECRET not set, storing plaintext')
+      }
+
       const updatedOrder = await updateOrder(id, {
         status: 'delivered',
-        deliveryData,
+        deliveryData: encryptedDeliveryData,
         deliveryNote,
         deliveredAt: new Date().toISOString()
       })

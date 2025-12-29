@@ -220,13 +220,22 @@ export async function processAutoDelivery(
       deliveryData = `${key.key}\n\n${product.deliveryInstructions}`
     }
 
-    // Update order with delivery data
+    // Encrypt delivery data before storage
+    let encryptedDeliveryData: any = deliveryData
+    try {
+      const { encryptDeliveryData } = await import('./deliveryCrypto')
+      encryptedDeliveryData = encryptDeliveryData(deliveryData)
+    } catch (err) {
+      logger.warn({ orderId: order.id }, 'DELIVERY_SECRET not set, storing plaintext')
+    }
+
+    // Update order with encrypted delivery data
     await orders.updateOne(
       { id: order.id },
       {
         $set: {
           status: 'delivered',
-          deliveryData,
+          deliveryData: encryptedDeliveryData,
           deliveredAt: new Date().toISOString()
         }
       }
