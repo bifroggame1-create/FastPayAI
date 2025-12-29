@@ -261,23 +261,29 @@ export default function AdminPage() {
     }
 
     try {
+      console.log('[Admin] Adding admin:', input, newAdminName)
       const isUsername = input.startsWith('@')
       const result = await adminApi.addAdmin({
         userId: isUsername ? undefined : input,
         username: isUsername ? input.substring(1) : undefined,
         name: newAdminName.trim() || undefined
       })
+      console.log('[Admin] Add admin result:', result)
 
       if (result.success) {
         setAdmins([...admins, result.admin])
         setNewAdminInput('')
         setNewAdminName('')
-        alert('Админ добавлен')
+        alert('Админ добавлен!')
+      } else {
+        alert('Ошибка: ' + (result.error || 'Неизвестная ошибка'))
       }
     } catch (error: any) {
-      console.error('Error adding admin:', error)
+      console.error('[Admin] Error adding admin:', error)
+      console.error('[Admin] Response data:', error.response?.data)
+      console.error('[Admin] Status:', error.response?.status)
       const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || 'Ошибка добавления админа'
-      alert(errorMsg)
+      alert('Ошибка (' + (error.response?.status || 'сеть') + '): ' + errorMsg)
     }
   }
 
@@ -484,7 +490,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
-      <Header title="Админ-панель" showBack onBack={() => router.push('/')} showNavButtons={false} />
+      <Header title="Админ-панель v2.1" showBack onBack={() => router.push('/')} showNavButtons={false} />
 
       {/* Tabs */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">
