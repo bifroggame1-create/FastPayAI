@@ -119,7 +119,8 @@ export const createCryptoInvoiceSchema = z.object({
   asset: cryptoAssetSchema.optional().default('USDT'),
   userId: z.string().max(50).optional(),
   userName: z.string().max(100).optional(),
-  userUsername: z.string().max(50).optional()
+  userUsername: z.string().max(50).optional(),
+  promoCode: z.string().max(50).optional() // promo code used for discount
 })
 
 export const createCactusPaymentSchema = z.object({
@@ -131,7 +132,8 @@ export const createCactusPaymentSchema = z.object({
   userIp: z.string().max(45).optional(), // IPv4 or IPv6
   userId: z.string().max(50).optional(),
   userName: z.string().max(100).optional(),
-  userUsername: z.string().max(50).optional()
+  userUsername: z.string().max(50).optional(),
+  promoCode: z.string().max(50).optional() // promo code used for discount
 })
 
 export const cancelPaymentSchema = z.object({

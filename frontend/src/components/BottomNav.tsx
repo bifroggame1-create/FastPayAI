@@ -6,42 +6,30 @@ import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
 import { authenticate, isAdmin as checkAuthIsAdmin, getAuthUser } from '@/lib/auth'
 
-// Bootstrap admin IDs - always have access
-const BOOTSTRAP_ADMIN_IDS = ['1301598469']
-
 export default function BottomNav() {
   const pathname = usePathname()
-  const { user, isAdmin: storeIsAdmin, setIsAdmin } = useAppStore()
+  const { isAdmin: storeIsAdmin, setIsAdmin } = useAppStore()
   const [isAdminChecked, setIsAdminChecked] = useState(false)
 
-  const userId = user?.id || (typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() : null)
-
-  // Check and update admin status on mount
+  // Check and update admin status on mount - backend is the source of truth
   useEffect(() => {
     const checkAdmin = async () => {
-      // Bootstrap admin check (immediate)
-      if (userId && BOOTSTRAP_ADMIN_IDS.includes(userId)) {
-        setIsAdmin(true)
-        setIsAdminChecked(true)
-        return
-      }
-
       // Authenticate with backend to get fresh admin status
       await authenticate()
       const authUser = getAuthUser()
       const isAdminFromAuth = checkAuthIsAdmin() || authUser?.isAdmin || false
 
-      console.log('🔐 BottomNav admin check:', { userId, isAdminFromAuth, authUser })
+      console.log('🔐 BottomNav admin check:', { isAdminFromAuth, authUser })
 
       setIsAdmin(isAdminFromAuth)
       setIsAdminChecked(true)
     }
 
     checkAdmin()
-  }, [userId, setIsAdmin])
+  }, [setIsAdmin])
 
-  // Use store isAdmin (reactive) or bootstrap check
-  const isAdmin = storeIsAdmin || (userId && BOOTSTRAP_ADMIN_IDS.includes(userId))
+  // Use admin status from auth (backend is the source of truth)
+  const isAdmin = storeIsAdmin
 
   const navItems = [
     {

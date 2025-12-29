@@ -7,10 +7,6 @@ import { useAppStore } from '@/lib/store'
 import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi } from '@/lib/api'
 import { authenticate, isAdmin as checkIsAdmin } from '@/lib/auth'
-import { getTelegramUser } from '@/lib/telegram'
-
-// Bootstrap admin IDs - always have access even if API fails
-const BOOTSTRAP_ADMIN_IDS = ['1301598469']
 
 type Tab = 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'orders' | 'admins'
 
@@ -125,18 +121,12 @@ export default function AdminPage() {
     const checkAccessAndLoad = async () => {
       console.log('🔧 Admin: Starting auth check...')
 
-      // First authenticate with backend to get JWT token
+      // First authenticate with backend to get JWT token and admin status
       const authResult = await authenticate()
       console.log('🔧 Admin: Auth result:', authResult)
 
-      // Check admin access - bootstrap admins always have access
-      const telegramUser = getTelegramUser()
-      console.log('🔧 Admin: telegramUser:', telegramUser?.id, telegramUser?.name)
-
-      const userId = user?.id || telegramUser?.id || (typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() : null)
-      console.log('🔧 Admin: userId:', userId)
-
-      const hasAccess = !!(userId && BOOTSTRAP_ADMIN_IDS.includes(userId)) || checkIsAdmin()
+      // Check admin access from backend auth only (no hardcoded IDs)
+      const hasAccess = checkIsAdmin()
       console.log('🔧 Admin: hasAccess:', hasAccess, 'checkIsAdmin():', checkIsAdmin())
 
       setIsAdmin(hasAccess)

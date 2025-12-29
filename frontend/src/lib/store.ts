@@ -257,6 +257,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'fastpay-storage',
+      // SECURITY: isAdmin is NOT persisted - it must come from backend auth only
       partialize: (state) => ({
         favorites: state.favorites,
         theme: state.theme,
@@ -265,8 +266,7 @@ export const useAppStore = create<AppState>()(
         chats: state.chats,
         messages: state.messages,
         cart: state.cart,
-        cartTotal: state.cartTotal,
-        isAdmin: state.isAdmin
+        cartTotal: state.cartTotal
       })
     }
   )

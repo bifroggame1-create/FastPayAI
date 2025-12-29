@@ -3,7 +3,7 @@ import { cryptoBot } from '../cryptobot'
 import { cactusPay, PaymentMethod } from '../cactuspay'
 import { validateBody, createCryptoInvoiceSchema, createCactusPaymentSchema, cancelPaymentSchema } from '../validation'
 import { convertRubToCrypto, CryptoAsset, getExchangeRates, refreshExchangeRates } from '../cryptoConverter'
-import { addOrder, updateOrder, getOrderById, Order } from '../dataStore'
+import { addOrder, updateOrder, getOrderById, Order, incrementPromoUsage } from '../dataStore'
 import { processAutoDelivery } from '../delivery'
 import { sendPaymentConfirmation, sendAdminNewOrderNotification } from '../email'
 import { logger } from '../logger'
@@ -132,6 +132,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         paymentMethod: 'cryptobot',
         paymentId: String(invoice.invoice_id),
         status: 'pending',
+        promoCode: data.promoCode, // Store promo code for increment after payment
         createdAt: new Date().toISOString(),
       }
       await addOrder(order)
@@ -264,42 +265,59 @@ export async function paymentRoutes(fastify: FastifyInstance) {
           order = allOrders.find(o => o.paymentId === paymentId) || null
         }
 
-        if (order) {
-          // Update order status to paid
-          const updatedOrder = await updateOrder(order.id, {
-            status: 'paid',
-            paidAt: new Date().toISOString(),
-          })
+        if (!order) {
+          logger.warn({ paymentId }, 'Order not found for payment')
+          return { success: true }
+        }
 
-          if (updatedOrder) {
-            logger.info({ orderId: order.id }, 'Order marked as paid')
+        // SECURITY: Check if order already processed (prevent duplicate delivery)
+        if (order.status === 'paid' || order.status === 'delivered') {
+          logger.info({ orderId: order.id, status: order.status }, 'Order already processed, skipping')
+          return { success: true }
+        }
 
-            // Process auto-delivery
-            const deliveryResult = await processAutoDelivery(updatedOrder)
+        // Update order status to paid
+        const updatedOrder = await updateOrder(order.id, {
+          status: 'paid',
+          paidAt: new Date().toISOString(),
+        })
 
-            if (deliveryResult.success) {
-              logger.info({
-                orderId: order.id,
-                delivered: true
-              }, 'Auto-delivery successful')
-            } else {
-              logger.info({
-                orderId: order.id,
-                reason: deliveryResult.error
-              }, 'Auto-delivery not performed')
+        if (updatedOrder) {
+          logger.info({ orderId: order.id }, 'Order marked as paid')
 
-              // Send admin notification for manual delivery
-              await sendAdminNewOrderNotification({
-                orderNumber: order.id,
-                productName: order.productName,
-                amount: order.amount,
-                userName: order.userName || 'Unknown',
-                paymentMethod: order.paymentMethod
-              })
+          // Increment promo code usage after successful payment
+          if (updatedOrder.promoCode) {
+            try {
+              await incrementPromoUsage(updatedOrder.promoCode)
+              logger.info({ orderId: order.id, promoCode: updatedOrder.promoCode }, 'Promo code usage incremented')
+            } catch (promoError) {
+              logger.warn({ orderId: order.id, promoCode: updatedOrder.promoCode, error: promoError }, 'Failed to increment promo usage')
             }
           }
-        } else {
-          logger.warn({ paymentId }, 'Order not found for payment')
+
+          // Process auto-delivery
+          const deliveryResult = await processAutoDelivery(updatedOrder)
+
+          if (deliveryResult.success) {
+            logger.info({
+              orderId: order.id,
+              delivered: true
+            }, 'Auto-delivery successful')
+          } else {
+            logger.info({
+              orderId: order.id,
+              reason: deliveryResult.error
+            }, 'Auto-delivery not performed')
+
+            // Send admin notification for manual delivery
+            await sendAdminNewOrderNotification({
+              orderNumber: order.id,
+              productName: order.productName,
+              amount: order.amount,
+              userName: order.userName || 'Unknown',
+              paymentMethod: order.paymentMethod
+            })
+          }
         }
       }
 
@@ -403,6 +421,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
           paymentMethod: paymentMethodType as any,
           paymentId: orderId,
           status: 'pending',
+          promoCode: data.promoCode, // Store promo code for increment after payment
           createdAt: new Date().toISOString(),
         }
         await addOrder(order)
@@ -477,51 +496,86 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         return { success: true }
       }
 
-      // Verify payment status via API
+      // Get order first to check if already processed
+      const existingOrder = await getOrderById(order_id)
+      if (!existingOrder) {
+        logger.warn({ orderId: order_id }, 'Order not found')
+        return { success: true }
+      }
+
+      // SECURITY: Check if order already processed (prevent duplicate delivery)
+      if (existingOrder.status === 'paid' || existingOrder.status === 'delivered') {
+        logger.info({ orderId: order_id, status: existingOrder.status }, 'Order already processed, skipping')
+        return { success: true }
+      }
+
+      // SECURITY: Verify payment status via CactusPay API (don't trust webhook data)
       const statusResult = await cactusPay.getPaymentStatus(order_id)
 
-      if (statusResult.response?.status === 'ACCEPT') {
-        logger.info({
+      if (statusResult.response?.status !== 'ACCEPT') {
+        logger.warn({ orderId: order_id, apiStatus: statusResult.response?.status }, 'Payment not confirmed by API')
+        return { success: true }
+      }
+
+      // SECURITY: Verify amount matches
+      const paidAmount = parseFloat(statusResult.response.amount)
+      if (Math.abs(paidAmount - existingOrder.amount) > 1) { // Allow 1 RUB tolerance
+        logger.error({
           orderId: order_id,
-          amount: statusResult.response.amount,
-          cactusPayId: id
-        }, 'CactusPay payment confirmed')
+          expectedAmount: existingOrder.amount,
+          paidAmount
+        }, 'SECURITY: Amount mismatch detected!')
+        return { success: false, error: 'Amount mismatch' }
+      }
 
-        // Update order status to paid
-        const updatedOrder = await updateOrder(order_id, {
-          status: 'paid',
-          paymentId: String(id),
-          paidAt: new Date().toISOString()
-        })
+      logger.info({
+        orderId: order_id,
+        amount: statusResult.response.amount,
+        cactusPayId: id
+      }, 'CactusPay payment confirmed')
 
-        if (updatedOrder) {
-          logger.info({ orderId: updatedOrder.id }, 'Order marked as paid')
+      // Update order status to paid
+      const updatedOrder = await updateOrder(order_id, {
+        status: 'paid',
+        paymentId: String(id),
+        paidAt: new Date().toISOString()
+      })
 
-          // Process auto-delivery
-          const deliveryResult = await processAutoDelivery(updatedOrder)
+      if (updatedOrder) {
+        logger.info({ orderId: updatedOrder.id }, 'Order marked as paid')
 
-          if (deliveryResult.success) {
-            logger.info({
-              orderId: updatedOrder.id,
-              delivered: true
-            }, 'Auto-delivery successful')
-          } else {
-            logger.info({
-              orderId: updatedOrder.id,
-              reason: deliveryResult.error
-            }, 'Auto-delivery not performed')
-
-            // Send admin notification for manual delivery
-            await sendAdminNewOrderNotification({
-              orderNumber: updatedOrder.id,
-              productName: updatedOrder.productName,
-              amount: updatedOrder.amount,
-              userName: updatedOrder.userName || 'Unknown',
-              paymentMethod: updatedOrder.paymentMethod
-            })
+        // Increment promo code usage after successful payment
+        if (updatedOrder.promoCode) {
+          try {
+            await incrementPromoUsage(updatedOrder.promoCode)
+            logger.info({ orderId: updatedOrder.id, promoCode: updatedOrder.promoCode }, 'Promo code usage incremented')
+          } catch (promoError) {
+            logger.warn({ orderId: updatedOrder.id, promoCode: updatedOrder.promoCode, error: promoError }, 'Failed to increment promo usage')
           }
+        }
+
+        // Process auto-delivery
+        const deliveryResult = await processAutoDelivery(updatedOrder)
+
+        if (deliveryResult.success) {
+          logger.info({
+            orderId: updatedOrder.id,
+            delivered: true
+          }, 'Auto-delivery successful')
         } else {
-          logger.warn({ orderId: order_id }, 'Order not found for update')
+          logger.info({
+            orderId: updatedOrder.id,
+            reason: deliveryResult.error
+          }, 'Auto-delivery not performed')
+
+          // Send admin notification for manual delivery
+          await sendAdminNewOrderNotification({
+            orderNumber: updatedOrder.id,
+            productName: updatedOrder.productName,
+            amount: updatedOrder.amount,
+            userName: updatedOrder.userName || 'Unknown',
+            paymentMethod: updatedOrder.paymentMethod
+          })
         }
       }
 

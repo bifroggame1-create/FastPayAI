@@ -87,16 +87,13 @@ export async function authenticate(): Promise<boolean> {
 
   console.log('🔐 Auth: initData length =', initData?.length || 0)
 
-  // Bootstrap admin ID
-  const BOOTSTRAP_ADMIN_ID = '1301598469'
-
-  // If no initData or empty string, try to construct minimal one
+  // If no initData or empty string, try to construct minimal one from available Telegram data
   if (!initData || initData.length === 0) {
     const telegramUser = getTelegramUser()
 
     // Try to get user from Telegram WebApp initDataUnsafe directly
     let userId: string | null = null
-    let firstName = 'Admin'
+    let firstName = 'User'
     let username: string | undefined
 
     if (telegramUser) {
@@ -120,19 +117,9 @@ export async function authenticate(): Promise<boolean> {
       initData = `user=${encodeURIComponent(userJson)}&auth_date=${Math.floor(Date.now() / 1000)}`
       console.log('📱 Using constructed initData for auth, userId:', userId)
     } else {
-      // Last resort: try with bootstrap admin ID if we're in admin panel
-      if (typeof window !== 'undefined' && window.location.pathname.includes('/admin')) {
-        console.log('📱 Admin panel detected, trying bootstrap admin auth')
-        const userJson = JSON.stringify({
-          id: parseInt(BOOTSTRAP_ADMIN_ID),
-          first_name: 'Admin',
-          username: 'admin'
-        })
-        initData = `user=${encodeURIComponent(userJson)}&auth_date=${Math.floor(Date.now() / 1000)}`
-      } else {
-        console.warn('No Telegram data available')
-        return false
-      }
+      // No Telegram data available - authentication not possible
+      console.warn('No Telegram data available - cannot authenticate')
+      return false
     }
   }
 
@@ -149,33 +136,8 @@ export async function authenticate(): Promise<boolean> {
       })
 
       console.log('🔐 Auth response status:', res.status)
-      let data = await res.json()
+      const data = await res.json()
       console.log('🔐 Auth response:', data.success ? 'success' : 'failed', data.error || '')
-
-      // If regular auth failed and we're on admin page, try bootstrap auth
-      if (!data.success && typeof window !== 'undefined' && window.location.pathname.includes('/admin')) {
-        console.log('🔐 Trying bootstrap auth for admin panel...')
-
-        // Get userId from various sources
-        let userId = getTelegramUser()?.id
-        if (!userId && window.Telegram?.WebApp?.initDataUnsafe?.user) {
-          userId = String(window.Telegram.WebApp.initDataUnsafe.user.id)
-        }
-        if (!userId) {
-          userId = BOOTSTRAP_ADMIN_ID
-        }
-
-        res = await fetch(`${API_URL}/auth/bootstrap`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ userId, name: 'Admin' })
-        })
-
-        data = await res.json()
-        console.log('🔐 Bootstrap auth response:', data.success ? 'success' : 'failed', data.error || '')
-      }
 
       if (data.success && data.token) {
         authToken = data.token

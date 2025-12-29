@@ -86,6 +86,7 @@ export interface Order {
   paymentMethod: 'cryptobot' | 'cactuspay-sbp' | 'cactuspay-card'
   paymentId?: string
   status: OrderStatus
+  promoCode?: string // promo code used for this order
   deliveryData?: string
   deliveryNote?: string
   createdAt: string

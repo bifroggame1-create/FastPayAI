@@ -116,47 +116,9 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Bootstrap admin authentication - simplified auth for admin IDs only
-  fastify.post('/auth/bootstrap', async (request, reply) => {
-    try {
-      const { userId, name, username } = request.body as { userId?: string; name?: string; username?: string }
-
-      if (!userId) {
-        reply.code(400)
-        return { success: false, error: 'userId is required' }
-      }
-
-      // Check if user is admin (bootstrap IDs or in database)
-      const isAdmin = await checkIsAdmin(userId, username)
-
-      if (!isAdmin) {
-        reply.code(403)
-        return { success: false, error: 'Not an admin' }
-      }
-
-      console.log('🔐 Bootstrap auth for admin:', userId)
-
-      const token = generateToken({
-        id: parseInt(userId),
-        first_name: name || 'Admin',
-        username: username || 'admin'
-      })
-
-      return {
-        success: true,
-        token,
-        user: {
-          id: userId,
-          name: name || 'Admin',
-          username: username || 'admin',
-          isAdmin: true
-        }
-      }
-    } catch (error: any) {
-      reply.code(500)
-      return { success: false, error: error.message }
-    }
-  })
+  // REMOVED: Bootstrap admin authentication endpoint
+  // This was a security vulnerability - allowed anyone to get admin tokens by knowing admin IDs
+  // All authentication must now go through /auth/telegram with proper Telegram validation
 
   // Verify token
   fastify.get('/auth/verify', { preHandler: authMiddleware }, async (request) => {

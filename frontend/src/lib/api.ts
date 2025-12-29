@@ -6,12 +6,6 @@ import { getTelegramUser } from './telegram'
 // Use backend URL from environment variable, fallback to production Render URL
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
 
-// Bootstrap admin ID for fallback
-const BOOTSTRAP_ADMIN_ID = '1301598469'
-
-// Log the API URL for debugging
-console.log('[FastPay] API URL:', API_URL)
-
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -19,38 +13,6 @@ const api = axios.create({
   },
   withCredentials: false,
 })
-
-// Get admin ID from various sources - ALWAYS returns bootstrap ID as fallback
-function getAdminId(): string {
-  // Try Telegram user first
-  try {
-    const telegramUser = getTelegramUser()
-    if (telegramUser?.id) {
-      return telegramUser.id
-    }
-  } catch (e) { /* ignore */ }
-
-  // Try window.Telegram directly
-  try {
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-      return String(window.Telegram.WebApp.initDataUnsafe.user.id)
-    }
-  } catch (e) { /* ignore */ }
-
-  // Try stored user in localStorage
-  try {
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('fastpay_user')
-      if (storedUser) {
-        const user = JSON.parse(storedUser)
-        if (user.id) return user.id
-      }
-    }
-  } catch (e) { /* ignore */ }
-
-  // Always return bootstrap admin ID as fallback
-  return BOOTSTRAP_ADMIN_ID
-}
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
@@ -61,43 +23,28 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Separate admin API instance with authentication via query params AND headers
+// Admin API instance - uses JWT token for authentication (secure)
 const adminApiInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
-    'X-Admin-Id': BOOTSTRAP_ADMIN_ID
   },
   withCredentials: false,
 })
 
-// Ensure admin_id is sent via query params AND headers (belt and suspenders approach)
+// Admin API uses JWT token only (no hardcoded IDs)
 adminApiInstance.interceptors.request.use((config) => {
-  // Add admin_id to query params (works even if headers are stripped)
-  config.params = config.params || {}
-  config.params.admin_id = BOOTSTRAP_ADMIN_ID
-
-  // Also set header (in case query params don't work)
-  config.headers['X-Admin-Id'] = BOOTSTRAP_ADMIN_ID
-
-  // For POST/PUT, also add to body
-  if (config.method === 'post' || config.method === 'put') {
-    if (typeof config.data === 'object' && config.data !== null) {
-      config.data._adminId = BOOTSTRAP_ADMIN_ID
-    }
+  const token = getToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
-
-  console.log('[AdminAPI v3] Request:', config.method?.toUpperCase(), config.url, 'admin_id:', BOOTSTRAP_ADMIN_ID)
   return config
 })
 
 adminApiInstance.interceptors.response.use(
-  (response) => {
-    console.log('[AdminAPI v3] Response OK:', response.status)
-    return response
-  },
+  (response) => response,
   (error) => {
-    console.error('[AdminAPI v3] Error:', error.response?.status, error.response?.data)
+    console.error('[AdminAPI] Error:', error.response?.status, error.response?.data)
     throw error
   }
 )

@@ -44,15 +44,16 @@ export async function promoRoutes(fastify: FastifyInstance) {
         discount = Math.min(promo.discountValue, orderAmount)
       }
 
-      // Increment usage
-      await incrementPromoUsage(code)
+      // NOTE: Promo usage is now incremented AFTER payment in payments.ts
+      // This prevents abuse where users validate codes without completing payment
 
       return {
         valid: true,
         discount,
         discountType: promo.discountType,
         discountValue: promo.discountValue,
-        description: promo.description
+        description: promo.description,
+        code: promo.code // Return code for tracking in payment
       }
     } catch (error: any) {
       return {

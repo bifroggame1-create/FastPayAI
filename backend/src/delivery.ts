@@ -4,6 +4,7 @@ import { sendDeliveryNotification, sendAdminNewOrderNotification } from './email
 
 /**
  * Get an available delivery key for a product
+ * NOTE: This is for display/counting only. For actual delivery, use getAndReserveKey()
  */
 export async function getAvailableKey(
   productId: string,
@@ -24,6 +25,62 @@ export async function getAvailableKey(
   })
 
   return availableKey || null
+}
+
+/**
+ * ATOMIC: Get and reserve a delivery key in a single operation
+ * This prevents race conditions where two orders get the same key
+ */
+export async function getAndReserveKey(
+  productId: string,
+  orderId: string,
+  variantId?: string
+): Promise<DeliveryKey | null> {
+  const products = getProductsCollection()
+
+  // Build query for finding unused key
+  const matchQuery: any = {
+    _id: productId,
+    'deliveryKeys.isUsed': false
+  }
+
+  // If variantId specified, key must match or have no variantId
+  if (variantId) {
+    matchQuery.$or = [
+      { 'deliveryKeys.variantId': variantId },
+      { 'deliveryKeys.variantId': { $exists: false } },
+      { 'deliveryKeys.variantId': null }
+    ]
+  }
+
+  // Atomic find and update - reserves the key in one operation
+  const result = await products.findOneAndUpdate(
+    {
+      _id: productId,
+      deliveryKeys: {
+        $elemMatch: {
+          isUsed: false,
+          ...(variantId ? { $or: [{ variantId }, { variantId: { $exists: false } }, { variantId: null }] } : {})
+        }
+      }
+    },
+    {
+      $set: {
+        'deliveryKeys.$.isUsed': true,
+        'deliveryKeys.$.usedByOrderId': orderId,
+        'deliveryKeys.$.usedAt': new Date().toISOString()
+      }
+    },
+    { returnDocument: 'after' }
+  )
+
+  if (!result || !result.deliveryKeys) {
+    return null
+  }
+
+  // Find the key that was just reserved
+  const reservedKey = result.deliveryKeys.find(k => k.usedByOrderId === orderId)
+  return reservedKey || null
 }
 
 /**
@@ -137,8 +194,8 @@ export async function processAutoDelivery(
       return { success: false, error: 'Manual delivery required' }
     }
 
-    // Get available key
-    const key = await getAvailableKey(order.productId, order.variantId)
+    // ATOMIC: Get and reserve key in single operation (prevents race conditions)
+    const key = await getAndReserveKey(order.productId, order.id, order.variantId)
 
     if (!key) {
       logger.warn({ orderId: order.id, productId: order.productId }, 'No available keys for auto-delivery')
@@ -155,13 +212,7 @@ export async function processAutoDelivery(
       return { success: false, error: 'No keys available' }
     }
 
-    // Mark key as used
-    const marked = await markKeyAsUsed(order.productId, key.id, order.id)
-
-    if (!marked) {
-      logger.error({ orderId: order.id, keyId: key.id }, 'Failed to mark key as used')
-      return { success: false, error: 'Failed to reserve key' }
-    }
+    logger.info({ orderId: order.id, keyId: key.id }, 'Key reserved atomically')
 
     // Build delivery data
     let deliveryData = key.key
