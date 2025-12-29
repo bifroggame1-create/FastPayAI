@@ -52,19 +52,17 @@ function getAdminId(): string | null {
   return null
 }
 
-// Add auth token and admin ID to all requests
+// Add auth token and admin ID to ALL requests
 api.interceptors.request.use((config) => {
   const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
 
-  // Always add X-Admin-Id header for admin routes
-  if (config.url?.includes('/admin')) {
-    const adminId = getAdminId()
-    if (adminId) {
-      config.headers['X-Admin-Id'] = adminId
-    }
+  // Always add X-Admin-Id header (doesn't hurt non-admin routes)
+  const adminId = getAdminId()
+  if (adminId) {
+    config.headers['X-Admin-Id'] = adminId
   }
 
   return config
