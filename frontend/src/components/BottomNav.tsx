@@ -4,44 +4,52 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
-import { authenticate, isAdmin as checkAuthIsAdmin, getAuthUser, forceReauth } from '@/lib/auth'
-
-// Key to track if we've done initial auth refresh
-const AUTH_REFRESH_KEY = 'fastpay_auth_refreshed_v2'
+import { authenticate, isAdmin as checkIsAdmin, getAuthUser, forceReauth, getStoredAdminStatus } from '@/lib/auth'
 
 export default function BottomNav() {
   const pathname = usePathname()
   const { isAdmin: storeIsAdmin, setIsAdmin } = useAppStore()
-  const [isAdminChecked, setIsAdminChecked] = useState(false)
+  const [localIsAdmin, setLocalIsAdmin] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Check and update admin status on mount - backend is the source of truth
+  // Check and update admin status on mount
   useEffect(() => {
     const checkAdmin = async () => {
-      // Check if we need to force refresh (first time after update)
-      const needsRefresh = typeof window !== 'undefined' && !sessionStorage.getItem(AUTH_REFRESH_KEY)
+      try {
+        console.log('🔐 BottomNav: Starting admin check...')
 
-      if (needsRefresh) {
-        console.log('🔄 First load - forcing auth refresh')
-        forceReauth()
-        sessionStorage.setItem(AUTH_REFRESH_KEY, 'true')
+        // Always force fresh auth on first mount
+        await authenticate(true)
+
+        // Check admin status from multiple sources
+        const authUser = getAuthUser()
+        const storedAdmin = getStoredAdminStatus()
+        const checkAdmin = checkIsAdmin()
+
+        const finalIsAdmin = checkAdmin || storedAdmin || authUser?.isAdmin || false
+
+        console.log('🔐 BottomNav admin check:', {
+          checkIsAdmin: checkAdmin,
+          storedAdmin,
+          authUserIsAdmin: authUser?.isAdmin,
+          finalIsAdmin,
+          authUser
+        })
+
+        setLocalIsAdmin(finalIsAdmin)
+        setIsAdmin(finalIsAdmin)
+      } catch (error) {
+        console.error('❌ BottomNav auth error:', error)
+      } finally {
+        setIsLoading(false)
       }
-
-      // Authenticate with backend to get fresh admin status
-      await authenticate()
-      const authUser = getAuthUser()
-      const isAdminFromAuth = checkAuthIsAdmin() || authUser?.isAdmin || false
-
-      console.log('🔐 BottomNav admin check:', { isAdminFromAuth, authUser })
-
-      setIsAdmin(isAdminFromAuth)
-      setIsAdminChecked(true)
     }
 
     checkAdmin()
   }, [setIsAdmin])
 
-  // Use admin status from auth (backend is the source of truth)
-  const isAdmin = storeIsAdmin
+  // Use local state as primary, fall back to store
+  const isAdmin = localIsAdmin || storeIsAdmin
 
   const navItems = [
     {

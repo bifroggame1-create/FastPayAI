@@ -3,6 +3,7 @@ import { getTelegramInitData, getTelegramUser } from './telegram'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
 const TOKEN_KEY = 'fastpay_token'
 const USER_KEY = 'fastpay_user'
+const ADMIN_KEY = 'fastpay_is_admin'
 
 export interface AuthUser {
   id: string
@@ -43,6 +44,21 @@ export function getAuthUser(): AuthUser | null {
   }
 
   return authUser
+}
+
+// Get admin status directly from storage (most reliable)
+export function getStoredAdminStatus(): boolean {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem(ADMIN_KEY) === 'true'
+  }
+  return false
+}
+
+// Set admin status
+function setStoredAdminStatus(isAdmin: boolean): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(ADMIN_KEY, isAdmin ? 'true' : 'false')
+  }
 }
 
 // Force clear all auth data (call when admin status seems wrong)
@@ -87,6 +103,7 @@ export async function authenticate(forceRefresh = false): Promise<boolean> {
           // Update localStorage with fresh admin status from server
           if (typeof window !== 'undefined') {
             localStorage.setItem(USER_KEY, JSON.stringify(authUser))
+            setStoredAdminStatus(data.user.isAdmin)
           }
           console.log('✅ Token verified, isAdmin:', authUser?.isAdmin)
           return true
@@ -145,7 +162,7 @@ export async function authenticate(forceRefresh = false): Promise<boolean> {
   authPromise = (async () => {
     try {
       console.log('🔐 Calling /auth/telegram with initData length:', initData.length)
-      let res = await fetch(`${API_URL}/auth/telegram`, {
+      const res = await fetch(`${API_URL}/auth/telegram`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -155,7 +172,7 @@ export async function authenticate(forceRefresh = false): Promise<boolean> {
 
       console.log('🔐 Auth response status:', res.status)
       const data = await res.json()
-      console.log('🔐 Auth response:', data.success ? 'success' : 'failed', data.error || '')
+      console.log('🔐 Auth response:', data.success ? 'success' : 'failed', 'isAdmin:', data.user?.isAdmin, data.error || '')
 
       if (data.success && data.token) {
         authToken = data.token
@@ -164,6 +181,7 @@ export async function authenticate(forceRefresh = false): Promise<boolean> {
         if (typeof window !== 'undefined') {
           localStorage.setItem(TOKEN_KEY, data.token)
           localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+          setStoredAdminStatus(data.user?.isAdmin || false)
         }
 
         console.log('✅ Authenticated:', authUser?.name, 'isAdmin:', authUser?.isAdmin)
@@ -191,12 +209,21 @@ export function clearAuth(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
+    localStorage.removeItem(ADMIN_KEY)
   }
 }
 
-// Check if user is admin
+// Check if user is admin - checks multiple sources for reliability
 export function isAdmin(): boolean {
-  return authUser?.isAdmin || false
+  // First check in-memory user
+  if (authUser?.isAdmin) return true
+
+  // Then check stored admin status
+  if (getStoredAdminStatus()) return true
+
+  // Finally check stored user
+  const storedUser = getAuthUser()
+  return storedUser?.isAdmin || false
 }
 
 // Get authorization header

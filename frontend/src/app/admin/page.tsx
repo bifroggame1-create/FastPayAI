@@ -6,10 +6,7 @@ import Header from '@/components/Header'
 import { useAppStore } from '@/lib/store'
 import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi } from '@/lib/api'
-import { authenticate, isAdmin as checkIsAdmin, forceReauth, getAuthUser } from '@/lib/auth'
-
-// Key to track if we've done initial auth refresh
-const AUTH_REFRESH_KEY = 'fastpay_auth_refreshed_v2'
+import { authenticate, isAdmin as checkIsAdmin, getAuthUser, getStoredAdminStatus } from '@/lib/auth'
 
 type Tab = 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'orders' | 'admins'
 
@@ -124,23 +121,22 @@ export default function AdminPage() {
     const checkAccessAndLoad = async () => {
       console.log('🔧 Admin: Starting auth check...')
 
-      // Check if we need to force refresh (first time after update)
-      const needsRefresh = typeof window !== 'undefined' && !sessionStorage.getItem(AUTH_REFRESH_KEY)
-
-      if (needsRefresh) {
-        console.log('🔄 Admin: First load - forcing auth refresh')
-        forceReauth()
-        sessionStorage.setItem(AUTH_REFRESH_KEY, 'true')
-      }
-
-      // First authenticate with backend to get JWT token and admin status
-      const authResult = await authenticate()
+      // Always force fresh auth on admin page
+      const authResult = await authenticate(true)
       console.log('🔧 Admin: Auth result:', authResult)
 
-      // Check admin access from backend auth only (no hardcoded IDs)
+      // Check admin access from multiple sources
       const authUser = getAuthUser()
-      const hasAccess = checkIsAdmin() || authUser?.isAdmin || false
-      console.log('🔧 Admin: hasAccess:', hasAccess, 'authUser:', authUser)
+      const storedAdmin = getStoredAdminStatus()
+      const checkAdmin = checkIsAdmin()
+
+      const hasAccess = checkAdmin || storedAdmin || authUser?.isAdmin || false
+      console.log('🔧 Admin: hasAccess:', hasAccess, {
+        checkIsAdmin: checkAdmin,
+        storedAdmin,
+        authUserIsAdmin: authUser?.isAdmin,
+        authUser
+      })
 
       setIsAdmin(hasAccess)
 
