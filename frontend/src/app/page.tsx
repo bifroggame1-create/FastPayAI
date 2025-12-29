@@ -6,32 +6,29 @@ import SearchBar from '@/components/SearchBar'
 import CategoryFilter from '@/components/CategoryFilter'
 import ProductCard from '@/components/ProductCard'
 import BottomNav from '@/components/BottomNav'
+import ThemeToggle from '@/components/ThemeToggle'
+import PopularServices from '@/components/PopularServices'
+import TrustBanner from '@/components/TrustBanner'
 import FirstTimeOnboarding from '@/components/FirstTimeOnboarding'
 import { ProductGridSkeleton } from '@/components/Skeleton'
 import { Product, SortType } from '@/types'
 import { productsApi } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
-
-/**
- * Homepage - Clean, minimal marketplace
- *
- * Design:
- * - Dark theme only (fintech aesthetic)
- * - Minimal header with protection indicator
- * - Clean product grid
- * - No visual noise
- */
+import { t } from '@/lib/i18n'
 
 const sortOptions: { value: SortType; label: { ru: string; en: string } }[] = [
   { value: 'popular', label: { ru: 'Популярные', en: 'Popular' } },
   { value: 'newest', label: { ru: 'Новые', en: 'Newest' } },
-  { value: 'price_asc', label: { ru: 'Цена', en: 'Price' } },
+  { value: 'price_asc', label: { ru: 'Дешевле', en: 'Price: Low' } },
+  { value: 'price_desc', label: { ru: 'Дороже', en: 'Price: High' } },
+  { value: 'rating', label: { ru: 'По рейтингу', en: 'Top Rated' } }
 ]
 
 export default function MarketPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<SortType>('popular')
+  const [showSortMenu, setShowSortMenu] = useState(false)
   const { selectedCategory, searchQuery, language } = useAppStore()
 
   useEffect(() => {
@@ -54,56 +51,69 @@ export default function MarketPage() {
     }
   }
 
+  const currentSortLabel = sortOptions.find(o => o.value === sortBy)?.label[language] || sortOptions[0].label[language]
+
   return (
-    <div className="min-h-screen bg-[#0D0D0F] pb-20">
-      {/* Minimal header */}
-      <div className="sticky top-0 z-20 bg-[#0D0D0F]/95 backdrop-blur-sm border-b border-[#2A2A30]">
-        <div className="flex items-center justify-between h-14 px-4">
-          <h1 className="text-lg font-semibold text-white">FastPay</h1>
-          <div className="flex items-center gap-2 text-xs text-[#A0A0A8]">
-            <svg className="w-4 h-4 text-[#00D4AA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            <span>{language === 'ru' ? 'Защита покупателя' : 'Buyer protection'}</span>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+      <Header
+        rightAction={<ThemeToggle />}
+      />
 
-      {/* Search */}
-      <div className="px-4 py-4">
-        <SearchBar />
-      </div>
+      {/* Trust Banner - first impression */}
+      <TrustBanner />
 
-      {/* Categories */}
+      <SearchBar />
       <CategoryFilter />
+      <PopularServices />
 
-      {/* Products section */}
-      <div className="px-4 pt-2 pb-4">
-        {/* Section header with sort pills */}
+      <div id="products-section" className="px-4 py-4">
+        {/* Section header with sorting */}
         <div className="flex items-center justify-between mb-4">
-          <span className="text-sm text-[#5C5C66]">
-            {products.length} {language === 'ru' ? 'товаров' : 'products'}
-          </span>
+          <h2 className="text-lg font-semibold text-light-text dark:text-dark-text">
+            {t('forYou', language)} <span className="text-light-text-secondary dark:text-dark-text-secondary text-base font-normal">{products.length}</span>
+          </h2>
 
-          {/* Sort pills */}
-          <div className="flex gap-1">
-            {sortOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setSortBy(option.value)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  sortBy === option.value
-                    ? 'bg-[#00D4AA] text-[#0D0D0F]'
-                    : 'bg-[#16161A] text-[#A0A0A8] border border-[#2A2A30]'
-                }`}
-              >
-                {option.label[language]}
-              </button>
-            ))}
+          {/* Sort dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg text-sm text-light-text dark:text-dark-text"
+            >
+              <svg className="w-4 h-4 text-light-text-secondary dark:text-dark-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+              </svg>
+              <span>{currentSortLabel}</span>
+              <svg className={`w-4 h-4 transition-transform ${showSortMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showSortMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowSortMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 z-20 w-40 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl shadow-lg overflow-hidden">
+                  {sortOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setSortBy(option.value)
+                        setShowSortMenu(false)
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
+                        sortBy === option.value
+                          ? 'bg-accent-cyan/10 text-accent-cyan font-medium'
+                          : 'text-light-text dark:text-dark-text hover:bg-light-bg dark:hover:bg-dark-bg'
+                      }`}
+                    >
+                      {option.label[language]}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Product grid */}
         {loading ? (
           <ProductGridSkeleton count={4} />
         ) : (
@@ -114,12 +124,9 @@ export default function MarketPage() {
           </div>
         )}
 
-        {/* Empty state */}
         {!loading && products.length === 0 && (
           <div className="text-center py-20">
-            <p className="text-[#5C5C66]">
-              {language === 'ru' ? 'Товары не найдены' : 'No products found'}
-            </p>
+            <p className="text-light-text-secondary dark:text-dark-text-secondary">{t('noProducts', language)}</p>
           </div>
         )}
       </div>
