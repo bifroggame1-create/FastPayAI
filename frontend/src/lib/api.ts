@@ -4,7 +4,7 @@ import { getToken } from './auth'
 import { getTelegramUser } from './telegram'
 
 // Use backend URL from environment variable, fallback to production Render URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
 
 const api = axios.create({
   baseURL: API_URL,

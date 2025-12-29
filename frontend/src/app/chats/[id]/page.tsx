@@ -10,7 +10,7 @@ import { ru } from 'date-fns/locale'
 import { getTelegramUser } from '@/lib/telegram'
 
 // API URL for file uploads
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
 
 interface ChatMessage {
   id: string

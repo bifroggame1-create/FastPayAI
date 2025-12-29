@@ -3,7 +3,7 @@
  * Works in Telegram Mini App and browser environments
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com'
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
 
 // Storage keys
 const STORAGE = {
@@ -254,11 +254,47 @@ export async function verifyToken(): Promise<boolean> {
 }
 
 /**
+ * Refresh admin status directly from backend
+ * Works even without full authentication
+ */
+async function refreshAdminStatus(userId: string, username?: string): Promise<boolean> {
+  try {
+    console.log('🔐 Refreshing admin status for:', userId, username)
+    const response = await fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, username })
+    })
+    const data = await response.json()
+    console.log('🔐 Refresh response:', data)
+
+    if (data.success && data.isAdmin) {
+      // Update stored admin status
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE.ADMIN, '1')
+      }
+      if (cachedUser) {
+        cachedUser.isAdmin = true
+      }
+      return true
+    }
+    return false
+  } catch (error) {
+    console.error('❌ Refresh admin status error:', error)
+    return false
+  }
+}
+
+/**
  * Initialize auth - call on app start
  * Tries to authenticate or verify existing token
  */
 export async function initAuth(): Promise<AuthUser | null> {
   console.log('🔐 Initializing auth...')
+
+  // Get Telegram user first (we need this for fallback)
+  const tgUser = getTelegramUser()
+  console.log('🔐 Telegram user:', tgUser)
 
   // First try to verify existing token
   const { token, user } = loadAuth()
@@ -276,7 +312,37 @@ export async function initAuth(): Promise<AuthUser | null> {
 
   // Authenticate fresh
   const success = await authenticate()
-  return success ? getUser() : null
+
+  if (success) {
+    return getUser()
+  }
+
+  // Fallback: if we have Telegram user but auth failed,
+  // still try to get admin status directly
+  if (tgUser) {
+    console.log('🔐 Auth failed but have TG user, checking admin status directly...')
+    const isAdminUser = await refreshAdminStatus(tgUser.id, tgUser.username)
+
+    // Create a basic user object
+    const basicUser: AuthUser = {
+      id: tgUser.id,
+      name: tgUser.firstName,
+      username: tgUser.username,
+      isAdmin: isAdminUser
+    }
+
+    // Save to cache (without token)
+    cachedUser = basicUser
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE.USER, JSON.stringify(basicUser))
+      localStorage.setItem(STORAGE.ADMIN, isAdminUser ? '1' : '0')
+    }
+
+    console.log('🔐 Created basic user:', basicUser)
+    return basicUser
+  }
+
+  return null
 }
 
 // Export for compatibility
