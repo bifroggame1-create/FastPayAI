@@ -6,6 +6,69 @@ import { getTelegramUser } from './telegram'
 // Use backend URL from environment variable, fallback to production Render URL
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
 
+// ============================================
+// MULTI-TENANT SUPPORT
+// ============================================
+
+// Default tenant ID from environment
+const DEFAULT_TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'fastpay'
+
+// Store tenant ID in memory (can be overridden by URL param or storage)
+let currentTenantId: string | null = null
+
+/**
+ * Get current tenant ID
+ * Priority: 1. In-memory value 2. URL param 3. localStorage 4. Environment default
+ */
+export function getTenantId(): string {
+  // Check in-memory first
+  if (currentTenantId) return currentTenantId
+
+  // Check URL parameter (for multi-tenant testing)
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search)
+    const urlTenant = urlParams.get('tenant')
+    if (urlTenant) {
+      currentTenantId = urlTenant
+      return urlTenant
+    }
+
+    // Check localStorage
+    const storedTenant = localStorage.getItem('tenantId')
+    if (storedTenant) {
+      currentTenantId = storedTenant
+      return storedTenant
+    }
+  }
+
+  // Return default
+  return DEFAULT_TENANT_ID
+}
+
+/**
+ * Set tenant ID (call this during app initialization)
+ */
+export function setTenantId(tenantId: string): void {
+  currentTenantId = tenantId
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('tenantId', tenantId)
+  }
+}
+
+/**
+ * Clear tenant ID (for logout/tenant switch)
+ */
+export function clearTenantId(): void {
+  currentTenantId = null
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('tenantId')
+  }
+}
+
+// ============================================
+// API INSTANCES
+// ============================================
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -14,12 +77,16 @@ const api = axios.create({
   withCredentials: false,
 })
 
-// Add auth token to requests
+// Add auth token and tenant ID to requests
 api.interceptors.request.use((config) => {
   const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  // Add tenant ID header
+  config.headers['X-Tenant-ID'] = getTenantId()
+
   return config
 })
 
@@ -32,12 +99,16 @@ const adminApiInstance = axios.create({
   withCredentials: false,
 })
 
-// Admin API uses JWT token only (no hardcoded IDs)
+// Admin API uses JWT token and tenant ID
 adminApiInstance.interceptors.request.use((config) => {
   const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  // Add tenant ID header
+  config.headers['X-Tenant-ID'] = getTenantId()
+
   return config
 })
 
@@ -48,6 +119,36 @@ adminApiInstance.interceptors.response.use(
     throw error
   }
 )
+
+// ============================================
+// TENANT API - for tenant info
+// ============================================
+
+export const tenantApi = {
+  // Get current tenant info (branding, settings, etc.)
+  getInfo: async () => {
+    const { data } = await api.get('/tenant/info')
+    return data
+  },
+
+  // Get tenant billing info
+  getBilling: async () => {
+    const { data } = await api.get('/billing')
+    return data
+  },
+
+  // Get billing plans
+  getPlans: async () => {
+    const { data } = await api.get('/billing/plans')
+    return data
+  },
+
+  // Check if action is allowed by billing
+  canPerform: async (action: 'add-product' | 'add-seller' | 'add-admin' | 'create-order') => {
+    const { data } = await api.get(`/billing/can/${action}`)
+    return data
+  },
+}
 
 export const productsApi = {
   getAll: async (params?: ProductFilters & { category?: string; condition?: string; search?: string }) => {
