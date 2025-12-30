@@ -66,8 +66,8 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
       onClick={handleClick}
       className="bg-light-card dark:bg-dark-card rounded-2xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity border border-light-border dark:border-dark-border"
     >
-      {/* Image Section */}
-      <div className="relative aspect-square">
+      {/* Image Section - optimized size */}
+      <div className="relative aspect-[4/3] max-h-36">
         <img
           src={product.images[0] || '/placeholder.jpg'}
           alt={product.name}
