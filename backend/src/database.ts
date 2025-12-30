@@ -528,6 +528,27 @@ export function getTagsCollection(): Collection<Tag> {
   return getDB().collection<Tag>('tags')
 }
 
+// Seller application for "become a seller" requests
+export interface SellerApplication {
+  _id?: string | ObjectId
+  id: string
+  shopName: string
+  category: string
+  description: string
+  telegram: string
+  userId?: string
+  userName?: string
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: string
+  reviewedAt?: string
+  reviewedBy?: string
+  reviewNote?: string
+}
+
+export function getSellerApplicationsCollection(): Collection<SellerApplication> {
+  return getDB().collection<SellerApplication>('sellerApplications')
+}
+
 // Close connection
 export async function closeDB(): Promise<void> {
   if (client) {

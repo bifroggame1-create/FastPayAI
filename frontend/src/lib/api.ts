@@ -612,4 +612,35 @@ export const marketplaceApi = {
   },
 }
 
+// Seller Applications API
+export const sellerApplicationsApi = {
+  // Submit application (public)
+  submit: async (params: {
+    shopName: string
+    category: string
+    description: string
+    telegram: string
+    userId?: string
+    userName?: string
+  }) => {
+    const { data } = await api.post('/seller-applications', params)
+    return data
+  },
+
+  // Get all applications (admin only)
+  getAll: async () => {
+    const { data } = await adminApiInstance.get('/admin/seller-applications')
+    return data
+  },
+
+  // Update application status (admin only)
+  updateStatus: async (id: string, updates: {
+    status: 'approved' | 'rejected'
+    reviewNote?: string
+  }) => {
+    const { data } = await adminApiInstance.put(`/admin/seller-applications/${id}`, updates)
+    return data
+  },
+}
+
 export default api

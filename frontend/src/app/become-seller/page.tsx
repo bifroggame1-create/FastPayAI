@@ -6,6 +6,7 @@ import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
 import { useAppStore } from '@/lib/store'
 import { getTelegramUser } from '@/lib/telegram'
+import { sellerApplicationsApi } from '@/lib/api'
 
 const content = {
   ru: {
@@ -174,18 +175,22 @@ export default function BecomeSellerPage() {
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    // In real implementation, send to backend
-    console.log('Seller application:', {
-      ...formData,
-      userId: telegramUser?.id,
-      userName: telegramUser?.name
-    })
-
-    setIsSubmitting(false)
-    setIsSuccess(true)
+    try {
+      await sellerApplicationsApi.submit({
+        shopName: formData.shopName,
+        category: formData.category,
+        description: formData.description,
+        telegram: formData.telegram,
+        userId: telegramUser?.id?.toString(),
+        userName: telegramUser?.name || telegramUser?.username
+      })
+      setIsSuccess(true)
+    } catch (error) {
+      console.error('Error submitting application:', error)
+      setErrors({ submit: language === 'ru' ? 'Ошибка отправки. Попробуйте снова.' : 'Submission failed. Please try again.' })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (isSuccess) {
@@ -347,6 +352,11 @@ export default function BecomeSellerPage() {
           </div>
           {errors.agreed && (
             <p className="text-red-500 text-xs">{errors.agreed}</p>
+          )}
+
+          {/* Submit Error */}
+          {errors.submit && (
+            <p className="text-red-500 text-sm text-center">{errors.submit}</p>
           )}
 
           {/* Submit */}

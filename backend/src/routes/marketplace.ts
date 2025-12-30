@@ -16,9 +16,11 @@ import {
   getEscrowCollection,
   getKeyReplacementsCollection,
   getSellersCollection,
+  getSellerApplicationsCollection,
   DisputeReason,
   DisputeResolution
 } from '../database'
+import { v4 as uuidv4 } from 'uuid'
 import { logAdminAction } from '../dataStore'
 
 export async function marketplaceRoutes(fastify: FastifyInstance) {
@@ -29,28 +31,130 @@ export async function marketplaceRoutes(fastify: FastifyInstance) {
 
   // Get seller public profile with reputation
   fastify.get('/sellers/:id/profile', async (request, reply) => {
-    const { id } = request.params as { id: string }
-    const seller = await getSellersCollection().findOne({ id })
+    try {
+      const { id } = request.params as { id: string }
+      const seller = await getSellersCollection().findOne({ id })
 
-    if (!seller) {
-      reply.code(404)
-      return { error: 'Seller not found' }
+      if (!seller) {
+        reply.code(404)
+        return { error: 'Seller not found' }
+      }
+
+      // Return public info only with safe defaults
+      return {
+        id: seller.id,
+        name: seller.name || 'Unknown',
+        avatar: seller.avatar || null,
+        rating: seller.rating || 5,
+        ratingCount: seller.ratingCount || 0,
+        badges: (seller.badges || []).filter(b => b !== 'risky'),
+        stats: {
+          totalOrders: seller.stats?.totalOrders || 0,
+          successfulOrders: seller.stats?.successfulOrders || 0
+        },
+        memberSince: seller.createdAt || new Date().toISOString(),
+        isVerified: seller.isVerified || false
+      }
+    } catch (error: any) {
+      console.error('Error fetching seller profile:', error)
+      reply.code(500)
+      return { error: 'Failed to load seller profile' }
     }
+  })
 
-    // Return public info only
-    return {
-      id: seller.id,
-      name: seller.name,
-      avatar: seller.avatar,
-      rating: seller.rating,
-      ratingCount: seller.ratingCount,
-      badges: seller.badges.filter(b => b !== 'risky'), // hide internal badge
-      stats: {
-        totalOrders: seller.stats.totalOrders,
-        successfulOrders: seller.stats.successfulOrders
-      },
-      memberSince: seller.createdAt,
-      isVerified: seller.isVerified
+  // ============================================
+  // SELLER APPLICATIONS
+  // ============================================
+
+  // Submit seller application (public)
+  fastify.post('/seller-applications', async (request, reply) => {
+    try {
+      const { shopName, category, description, telegram, userId, userName } = request.body as {
+        shopName: string
+        category: string
+        description: string
+        telegram: string
+        userId?: string
+        userName?: string
+      }
+
+      if (!shopName || !category || !description || !telegram) {
+        reply.code(400)
+        return { error: 'All fields are required' }
+      }
+
+      const application = {
+        id: uuidv4(),
+        shopName,
+        category,
+        description,
+        telegram,
+        userId,
+        userName,
+        status: 'pending' as const,
+        createdAt: new Date().toISOString()
+      }
+
+      await getSellerApplicationsCollection().insertOne(application)
+
+      console.log('📝 New seller application:', { shopName, telegram, category })
+
+      return { success: true, applicationId: application.id }
+    } catch (error: any) {
+      console.error('Error submitting seller application:', error)
+      reply.code(500)
+      return { error: 'Failed to submit application' }
+    }
+  })
+
+  // Get all seller applications (admin only)
+  fastify.get('/admin/seller-applications', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const applications = await getSellerApplicationsCollection()
+        .find({})
+        .sort({ createdAt: -1 })
+        .toArray()
+
+      return { applications }
+    } catch (error: any) {
+      console.error('Error fetching seller applications:', error)
+      reply.code(500)
+      return { error: 'Failed to fetch applications' }
+    }
+  })
+
+  // Update seller application status (admin only)
+  fastify.put('/admin/seller-applications/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const { status, reviewNote } = request.body as { status: 'approved' | 'rejected', reviewNote?: string }
+      const user = (request as any).user
+
+      const result = await getSellerApplicationsCollection().findOneAndUpdate(
+        { id },
+        {
+          $set: {
+            status,
+            reviewNote,
+            reviewedAt: new Date().toISOString(),
+            reviewedBy: user?.username || user?.userId || 'admin'
+          }
+        },
+        { returnDocument: 'after' }
+      )
+
+      if (!result) {
+        reply.code(404)
+        return { error: 'Application not found' }
+      }
+
+      console.log('📝 Seller application updated:', { id, status, reviewedBy: user?.username })
+
+      return { success: true, application: result }
+    } catch (error: any) {
+      console.error('Error updating seller application:', error)
+      reply.code(500)
+      return { error: 'Failed to update application' }
     }
   })
 

@@ -5,10 +5,24 @@ import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import { useAppStore } from '@/lib/store'
 import { Product, ProductVariant } from '@/types'
-import { productsApi, adminApi } from '@/lib/api'
+import { productsApi, adminApi, sellerApplicationsApi } from '@/lib/api'
 import { initAuth, isAdmin as checkIsAdmin, getUser } from '@/lib/auth'
 
-type Tab = 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'orders' | 'admins'
+type Tab = 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'orders' | 'admins' | 'applications'
+
+interface SellerApplication {
+  id: string
+  shopName: string
+  category: string
+  description: string
+  telegram: string
+  userId?: string
+  userName?: string
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: string
+  reviewedAt?: string
+  reviewNote?: string
+}
 
 interface Admin {
   id: string
@@ -117,6 +131,9 @@ export default function AdminPage() {
   const [deliveringOrder, setDeliveringOrder] = useState<Order | null>(null)
   const [ordersStats, setOrdersStats] = useState<any>(null)
 
+  // Seller Applications state
+  const [applications, setApplications] = useState<SellerApplication[]>([])
+
   useEffect(() => {
     const checkAccessAndLoad = async () => {
       const authUser = await initAuth()
@@ -135,7 +152,7 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData] = await Promise.all([
+      const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData, applicationsData] = await Promise.all([
         productsApi.getAll({}),
         adminApi.getPromoCodes().catch(() => []),
         adminApi.getOrders().catch(() => ({ orders: [], total: 0 })),
@@ -143,7 +160,8 @@ export default function AdminPage() {
         adminApi.getSellers().catch(() => []),
         adminApi.getAdmins().catch(() => []),
         adminApi.getFiles().catch(() => ({ files: [] })),
-        adminApi.getReviews().catch(() => ({ reviews: [] }))
+        adminApi.getReviews().catch(() => ({ reviews: [] })),
+        sellerApplicationsApi.getAll().catch(() => ({ applications: [] }))
       ])
       setProducts(productsData)
       setPromoCodes(promoData?.promoCodes || promoData || [])
@@ -153,6 +171,7 @@ export default function AdminPage() {
       setAdmins(adminsData?.admins || adminsData || [])
       setUploadedFiles(filesData?.files || [])
       setReviews(reviewsData?.reviews || [])
+      setApplications(applicationsData?.applications || [])
     } catch (error) {
       // Error loading data
     } finally {
@@ -520,6 +539,7 @@ export default function AdminPage() {
       <div className="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">
         {[
           { id: 'orders', label: 'Заказы', count: orders.length },
+          { id: 'applications', label: 'Заявки', count: applications.filter(a => a.status === 'pending').length, highlight: applications.some(a => a.status === 'pending') },
           { id: 'products', label: 'Товары', count: products.length },
           { id: 'sellers', label: 'Продавцы', count: sellers.length },
           { id: 'admins', label: 'Админы', count: admins.length },
@@ -533,12 +553,14 @@ export default function AdminPage() {
             className={`px-4 py-2 rounded-full whitespace-nowrap transition-all flex items-center gap-2 ${
               activeTab === tab.id
                 ? 'bg-accent-cyan text-white'
-                : 'bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text'
+                : (tab as any).highlight && activeTab !== tab.id
+                  ? 'bg-orange-500/20 text-orange-500 border border-orange-500/50'
+                  : 'bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text'
             }`}
           >
             {tab.label}
             <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              activeTab === tab.id ? 'bg-white/20' : 'bg-light-bg dark:bg-dark-bg'
+              activeTab === tab.id ? 'bg-white/20' : (tab as any).highlight ? 'bg-orange-500 text-white' : 'bg-light-bg dark:bg-dark-bg'
             }`}>
               {tab.count}
             </span>
@@ -652,6 +674,138 @@ export default function AdminPage() {
                   )}
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Applications Tab */}
+        {activeTab === 'applications' && (
+          <div className="space-y-4">
+            {applications.length === 0 ? (
+              <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8">
+                Заявок пока нет
+              </p>
+            ) : (
+              <>
+                {/* Pending applications first */}
+                {applications.filter(a => a.status === 'pending').length > 0 && (
+                  <div className="mb-4">
+                    <h3 className="text-sm font-medium text-orange-500 mb-2">
+                      Ожидают рассмотрения ({applications.filter(a => a.status === 'pending').length})
+                    </h3>
+                    <div className="space-y-3">
+                      {applications.filter(a => a.status === 'pending').map(app => (
+                        <div
+                          key={app.id}
+                          className="bg-light-card dark:bg-dark-card rounded-xl p-4 border-2 border-orange-500/50"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="font-bold text-light-text dark:text-dark-text text-lg">
+                                {app.shopName}
+                              </h3>
+                              <p className="text-sm text-accent-cyan">{app.category}</p>
+                            </div>
+                            <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-500">
+                              Новая
+                            </span>
+                          </div>
+
+                          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-3">
+                            {app.description}
+                          </p>
+
+                          <div className="flex items-center gap-4 text-sm text-light-text-secondary dark:text-dark-text-secondary mb-3">
+                            <span>Telegram: <a href={`https://t.me/${app.telegram.replace('@', '')}`} target="_blank" className="text-accent-cyan">{app.telegram}</a></span>
+                            {app.userName && <span>От: {app.userName}</span>}
+                          </div>
+
+                          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-4">
+                            {new Date(app.createdAt).toLocaleString('ru-RU')}
+                          </p>
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={async () => {
+                                if (confirm('Одобрить заявку? Продавец сможет добавлять товары.')) {
+                                  try {
+                                    await sellerApplicationsApi.updateStatus(app.id, { status: 'approved' })
+                                    setApplications(applications.map(a =>
+                                      a.id === app.id ? { ...a, status: 'approved', reviewedAt: new Date().toISOString() } : a
+                                    ))
+                                    alert('Заявка одобрена!')
+                                  } catch (error) {
+                                    alert('Ошибка при обновлении заявки')
+                                  }
+                                }
+                              }}
+                              className="flex-1 py-2.5 bg-green-500 text-white rounded-lg font-medium"
+                            >
+                              Одобрить
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const reason = prompt('Причина отклонения (опционально):')
+                                try {
+                                  await sellerApplicationsApi.updateStatus(app.id, { status: 'rejected', reviewNote: reason || undefined })
+                                  setApplications(applications.map(a =>
+                                    a.id === app.id ? { ...a, status: 'rejected', reviewedAt: new Date().toISOString(), reviewNote: reason || undefined } : a
+                                  ))
+                                  alert('Заявка отклонена')
+                                } catch (error) {
+                                  alert('Ошибка при обновлении заявки')
+                                }
+                              }}
+                              className="flex-1 py-2.5 bg-red-500 text-white rounded-lg font-medium"
+                            >
+                              Отклонить
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Processed applications */}
+                {applications.filter(a => a.status !== 'pending').length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-2">
+                      Обработанные ({applications.filter(a => a.status !== 'pending').length})
+                    </h3>
+                    <div className="space-y-3">
+                      {applications.filter(a => a.status !== 'pending').map(app => (
+                        <div
+                          key={app.id}
+                          className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border opacity-70"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h3 className="font-semibold text-light-text dark:text-dark-text">
+                                {app.shopName}
+                              </h3>
+                              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{app.category}</p>
+                            </div>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              app.status === 'approved'
+                                ? 'bg-green-500/20 text-green-500'
+                                : 'bg-red-500/20 text-red-500'
+                            }`}>
+                              {app.status === 'approved' ? 'Одобрена' : 'Отклонена'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                            Telegram: {app.telegram} | {new Date(app.createdAt).toLocaleDateString('ru-RU')}
+                          </p>
+                          {app.reviewNote && (
+                            <p className="text-xs text-red-400 mt-1">Причина: {app.reviewNote}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
