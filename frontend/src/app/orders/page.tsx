@@ -235,13 +235,28 @@ export default function OrdersPage() {
                         </div>
                       )}
 
-                      {/* Support Button */}
-                      <button
-                        onClick={() => router.push('/support')}
-                        className="w-full mt-3 py-2 text-accent-cyan text-sm font-medium border border-accent-cyan/30 rounded-lg hover:bg-accent-cyan/10 transition-colors"
-                      >
-                        Связаться с поддержкой
-                      </button>
+                      {/* Action Buttons - Task 6: Repeat Purchase */}
+                      <div className="flex gap-2 mt-3">
+                        {/* Buy Again - PRIMARY for delivered orders */}
+                        {order.status === 'delivered' && order.products.length === 1 && (
+                          <button
+                            onClick={() => router.push(`/checkout?productId=${order.products[0].productId}`)}
+                            className="flex-1 py-2.5 bg-accent-cyan text-white text-sm font-bold rounded-lg hover:bg-accent-cyan/90 transition-colors"
+                          >
+                            Купить снова
+                          </button>
+                        )}
+
+                        {/* Support Button - secondary */}
+                        <button
+                          onClick={() => router.push('/support')}
+                          className={`py-2 text-accent-cyan text-sm font-medium border border-accent-cyan/30 rounded-lg hover:bg-accent-cyan/10 transition-colors ${
+                            order.status === 'delivered' && order.products.length === 1 ? 'flex-1' : 'w-full'
+                          }`}
+                        >
+                          Поддержка
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

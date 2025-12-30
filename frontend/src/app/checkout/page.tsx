@@ -177,19 +177,13 @@ function CheckoutContent() {
         }
       } catch (error: any) {
         console.error('Checkout error:', error)
-        let errorMessage = 'Ошибка при создании платежа'
+        // Task 7: Improved payment error copy
+        const errorTitle = language === 'ru' ? 'Оплата не прошла' : 'Payment failed'
+        const errorHelp = language === 'ru'
+          ? '\n\nЧаще всего помогает:\n— другая карта\n— крипта\n— повтор через 1 минуту'
+          : '\n\nUsually helps:\n— different card\n— crypto\n— retry in 1 minute'
 
-        if (error.response?.data?.error) {
-          errorMessage = error.response.data.error
-        } else if (error.message) {
-          errorMessage = error.message
-        }
-
-        if (error.response?.data?.details) {
-          errorMessage += '\n\nДетали: ' + JSON.stringify(error.response.data.details)
-        }
-
-        alert(errorMessage)
+        alert(errorTitle + errorHelp)
       } finally {
         setProcessing(false)
       }
@@ -223,15 +217,13 @@ function CheckoutContent() {
         }
       } catch (error: any) {
         console.error('CactusPay checkout error:', error)
-        let errorMessage = 'Ошибка при создании платежа'
+        // Task 7: Improved payment error copy
+        const errorTitle = language === 'ru' ? 'Оплата не прошла' : 'Payment failed'
+        const errorHelp = language === 'ru'
+          ? '\n\nЧаще всего помогает:\n— другая карта\n— СБП\n— повтор через 1 минуту'
+          : '\n\nUsually helps:\n— different card\n— SBP\n— retry in 1 minute'
 
-        if (error.response?.data?.error) {
-          errorMessage = error.response.data.error
-        } else if (error.message) {
-          errorMessage = error.message
-        }
-
-        alert(errorMessage)
+        alert(errorTitle + errorHelp)
       } finally {
         setProcessing(false)
       }
@@ -531,6 +523,44 @@ function CheckoutContent() {
 
         {/* Escrow Protection Info */}
         <EscrowExplainer variant="compact" />
+
+        {/* Purchase Flow Steps - Task 1 */}
+        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 border border-light-border dark:border-dark-border">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex flex-col items-center flex-1">
+              <div className="w-8 h-8 rounded-full bg-accent-cyan/20 flex items-center justify-center mb-1">
+                <span className="text-accent-cyan">1</span>
+              </div>
+              <span className="text-light-text-secondary dark:text-dark-text-secondary text-center">
+                {language === 'ru' ? 'Оплата' : 'Payment'}
+              </span>
+            </div>
+            <div className="w-8 h-px bg-light-border dark:bg-dark-border" />
+            <div className="flex flex-col items-center flex-1">
+              <div className="w-8 h-8 rounded-full bg-light-bg dark:bg-dark-bg flex items-center justify-center mb-1">
+                <span className="text-light-text-secondary dark:text-dark-text-secondary">2</span>
+              </div>
+              <span className="text-light-text-secondary dark:text-dark-text-secondary text-center">
+                {language === 'ru' ? 'Проверка' : 'Verify'}
+              </span>
+            </div>
+            <div className="w-8 h-px bg-light-border dark:bg-dark-border" />
+            <div className="flex flex-col items-center flex-1">
+              <div className="w-8 h-8 rounded-full bg-light-bg dark:bg-dark-bg flex items-center justify-center mb-1">
+                <span className="text-light-text-secondary dark:text-dark-text-secondary">3</span>
+              </div>
+              <span className="text-light-text-secondary dark:text-dark-text-secondary text-center">
+                {language === 'ru' ? 'В чат' : 'To chat'}
+              </span>
+            </div>
+          </div>
+          <p className="text-[10px] text-center text-light-text-secondary dark:text-dark-text-secondary mt-3 opacity-70">
+            {language === 'ru'
+              ? 'Товар придёт в этот чат (~30 сек)'
+              : 'Product delivered to this chat (~30 sec)'
+            }
+          </p>
+        </div>
       </div>
 
       {/* Sticky Checkout Footer */}
