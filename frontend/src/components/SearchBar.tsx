@@ -79,7 +79,7 @@ export default function SearchBar() {
           {/* Logo */}
           <div className="h-[46px] w-[100px] flex-shrink-0 flex items-center justify-center">
             <img
-              src="/logo.png"
+              src="/logofast.png"
               alt="FastPay"
               className="h-[38px] w-auto object-contain"
             />
