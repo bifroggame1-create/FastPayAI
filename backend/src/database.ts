@@ -2,13 +2,257 @@ import { MongoClient, Db, Collection, ObjectId } from 'mongodb'
 
 // MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017'
-const DB_NAME = process.env.MONGODB_DB_NAME || 'techshop'
+const DB_NAME = process.env.MONGODB_DB_NAME || 'fastpay'
 
 let client: MongoClient | null = null
 let db: Db | null = null
 
-// Collection interfaces
-export interface Product {
+// ============================================
+// MULTI-TENANT CORE
+// ============================================
+
+/**
+ * TenantScoped - Base interface for all tenant-scoped entities
+ * EVERY entity in the system MUST include tenantId
+ */
+export interface TenantScoped {
+  tenantId: string
+}
+
+// Tenant status
+export type TenantStatus = 'pending' | 'active' | 'suspended' | 'cancelled'
+
+// Tenant branding configuration
+export interface TenantBranding {
+  shopName: string
+  logo?: string           // URL or base64
+  favicon?: string
+  primaryColor?: string   // Hex color
+  accentColor?: string
+  bannerUrl?: string
+  footerText?: string
+  welcomeMessage?: string
+}
+
+// Tenant settings
+export interface TenantSettings {
+  currency: 'RUB' | 'USD' | 'EUR' | 'USDT'
+  language: 'ru' | 'en'
+  timezone: string
+  enableReferrals: boolean
+  referralBonusAmount: number
+  enableReviews: boolean
+  enableChat: boolean
+  autoDeliveryEnabled: boolean
+  requireEmailOnCheckout: boolean
+  notifyAdminsOnNewOrder: boolean
+  notifyOnPayment: boolean
+  notifyOnDelivery: boolean
+}
+
+// Tenant commission rules
+export interface TenantCommissionRules {
+  platformFeePercent: number     // Platform takes X% of each sale
+  minimumPayout: number          // Minimum balance for payout
+  payoutSchedule: 'instant' | 'daily' | 'weekly' | 'manual'
+  escrowDaysDefault: number      // Default escrow hold period
+}
+
+// Tenant payment configuration
+export interface TenantPaymentConfig {
+  cryptoBotToken?: string
+  cactusPayToken?: string
+  webhookSecret?: string
+  enabledMethods: ('cryptobot' | 'cactuspay-sbp' | 'cactuspay-card' | 'crypto')[]
+}
+
+// Main Tenant entity
+export interface Tenant {
+  _id?: string | ObjectId
+  id: string                     // Unique tenant ID (e.g., 'fastpay', 'myshop')
+  slug: string                   // URL-friendly slug
+  name: string                   // Display name
+  status: TenantStatus
+  branding: TenantBranding
+  settings: TenantSettings
+  commissionRules: TenantCommissionRules
+  paymentConfig: TenantPaymentConfig
+
+  // Telegram Bot
+  botToken?: string
+  botUsername?: string
+  webAppUrl?: string
+
+  // Contact info
+  ownerEmail?: string
+  supportEmail?: string
+  supportTelegram?: string
+
+  // Timestamps
+  createdAt: string
+  activatedAt?: string
+  suspendedAt?: string
+}
+
+// ============================================
+// TENANT BILLING
+// ============================================
+
+export type BillingPlan = 'free' | 'starter' | 'pro' | 'enterprise'
+export type BillingStatus = 'active' | 'past_due' | 'suspended' | 'cancelled' | 'trial'
+
+export interface PlanLimits {
+  productsLimit: number
+  ordersPerMonth: number
+  sellersLimit: number
+  adminsLimit: number
+  storageGB: number
+  customDomain: boolean
+  whiteLabel: boolean
+  apiAccess: boolean
+  prioritySupport: boolean
+}
+
+export interface UsageStats {
+  productsCount: number
+  ordersThisMonth: number
+  sellersCount: number
+  adminsCount: number
+  storageUsedMB: number
+  lastUpdated: string
+}
+
+export interface SubscriptionInfo {
+  pricePerMonth: number
+  currency: 'RUB' | 'USD'
+  nextBillingDate?: string
+  paymentMethod?: 'card' | 'crypto' | 'invoice'
+  lastPaymentDate?: string
+  lastPaymentAmount?: number
+  trialEndsAt?: string
+}
+
+export interface BillingEvent {
+  id: string
+  type: 'payment' | 'refund' | 'upgrade' | 'downgrade' | 'suspension' | 'reactivation'
+  amount?: number
+  currency?: string
+  description: string
+  timestamp: string
+  metadata?: Record<string, any>
+}
+
+export interface TenantBilling extends TenantScoped {
+  _id?: string | ObjectId
+  plan: BillingPlan
+  status: BillingStatus
+  limits: PlanLimits
+  usage: UsageStats
+  subscription: SubscriptionInfo
+  billingHistory: BillingEvent[]
+  createdAt: string
+  updatedAt: string
+}
+
+// Billing plans configuration
+export const BILLING_PLANS: Record<BillingPlan, { limits: PlanLimits; priceRUB: number; priceUSD: number }> = {
+  free: {
+    limits: {
+      productsLimit: 10,
+      ordersPerMonth: 50,
+      sellersLimit: 1,
+      adminsLimit: 1,
+      storageGB: 0.5,
+      customDomain: false,
+      whiteLabel: false,
+      apiAccess: false,
+      prioritySupport: false
+    },
+    priceRUB: 0,
+    priceUSD: 0
+  },
+  starter: {
+    limits: {
+      productsLimit: 100,
+      ordersPerMonth: 500,
+      sellersLimit: 5,
+      adminsLimit: 3,
+      storageGB: 5,
+      customDomain: false,
+      whiteLabel: false,
+      apiAccess: true,
+      prioritySupport: false
+    },
+    priceRUB: 2990,
+    priceUSD: 29
+  },
+  pro: {
+    limits: {
+      productsLimit: 1000,
+      ordersPerMonth: 5000,
+      sellersLimit: 25,
+      adminsLimit: 10,
+      storageGB: 25,
+      customDomain: true,
+      whiteLabel: true,
+      apiAccess: true,
+      prioritySupport: true
+    },
+    priceRUB: 9990,
+    priceUSD: 99
+  },
+  enterprise: {
+    limits: {
+      productsLimit: -1, // unlimited
+      ordersPerMonth: -1,
+      sellersLimit: -1,
+      adminsLimit: -1,
+      storageGB: 100,
+      customDomain: true,
+      whiteLabel: true,
+      apiAccess: true,
+      prioritySupport: true
+    },
+    priceRUB: 0, // custom pricing
+    priceUSD: 0
+  }
+}
+
+// ============================================
+// SUPER ADMIN (Platform-level)
+// ============================================
+
+export interface SuperAdmin {
+  _id?: string | ObjectId
+  id: string
+  username?: string
+  name?: string
+  permissions: string[]
+  createdAt: string
+}
+
+// ============================================
+// TENANT ADMIN (per-tenant)
+// ============================================
+
+export type TenantAdminRole = 'owner' | 'admin' | 'moderator' | 'seller'
+
+export interface TenantAdmin extends TenantScoped {
+  _id?: string | ObjectId
+  id: string              // Telegram user ID or custom ID
+  username?: string       // Telegram username (for lookup)
+  name?: string
+  role: TenantAdminRole
+  permissions?: string[]  // Optional custom permissions
+  addedAt: string
+  addedBy?: string
+}
+
+// ============================================
+// TENANT-SCOPED ENTITIES
+// ============================================
+
+export interface Product extends TenantScoped {
   _id?: string | ObjectId
   name: string
   price: number
@@ -27,20 +271,17 @@ export interface Product {
     avatar?: string
     rating?: number
   }
-  // Auto-delivery settings
-  deliveryType?: DeliveryType  // 'manual' | 'auto'
-  deliveryKeys?: DeliveryKey[] // Pool of keys/codes for auto-delivery
-  deliveryInstructions?: string // Instructions to show after delivery
-  // Tags/labels for product categorization
-  tags?: string[] // Array of tag IDs
+  deliveryType?: DeliveryType
+  deliveryKeys?: DeliveryKey[]
+  deliveryInstructions?: string
+  tags?: string[]
 }
 
-// Tag for product categorization and filtering
-export interface Tag {
+export interface Tag extends TenantScoped {
   _id?: string | ObjectId
   id: string
   name: string
-  color?: string  // Optional hex color for display (e.g., "#FF5733")
+  color?: string
   createdAt: string
 }
 
@@ -53,11 +294,10 @@ export interface ProductVariant {
   features?: string[]
 }
 
-// Digital delivery key/code
 export interface DeliveryKey {
   id: string
-  key: string           // The actual key/code/link to deliver
-  variantId?: string    // Optional: specific to a variant
+  key: string
+  variantId?: string
   isUsed: boolean
   usedByOrderId?: string
   usedAt?: string
@@ -66,7 +306,7 @@ export interface DeliveryKey {
 
 export type DeliveryType = 'manual' | 'auto'
 
-export interface PromoCode {
+export interface PromoCode extends TenantScoped {
   _id?: string | ObjectId
   code: string
   discountType: 'percentage' | 'fixed'
@@ -82,10 +322,10 @@ export interface PromoCode {
 
 export type OrderStatus = 'pending' | 'paid' | 'processing' | 'delivered' | 'cancelled' | 'refunded'
 
-export interface Order {
+export interface Order extends TenantScoped {
   _id?: string | ObjectId
   id: string
-  oderId: string // external order ID (from payment system)
+  oderId: string
   userId: string
   userName?: string
   userUsername?: string
@@ -97,60 +337,49 @@ export interface Order {
   paymentMethod: 'cryptobot' | 'cactuspay-sbp' | 'cactuspay-card'
   paymentId?: string
   status: OrderStatus
-  promoCode?: string // promo code used for this order
-  deliveryData?: string | { iv: string; content: string; tag: string } // plaintext or AES-256-GCM encrypted
+  promoCode?: string
+  deliveryData?: string | { iv: string; content: string; tag: string }
   deliveryNote?: string
   createdAt: string
   paidAt?: string
   deliveredAt?: string
 }
 
-export interface User {
+export interface User extends TenantScoped {
   _id?: string | ObjectId
   id: string
   name?: string
   username?: string
   avatar?: string
   referredBy?: string
-  referralCode?: string    // Unique referral code (generated from id)
-  referralCount?: number   // Number of users referred
-  bonusBalance?: number    // Bonus balance from referrals
+  referralCode?: string
+  referralCount?: number
+  bonusBalance?: number
   createdAt: string
   lastSeen?: string
 }
 
-// Referral tracking
-export interface Referral {
+export interface Referral extends TenantScoped {
   _id?: string | ObjectId
-  userId: string           // The referred user
-  referrerId: string       // Who referred them
-  bonusAwarded: number     // Bonus given for this referral
+  userId: string
+  referrerId: string
+  bonusAwarded: number
   createdAt: string
 }
 
-export function getReferralsCollection(): Collection<Referral> {
-  return getDB().collection<Referral>('referrals')
-}
-
-// Product reviews
-export interface Review {
+export interface Review extends TenantScoped {
   _id?: string | ObjectId
   id: string
   productId: string
   userId: string
   userName: string
   userAvatar?: string
-  orderId?: string          // Order that allowed this review
-  rating: number            // 1-5
+  orderId?: string
+  rating: number
   text: string
   createdAt: string
 }
 
-export function getReviewsCollection(): Collection<Review> {
-  return getDB().collection<Review>('reviews')
-}
-
-// Seller reputation stats
 export interface SellerStats {
   totalOrders: number
   successfulOrders: number
@@ -159,43 +388,39 @@ export interface SellerStats {
   disputesLost: number
   replacementsCount: number
   totalRevenue: number
-  averageDeliveryTime?: number // minutes
+  averageDeliveryTime?: number
   lastOrderAt?: string
 }
 
-// Seller balance for escrow system
 export interface SellerBalance {
-  available: number      // can withdraw
-  frozen: number         // pending release
+  available: number
+  frozen: number
   pendingWithdrawal: number
   totalWithdrawn: number
   totalEarned: number
 }
 
-// Seller badges
 export type SellerBadge = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky'
 
-export interface Seller {
+export interface Seller extends TenantScoped {
   _id?: string | ObjectId
   id: string
   name: string
   avatar?: string
-  rating: number               // 0-100 score
-  ratingCount: number          // number of ratings
+  rating: number
+  ratingCount: number
   createdAt: string
-  // Reputation
   stats: SellerStats
   balance: SellerBalance
   badges: SellerBadge[]
-  // Settings
-  escrowDays: number           // days to hold funds (default 3, new sellers 7)
+  escrowDays: number
   maxReplacementsPerOrder: number
   isVerified: boolean
   isBlocked: boolean
   blockReason?: string
 }
 
-export interface Chat {
+export interface Chat extends TenantScoped {
   _id?: string | ObjectId
   id: string
   participants: string[]
@@ -205,7 +430,7 @@ export interface Chat {
   lastMessageAt?: string
 }
 
-export interface ChatMessage {
+export interface ChatMessage extends TenantScoped {
   _id?: string | ObjectId
   id?: string
   chatId: string
@@ -220,7 +445,8 @@ export interface ChatMessage {
   createdAt: string
 }
 
-export interface Admin {
+// Legacy Admin interface (now TenantAdmin)
+export interface Admin extends TenantScoped {
   _id?: string | ObjectId
   id: string
   userId?: string
@@ -230,14 +456,13 @@ export interface Admin {
   addedBy?: string
 }
 
-// Uploaded files (images, etc.)
-export interface UploadedFile {
+export interface File extends TenantScoped {
   _id?: string | ObjectId
   id: string
   name: string
   type: string
   size: number
-  data: string  // base64 data
+  data: string
   uploadedAt: string
   uploadedBy?: string
 }
@@ -257,7 +482,7 @@ export interface DisputeMessage {
   createdAt: string
 }
 
-export interface Dispute {
+export interface Dispute extends TenantScoped {
   _id?: string | ObjectId
   id: string
   orderId: string
@@ -276,24 +501,17 @@ export interface Dispute {
   resolvedBy?: string
   resolvedAt?: string
   messages: DisputeMessage[]
-  // Replacement tracking
   replacementKeyId?: string
   replacementCount: number
-  // Timestamps
   createdAt: string
   updatedAt: string
-  sellerResponseDeadline: string  // 24h to respond
-  autoResolveAt?: string          // auto-resolve in buyer favor if no response
+  sellerResponseDeadline: string
+  autoResolveAt?: string
 }
 
-export function getDisputesCollection(): Collection<Dispute> {
-  return getDB().collection<Dispute>('disputes')
-}
-
-// Escrow transaction
 export type EscrowStatus = 'frozen' | 'released' | 'refunded' | 'disputed'
 
-export interface EscrowTransaction {
+export interface EscrowTransaction extends TenantScoped {
   _id?: string | ObjectId
   id: string
   orderId: string
@@ -302,19 +520,14 @@ export interface EscrowTransaction {
   amount: number
   status: EscrowStatus
   frozenAt: string
-  releaseAt: string           // scheduled release time
+  releaseAt: string
   releasedAt?: string
   refundedAt?: string
   disputeId?: string
   createdAt: string
 }
 
-export function getEscrowCollection(): Collection<EscrowTransaction> {
-  return getDB().collection<EscrowTransaction>('escrow')
-}
-
-// Key replacement tracking
-export interface KeyReplacement {
+export interface KeyReplacement extends TenantScoped {
   _id?: string | ObjectId
   id: string
   orderId: string
@@ -330,11 +543,6 @@ export interface KeyReplacement {
   resolvedAt?: string
 }
 
-export function getKeyReplacementsCollection(): Collection<KeyReplacement> {
-  return getDB().collection<KeyReplacement>('keyReplacements')
-}
-
-// Audit log for tracking admin actions
 export type AuditAction =
   | 'create' | 'update' | 'delete'
   | 'status_change' | 'deliver' | 'cancel' | 'refund'
@@ -342,13 +550,15 @@ export type AuditAction =
   | 'dispute_open' | 'dispute_resolve' | 'dispute_escalate'
   | 'escrow_release' | 'escrow_refund'
   | 'key_replace' | 'seller_block' | 'seller_verify'
+  | 'billing_upgrade' | 'billing_downgrade' | 'billing_payment'
 
 export type AuditEntityType =
   | 'product' | 'order' | 'user' | 'seller'
   | 'admin' | 'promo_code' | 'review' | 'file' | 'backup'
   | 'dispute' | 'escrow' | 'key_replacement'
+  | 'tenant' | 'billing'
 
-export interface AuditLog {
+export interface AuditLog extends TenantScoped {
   _id?: string | ObjectId
   id: string
   action: AuditAction
@@ -360,122 +570,158 @@ export interface AuditLog {
     before?: Record<string, any>
     after?: Record<string, any>
   }
-  metadata?: Record<string, any>  // Additional context like key count, etc.
+  metadata?: Record<string, any>
   ipAddress?: string
   userAgent?: string
   timestamp: string
 }
 
-// Connect to MongoDB
+export interface SellerApplication extends TenantScoped {
+  _id?: string | ObjectId
+  id: string
+  shopName: string
+  category: string
+  description: string
+  telegram: string
+  userId?: string
+  userName?: string
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: string
+  reviewedAt?: string
+  reviewedBy?: string
+  reviewNote?: string
+}
+
+// ============================================
+// DATABASE CONNECTION
+// ============================================
+
 export async function connectDB(): Promise<Db> {
   if (db) return db
 
   try {
-    console.log('🔌 Connecting to MongoDB...')
+    console.log('Connecting to MongoDB...')
     client = new MongoClient(MONGODB_URI)
     await client.connect()
     db = client.db(DB_NAME)
 
-    // Create indexes
     await createIndexes(db)
 
-    console.log('✅ Connected to MongoDB:', DB_NAME)
+    console.log('Connected to MongoDB:', DB_NAME)
     return db
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error)
+    console.error('MongoDB connection error:', error)
     throw error
   }
 }
 
-// Create indexes for better performance
+// Create indexes with tenant support
 async function createIndexes(database: Db): Promise<void> {
   try {
+    // ============================================
+    // PLATFORM-LEVEL COLLECTIONS (no tenantId)
+    // ============================================
+
+    // Tenants
+    await database.collection('tenants').createIndex({ id: 1 }, { unique: true })
+    await database.collection('tenants').createIndex({ slug: 1 }, { unique: true })
+    await database.collection('tenants').createIndex({ botToken: 1 }, { sparse: true, unique: true })
+    await database.collection('tenants').createIndex({ status: 1 })
+
+    // Super Admins
+    await database.collection('superAdmins').createIndex({ id: 1 }, { unique: true })
+    await database.collection('superAdmins').createIndex({ username: 1 }, { sparse: true })
+
+    // Tenant Billing
+    await database.collection('tenantBilling').createIndex({ tenantId: 1 }, { unique: true })
+    await database.collection('tenantBilling').createIndex({ plan: 1 })
+    await database.collection('tenantBilling').createIndex({ status: 1 })
+    await database.collection('tenantBilling').createIndex({ 'subscription.nextBillingDate': 1 })
+
+    // ============================================
+    // TENANT-SCOPED COLLECTIONS (compound indexes with tenantId)
+    // ============================================
+
     // Products
-    await database.collection('products').createIndex({ category: 1 })
-    await database.collection('products').createIndex({ 'seller.id': 1 })
-    await database.collection('products').createIndex({ name: 'text', description: 'text' })
+    await database.collection('products').createIndex({ tenantId: 1, _id: 1 })
+    await database.collection('products').createIndex({ tenantId: 1, category: 1 })
+    await database.collection('products').createIndex({ tenantId: 1, 'seller.id': 1 })
+    await database.collection('products').createIndex({ tenantId: 1, tags: 1 })
 
     // Orders
-    await database.collection('orders').createIndex({ oderId: 1 }, { unique: true })
-    await database.collection('orders').createIndex({ userId: 1 })
-    await database.collection('orders').createIndex({ status: 1 })
-    await database.collection('orders').createIndex({ createdAt: -1 })
+    await database.collection('orders').createIndex({ tenantId: 1, id: 1 }, { unique: true })
+    await database.collection('orders').createIndex({ tenantId: 1, oderId: 1 })
+    await database.collection('orders').createIndex({ tenantId: 1, userId: 1 })
+    await database.collection('orders').createIndex({ tenantId: 1, status: 1 })
+    await database.collection('orders').createIndex({ tenantId: 1, createdAt: -1 })
+    await database.collection('orders').createIndex({ paymentId: 1 }) // For webhook lookup
 
     // Users
-    await database.collection('users').createIndex({ id: 1 }, { unique: true })
+    await database.collection('users').createIndex({ tenantId: 1, id: 1 }, { unique: true })
 
     // Promo codes
-    await database.collection('promoCodes').createIndex({ code: 1 }, { unique: true })
+    await database.collection('promoCodes').createIndex({ tenantId: 1, code: 1 }, { unique: true })
 
     // Chats
-    await database.collection('chats').createIndex({ participants: 1 })
-    await database.collection('chatMessages').createIndex({ chatId: 1, createdAt: 1 })
+    await database.collection('chats').createIndex({ tenantId: 1, id: 1 }, { unique: true })
+    await database.collection('chats').createIndex({ tenantId: 1, participants: 1 })
+    await database.collection('chatMessages').createIndex({ tenantId: 1, chatId: 1, createdAt: 1 })
 
-    // Admins
-    await database.collection('admins').createIndex({ userId: 1 }, { sparse: true })
-    await database.collection('admins').createIndex({ username: 1 }, { sparse: true })
+    // Tenant Admins
+    await database.collection('tenantAdmins').createIndex({ tenantId: 1, id: 1 }, { unique: true })
+    await database.collection('tenantAdmins').createIndex({ tenantId: 1, username: 1 }, { sparse: true })
 
     // Sellers
-    await database.collection('sellers').createIndex({ id: 1 }, { unique: true })
+    await database.collection('sellers').createIndex({ tenantId: 1, id: 1 }, { unique: true })
+    await database.collection('sellers').createIndex({ tenantId: 1, rating: -1 })
 
     // Referrals
-    await database.collection('referrals').createIndex({ userId: 1 }, { unique: true })
-    await database.collection('referrals').createIndex({ referrerId: 1 })
+    await database.collection('referrals').createIndex({ tenantId: 1, userId: 1 }, { unique: true })
+    await database.collection('referrals').createIndex({ tenantId: 1, referrerId: 1 })
 
     // Reviews
-    await database.collection('reviews').createIndex({ productId: 1 })
-    await database.collection('reviews').createIndex({ userId: 1 })
-    await database.collection('reviews').createIndex({ orderId: 1 })
+    await database.collection('reviews').createIndex({ tenantId: 1, id: 1 }, { unique: true })
+    await database.collection('reviews').createIndex({ tenantId: 1, productId: 1 })
+    await database.collection('reviews').createIndex({ tenantId: 1, userId: 1 })
 
     // Audit logs
-    await database.collection('auditLogs').createIndex({ timestamp: -1 })
-    await database.collection('auditLogs').createIndex({ entityType: 1, entityId: 1 })
-    await database.collection('auditLogs').createIndex({ adminId: 1 })
-    await database.collection('auditLogs').createIndex({ action: 1 })
+    await database.collection('auditLogs').createIndex({ tenantId: 1, timestamp: -1 })
+    await database.collection('auditLogs').createIndex({ tenantId: 1, entityType: 1, entityId: 1 })
+    await database.collection('auditLogs').createIndex({ tenantId: 1, adminId: 1 })
 
     // Tags
-    await database.collection('tags').createIndex({ id: 1 }, { unique: true })
-    await database.collection('tags').createIndex({ name: 1 })
-
-    // Products tags index
-    await database.collection('products').createIndex({ tags: 1 })
+    await database.collection('tags').createIndex({ tenantId: 1, id: 1 }, { unique: true })
 
     // Disputes
-    await database.collection('disputes').createIndex({ id: 1 }, { unique: true })
-    await database.collection('disputes').createIndex({ orderId: 1 })
-    await database.collection('disputes').createIndex({ buyerId: 1 })
-    await database.collection('disputes').createIndex({ sellerId: 1 })
-    await database.collection('disputes').createIndex({ status: 1 })
-    await database.collection('disputes').createIndex({ autoResolveAt: 1 }, { sparse: true })
+    await database.collection('disputes').createIndex({ tenantId: 1, id: 1 }, { unique: true })
+    await database.collection('disputes').createIndex({ tenantId: 1, orderId: 1 })
+    await database.collection('disputes').createIndex({ tenantId: 1, buyerId: 1 })
+    await database.collection('disputes').createIndex({ tenantId: 1, sellerId: 1 })
+    await database.collection('disputes').createIndex({ tenantId: 1, status: 1 })
 
     // Escrow
-    await database.collection('escrow').createIndex({ id: 1 }, { unique: true })
-    await database.collection('escrow').createIndex({ orderId: 1 }, { unique: true })
-    await database.collection('escrow').createIndex({ sellerId: 1 })
-    await database.collection('escrow').createIndex({ status: 1 })
-    await database.collection('escrow').createIndex({ releaseAt: 1 })
+    await database.collection('escrow').createIndex({ tenantId: 1, id: 1 }, { unique: true })
+    await database.collection('escrow').createIndex({ tenantId: 1, orderId: 1 })
+    await database.collection('escrow').createIndex({ tenantId: 1, sellerId: 1 })
+    await database.collection('escrow').createIndex({ tenantId: 1, status: 1 })
 
     // Key replacements
-    await database.collection('keyReplacements').createIndex({ id: 1 }, { unique: true })
-    await database.collection('keyReplacements').createIndex({ orderId: 1 })
-    await database.collection('keyReplacements').createIndex({ sellerId: 1 })
-    await database.collection('keyReplacements').createIndex({ status: 1 })
+    await database.collection('keyReplacements').createIndex({ tenantId: 1, id: 1 }, { unique: true })
+    await database.collection('keyReplacements').createIndex({ tenantId: 1, orderId: 1 })
 
-    // Sellers - additional indexes for reputation
-    await database.collection('sellers').createIndex({ rating: -1 })
-    await database.collection('sellers').createIndex({ 'stats.totalOrders': -1 })
-    await database.collection('sellers').createIndex({ badges: 1 })
+    // Seller applications
+    await database.collection('sellerApplications').createIndex({ tenantId: 1, id: 1 }, { unique: true })
+    await database.collection('sellerApplications').createIndex({ tenantId: 1, status: 1 })
 
-    // Orders - seller index for stats
-    await database.collection('orders').createIndex({ 'seller.id': 1 })
+    // Files
+    await database.collection('files').createIndex({ tenantId: 1, id: 1 }, { unique: true })
 
-    console.log('✅ Database indexes created')
+    console.log('Database indexes created')
   } catch (error) {
-    console.error('⚠️ Error creating indexes:', error)
+    console.error('Error creating indexes:', error)
   }
 }
 
-// Get database instance
 export function getDB(): Db {
   if (!db) {
     throw new Error('Database not connected. Call connectDB() first.')
@@ -483,7 +729,24 @@ export function getDB(): Db {
   return db
 }
 
-// Get collections
+// ============================================
+// COLLECTION GETTERS
+// ============================================
+
+// Platform-level collections
+export function getTenantsCollection(): Collection<Tenant> {
+  return getDB().collection<Tenant>('tenants')
+}
+
+export function getSuperAdminsCollection(): Collection<SuperAdmin> {
+  return getDB().collection<SuperAdmin>('superAdmins')
+}
+
+export function getTenantBillingCollection(): Collection<TenantBilling> {
+  return getDB().collection<TenantBilling>('tenantBilling')
+}
+
+// Tenant-scoped collections
 export function getProductsCollection(): Collection<Product> {
   return getDB().collection<Product>('products')
 }
@@ -512,12 +775,16 @@ export function getChatMessagesCollection(): Collection<ChatMessage> {
   return getDB().collection<ChatMessage>('chatMessages')
 }
 
+export function getTenantAdminsCollection(): Collection<TenantAdmin> {
+  return getDB().collection<TenantAdmin>('tenantAdmins')
+}
+
 export function getAdminsCollection(): Collection<Admin> {
   return getDB().collection<Admin>('admins')
 }
 
-export function getFilesCollection(): Collection<UploadedFile> {
-  return getDB().collection<UploadedFile>('files')
+export function getFilesCollection(): Collection<File> {
+  return getDB().collection<File>('files')
 }
 
 export function getAuditLogsCollection(): Collection<AuditLog> {
@@ -528,21 +795,24 @@ export function getTagsCollection(): Collection<Tag> {
   return getDB().collection<Tag>('tags')
 }
 
-// Seller application for "become a seller" requests
-export interface SellerApplication {
-  _id?: string | ObjectId
-  id: string
-  shopName: string
-  category: string
-  description: string
-  telegram: string
-  userId?: string
-  userName?: string
-  status: 'pending' | 'approved' | 'rejected'
-  createdAt: string
-  reviewedAt?: string
-  reviewedBy?: string
-  reviewNote?: string
+export function getReferralsCollection(): Collection<Referral> {
+  return getDB().collection<Referral>('referrals')
+}
+
+export function getReviewsCollection(): Collection<Review> {
+  return getDB().collection<Review>('reviews')
+}
+
+export function getDisputesCollection(): Collection<Dispute> {
+  return getDB().collection<Dispute>('disputes')
+}
+
+export function getEscrowCollection(): Collection<EscrowTransaction> {
+  return getDB().collection<EscrowTransaction>('escrow')
+}
+
+export function getKeyReplacementsCollection(): Collection<KeyReplacement> {
+  return getDB().collection<KeyReplacement>('keyReplacements')
 }
 
 export function getSellerApplicationsCollection(): Collection<SellerApplication> {
@@ -555,11 +825,112 @@ export async function closeDB(): Promise<void> {
     await client.close()
     client = null
     db = null
-    console.log('🔌 MongoDB connection closed')
+    console.log('MongoDB connection closed')
   }
 }
 
-// Helper to convert ObjectId to string in documents
+// ============================================
+// TENANT LOOKUP FUNCTIONS
+// ============================================
+
+/**
+ * Get tenant by ID
+ */
+export async function getTenantById(tenantId: string): Promise<Tenant | null> {
+  return await getTenantsCollection().findOne({ id: tenantId })
+}
+
+/**
+ * Get tenant by slug
+ */
+export async function getTenantBySlug(slug: string): Promise<Tenant | null> {
+  return await getTenantsCollection().findOne({ slug })
+}
+
+/**
+ * Get tenant by bot token
+ */
+export async function getTenantByBotToken(botToken: string): Promise<Tenant | null> {
+  return await getTenantsCollection().findOne({ botToken, status: 'active' })
+}
+
+/**
+ * Get tenant billing info
+ */
+export async function getTenantBilling(tenantId: string): Promise<TenantBilling | null> {
+  return await getTenantBillingCollection().findOne({ tenantId })
+}
+
+/**
+ * Check if tenant is within limits
+ */
+export async function checkTenantLimits(
+  tenantId: string,
+  resource: 'products' | 'orders' | 'sellers' | 'admins' | 'storage'
+): Promise<{ allowed: boolean; current: number; limit: number }> {
+  const billing = await getTenantBilling(tenantId)
+
+  if (!billing) {
+    return { allowed: false, current: 0, limit: 0 }
+  }
+
+  let current: number
+  let limit: number
+
+  switch (resource) {
+    case 'products':
+      current = billing.usage.productsCount
+      limit = billing.limits.productsLimit
+      break
+    case 'orders':
+      current = billing.usage.ordersThisMonth
+      limit = billing.limits.ordersPerMonth
+      break
+    case 'sellers':
+      current = billing.usage.sellersCount
+      limit = billing.limits.sellersLimit
+      break
+    case 'admins':
+      current = billing.usage.adminsCount
+      limit = billing.limits.adminsLimit
+      break
+    case 'storage':
+      current = billing.usage.storageUsedMB / 1024 // Convert to GB
+      limit = billing.limits.storageGB
+      break
+  }
+
+  // -1 means unlimited
+  const allowed = limit === -1 || current < limit
+
+  return { allowed, current, limit }
+}
+
+/**
+ * Increment tenant usage counter
+ */
+export async function incrementTenantUsage(
+  tenantId: string,
+  resource: 'products' | 'orders' | 'sellers' | 'admins',
+  delta: number = 1
+): Promise<void> {
+  const field = {
+    products: 'usage.productsCount',
+    orders: 'usage.ordersThisMonth',
+    sellers: 'usage.sellersCount',
+    admins: 'usage.adminsCount'
+  }[resource]
+
+  await getTenantBillingCollection().updateOne(
+    { tenantId },
+    {
+      $inc: { [field]: delta },
+      $set: { 'usage.lastUpdated': new Date().toISOString() }
+    }
+  )
+}
+
+// Helper to convert ObjectId to string
 export function toClientDoc<T extends { _id?: string | ObjectId }>(doc: T): T {
   if (doc._id) {
     return { ...doc, _id: doc._id.toString() }
@@ -567,4 +938,4 @@ export function toClientDoc<T extends { _id?: string | ObjectId }>(doc: T): T {
   return doc
 }
 
-console.log('📦 Database module loaded')
+console.log('Database module loaded (multi-tenant with billing)')
