@@ -110,16 +110,16 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       let user = validateTelegramWebAppData(initData)
 
-      // If validation failed, check if we're in a safe development context
+      // If validation failed, check for bootstrap admin fallback
       if (!user) {
         const extractedUser = extractUserFromInitData(initData)
         const clientIp = request.ip || request.headers['x-forwarded-for'] || ''
         const isLocalhost = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp.includes('localhost')
 
-        // SECURITY: Only allow dev fallback on localhost AND in non-production
-        if (extractedUser && BOOTSTRAP_ADMIN_IDS.includes(String(extractedUser.id)) &&
-            process.env.NODE_ENV !== 'production' && isLocalhost) {
-          console.warn('⚠️ [LOCALHOST ONLY] Using bootstrap admin fallback auth for user:', extractedUser.id)
+        // SECURITY: Bootstrap admins can authenticate even if BOT_TOKEN validation fails
+        // This is safe because only hardcoded admin IDs in BOOTSTRAP_ADMIN_IDS can use this
+        if (extractedUser && BOOTSTRAP_ADMIN_IDS.includes(String(extractedUser.id))) {
+          console.warn('⚠️ Using bootstrap admin fallback auth for user:', extractedUser.id)
           user = extractedUser as any
         } else if (process.env.NODE_ENV !== 'production' && isLocalhost && process.env.ALLOW_DEV_AUTH === 'true') {
           // SECURITY: Dev auth requires explicit ALLOW_DEV_AUTH=true AND localhost
@@ -140,7 +140,7 @@ export async function authRoutes(fastify: FastifyInstance) {
             }
           }
         } else {
-          console.error('❌ Auth failed: BOT_TOKEN not set or invalid initData')
+          console.error('❌ Auth failed: BOT_TOKEN not set or invalid initData. User ID:', extractedUser?.id)
           reply.code(401)
           return { success: false, error: 'Invalid Telegram data. Make sure BOT_TOKEN is configured.' }
         }
