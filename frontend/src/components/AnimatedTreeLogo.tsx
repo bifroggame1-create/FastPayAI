@@ -1,106 +1,200 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+
+const colors = ["#FFD27D", "#FFB000", "#FF8A00", "#FFC94A", "#FF5722", "#FFEB3B"]
+
+interface Particle {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  life: number
+  size: number
+  color: string
+}
+
+function hexToRgb(hex: string): string {
+  const c = hex.replace("#", "")
+  const bigint = parseInt(c, 16)
+  return [
+    (bigint >> 16) & 255,
+    (bigint >> 8) & 255,
+    bigint & 255
+  ].join(",")
+}
+
 export default function AnimatedTreeLogo() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const particlesRef = useRef<Particle[]>([])
+  const animationRef = useRef<number>()
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const resize = () => {
+      canvas.width = 90
+      canvas.height = 100
+    }
+    resize()
+
+    const spawnFirework = () => {
+      const cx = 45  // центр канваса
+      const cy = 20  // позиция звезды
+      const count = 12 + Math.random() * 8
+
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count
+        const speed = 1.5 + Math.random() * 1
+
+        particlesRef.current.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          size: 1 + Math.random() * 1.5,
+          color: colors[Math.floor(Math.random() * colors.length)]
+        })
+      }
+    }
+
+    const update = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      for (let i = particlesRef.current.length - 1; i >= 0; i--) {
+        const p = particlesRef.current[i]
+        p.x += p.vx
+        p.y += p.vy
+        p.vy += 0.02  // гравитация
+        p.life -= 0.018
+
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(${hexToRgb(p.color)}, ${p.life})`
+        ctx.fill()
+
+        if (p.life <= 0) {
+          particlesRef.current.splice(i, 1)
+        }
+      }
+
+      animationRef.current = requestAnimationFrame(update)
+    }
+
+    const interval = setInterval(() => {
+      spawnFirework()
+    }, 1400 + Math.random() * 800)
+
+    update()
+
+    return () => {
+      clearInterval(interval)
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
+    }
+  }, [])
+
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="30"
-      height="46"
-      viewBox="0 0 30 46"
-      fill="none"
-      style={{ overflow: 'visible' }}
-      className="animate-tree-swing"
-    >
-      <defs>
-        {/* Gradient for tree */}
-        <linearGradient id="treeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#22c55e" />
-          <stop offset="100%" stopColor="#15803d" />
-        </linearGradient>
-        {/* Gradient for star */}
-        <linearGradient id="starGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#fde047" />
-          <stop offset="100%" stopColor="#f59e0b" />
-        </linearGradient>
-        {/* Glow filter for star */}
-        <filter id="starGlow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="1" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
-      {/* Animated Star */}
-      <g filter="url(#starGlow)">
-        <polygon
-          points="15,0 17,5 22,5 18,8 20,13 15,10 10,13 12,8 8,5 13,5"
-          fill="url(#starGradient)"
-        >
-          <animateTransform
-            attributeName="transform"
-            type="scale"
-            values="1;1.15;1"
-            dur="1.5s"
-            repeatCount="indefinite"
-            additive="sum"
-          />
-          <animate
-            attributeName="opacity"
-            values="1;0.8;1"
-            dur="1.5s"
-            repeatCount="indefinite"
-          />
-        </polygon>
-      </g>
-
-      {/* Tree tier 1 (top) */}
-      <polygon
-        points="15,10 22,20 8,20"
-        fill="url(#treeGradient)"
+    <div className="tonplay-logo">
+      {/* Canvas для салюта - позади ёлки */}
+      <canvas
+        ref={canvasRef}
+        className="absolute -left-[30px] -top-[12px] pointer-events-none"
+        style={{ zIndex: 0 }}
       />
 
-      {/* Tree tier 2 (middle) */}
-      <polygon
-        points="15,16 25,28 5,28"
-        fill="url(#treeGradient)"
-      />
+      {/* STAR */}
+      <svg className="tp-star" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M7.58789 1.48633C7.7865 1.19667 8.2135 1.19667 8.41211 1.48633L10.208 4.10645C10.403 4.39088 10.6907 4.59975 11.0215 4.69727L14.0674 5.59473C14.4043 5.69403 14.5362 6.10048 14.3223 6.37891L12.3857 8.89648C12.1753 9.16993 12.0657 9.50765 12.0752 9.85254L12.1621 13.0273C12.1718 13.3785 11.8261 13.6294 11.4951 13.5117L8.50293 12.4482C8.17785 12.3326 7.82215 12.3326 7.49707 12.4482L4.50488 13.5117C4.17389 13.6294 3.82825 13.3785 3.83789 13.0273L3.9248 9.85254C3.93429 9.50765 3.82465 9.16993 3.61426 8.89648L1.67773 6.37891C1.46376 6.10048 1.59574 5.69403 1.93262 5.59473L4.97852 4.69727C5.30933 4.59975 5.59695 4.39088 5.79199 4.10645L7.58789 1.48633Z"
+              fill="#FF2B00" stroke="#B40300"/>
+      </svg>
 
-      {/* Tree tier 3 (bottom) */}
-      <polygon
-        points="15,24 28,38 2,38"
-        fill="url(#treeGradient)"
-      />
+      {/* TOP */}
+      <svg className="tp-top" xmlns="http://www.w3.org/2000/svg" width="21" height="17" viewBox="0 0 21 17" fill="none">
+        <path d="M6.87821 12.8423L6.88905 10.5754L5.40274 11.8148C3.97629 13.0031 1.88708 12.7844 0.736074 11.3264C-0.414985 9.86824 -0.191575 7.72307 1.23488 6.53457L8.15823 0.765969L8.39367 0.586276C9.6005 -0.251407 11.2114 -0.191334 12.3514 0.765969L19.2195 6.53457C20.6346 7.72307 20.8375 9.86824 19.6725 11.3264C18.5075 12.7844 16.4162 13.0031 15.0011 11.8148L13.5267 10.5754L13.5158 12.8423C13.5068 14.7234 12.0136 16.2484 10.1807 16.2484C8.34778 16.2484 6.86921 14.7234 6.87821 12.8423Z"
+              fill="url(#gtop)"/>
+        <defs>
+          <linearGradient id="gtop" x1="10.2798" y1="-4.45741" x2="10.2798" y2="12.8423">
+            <stop stopColor="#EFFF00"/><stop offset="1" stopColor="#76ED08"/>
+          </linearGradient>
+        </defs>
+      </svg>
 
-      {/* Tree trunk */}
-      <rect x="12" y="38" width="6" height="8" fill="#92400e" rx="1" />
+      {/* MID */}
+      <svg className="tp-mid" xmlns="http://www.w3.org/2000/svg" width="25" height="20" viewBox="0 0 25 20" fill="none">
+        <path d="M8.03251 15.1526L8.03701 13.8824L7.14867 14.5975C5.22117 16.1466 2.43971 15.8041 0.936168 13.8329C-0.567303 11.8615 -0.223221 9.00741 1.70422 7.458L9.77466 0.970262L10.0831 0.74341C11.6636 -0.318372 13.7437 -0.242801 15.2444 0.970262L23.2689 7.458C25.1853 9.00741 25.5092 11.8615 23.9917 13.8329C22.4742 15.8041 19.6903 16.1466 17.7738 14.5975L16.8905 13.8824L16.886 15.1526C16.8772 17.66 14.8878 19.693 12.4432 19.693C9.99855 19.693 8.02362 17.66 8.03251 15.1526Z"
+              fill="url(#gmid)"/>
+        <defs>
+          <linearGradient id="gmid" x1="12.4969" y1="4.54002" x2="12.4969" y2="15.1526">
+            <stop stopColor="#74E20F"/><stop offset="1" stopColor="#43A203"/>
+          </linearGradient>
+        </defs>
+      </svg>
 
-      {/* Ornaments */}
-      <circle cx="12" cy="18" r="1.5" fill="#ef4444">
-        <animate attributeName="opacity" values="1;0.6;1" dur="2s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="18" cy="24" r="1.5" fill="#3b82f6">
-        <animate attributeName="opacity" values="1;0.6;1" dur="2.3s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="10" cy="30" r="1.5" fill="#fde047">
-        <animate attributeName="opacity" values="1;0.6;1" dur="1.8s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="20" cy="32" r="1.5" fill="#ef4444">
-        <animate attributeName="opacity" values="1;0.6;1" dur="2.1s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="14" cy="35" r="1.5" fill="#3b82f6">
-        <animate attributeName="opacity" values="1;0.6;1" dur="1.9s" repeatCount="indefinite" />
-      </circle>
+      {/* BOTTOM */}
+      <svg className="tp-bottom" xmlns="http://www.w3.org/2000/svg" width="30" height="21" viewBox="0 0 30 21" fill="none">
+        <path d="M10.3505 15.3747V13.2635L7.0745 15.3171C4.88374 16.6897 2.02234 15.9821 0.683119 13.7366C-0.656138 11.491 0.0342853 8.55815 2.22509 7.18541L12.5753 0.699853L12.8583 0.535239C14.296 -0.229826 16.0292 -0.174494 17.4247 0.699853L27.7749 7.18541C29.9657 8.55815 30.6561 11.491 29.3169 13.7366C27.9777 15.9821 25.1163 16.6897 22.9255 15.3171L19.6495 13.2635V15.3747C19.6495 18.0066 17.5677 20.1404 15 20.1404C12.4323 20.1404 10.3505 18.0066 10.3505 15.3747Z"
+              fill="url(#gbot)"/>
+        <defs>
+          <linearGradient id="gbot" x1="15" y1="4.7657" x2="15" y2="15.3747">
+            <stop stopColor="#19B500"/><stop offset="1" stopColor="#217201"/>
+          </linearGradient>
+        </defs>
+      </svg>
 
-      {/* Swing animation for entire tree */}
-      <animateTransform
-        attributeName="transform"
-        type="rotate"
-        values="-2 15 46;2 15 46;-2 15 46"
-        dur="4s"
-        repeatCount="indefinite"
-      />
-    </svg>
+      <style jsx>{`
+        .tonplay-logo {
+          position: relative;
+          width: 30px;
+          height: 46px;
+        }
+
+        .tonplay-logo :global(svg) {
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 1;
+        }
+
+        .tp-star {
+          top: 0;
+          animation: starRotate 2s linear infinite;
+          transform-origin: 50% 50%;
+        }
+
+        .tp-top {
+          top: 12px;
+          transform-origin: center top;
+          animation: swing 2.4s ease-in-out infinite;
+        }
+
+        .tp-mid {
+          top: 24px;
+          transform-origin: center top;
+          animation: swing 2.4s ease-in-out 0.2s infinite;
+        }
+
+        .tp-bottom {
+          top: 36px;
+        }
+
+        @keyframes swing {
+          0% { transform: translateX(-50%) rotate(0deg); }
+          50% { transform: translateX(-50%) rotate(3deg); }
+          100% { transform: translateX(-50%) rotate(0deg); }
+        }
+
+        @keyframes starRotate {
+          from { transform: translateX(-50%) rotate(0deg); }
+          to   { transform: translateX(-50%) rotate(360deg); }
+        }
+      `}</style>
+    </div>
   )
 }
