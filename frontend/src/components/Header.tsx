@@ -29,8 +29,8 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
       <SnowEffect density={30} className="opacity-30" />
 
       <div className="flex items-center justify-between relative z-10">
-        {/* Left side - Back button */}
-        <div className="flex items-center gap-2">
+        {/* Left side - Logo and Back button */}
+        <div className="flex items-center gap-3">
           {showBack ? (
             <button
               onClick={onBack}
@@ -41,12 +41,8 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
               </svg>
             </button>
           ) : (
-            <div className="w-20" />
+            <AnimatedTreeLogo />
           )}
-        </div>
-
-        {/* Center - Logo or Title */}
-        <div className="flex-1 flex items-center justify-center">
           {logo && (
             <img
               src={logo}
@@ -54,11 +50,12 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
               className="h-12 w-auto object-contain [mix-blend-mode:multiply] dark:[mix-blend-mode:screen]"
             />
           )}
-          {title && !logo && (
+        </div>
+
+        {/* Center - Title */}
+        <div className="flex-1 flex items-center justify-center">
+          {title && (
             <h1 className="text-xl font-semibold text-light-text dark:text-dark-text">{title}</h1>
-          )}
-          {!title && !logo && (
-            <AnimatedTreeLogo />
           )}
         </div>
 
