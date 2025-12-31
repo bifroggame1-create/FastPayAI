@@ -5,6 +5,7 @@ import { useAppStore } from '@/lib/store'
 import { useState } from 'react'
 import LanguageCurrencyModal from './LanguageCurrencyModal'
 import AnimatedTreeLogo from './AnimatedTreeLogo'
+import SnowEffect from './SnowEffect'
 import { t } from '@/lib/i18n'
 
 interface HeaderProps {
@@ -23,8 +24,11 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
   const cartCount = getCartItemCount()
 
   return (
-    <header className="sticky top-0 z-50 bg-light-card dark:bg-dark-bg border-b border-light-border dark:border-dark-border px-4 py-3">
-      <div className="flex items-center justify-between relative">
+    <header className="sticky top-0 z-50 bg-light-card dark:bg-dark-bg border-b border-light-border dark:border-dark-border px-4 py-3 relative overflow-hidden">
+      {/* Снег на фоне с пониженной яркостью */}
+      <SnowEffect density={30} className="opacity-30" />
+
+      <div className="flex items-center justify-between relative z-10">
         {/* Left side - Back button */}
         <div className="flex items-center gap-2">
           {showBack ? (
