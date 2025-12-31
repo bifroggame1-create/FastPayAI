@@ -76,15 +76,6 @@ export default function SearchBar() {
     <>
       <div className="px-4 py-3 sticky top-[57px] bg-light-bg dark:bg-dark-bg z-30">
         <div className="flex items-center gap-2">
-          {/* Logo */}
-          <div className="h-[46px] w-[140px] flex-shrink-0 flex items-center justify-center">
-            <img
-              src="/logofast.png"
-              alt="FastPay"
-              className="h-[46px] w-auto object-contain"
-            />
-          </div>
-
           {/* Catalog Button */}
           <button
             onClick={() => setIsCatalogOpen(!isCatalogOpen)}
