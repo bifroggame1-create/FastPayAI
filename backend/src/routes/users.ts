@@ -1,6 +1,14 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { validateBody, createUserSchema } from '../validation'
 import { upsertUser, getUserById } from '../dataStore'
+
+// Default tenant ID for fallback
+const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
+
+// Helper to get tenant ID from request with fallback
+function reqTenantId(request: FastifyRequest): string {
+  return request.tenantId || DEFAULT_TENANT_ID
+}
 
 // Generate referral code from user ID
 function generateReferralCode(userId: string): string {
@@ -24,6 +32,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       const existingUser = await getUserById(data.id)
 
       const user = await upsertUser({
+        tenantId: reqTenantId(request),
         id: data.id,
         name: data.name,
         username: data.username,

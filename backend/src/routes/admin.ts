@@ -1,5 +1,13 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { adminMiddleware } from '../auth'
+
+// Default tenant ID for fallback
+const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
+
+// Helper to get tenant ID from request with fallback
+function reqTenantId(request: FastifyRequest): string {
+  return reqTenantId(request) || DEFAULT_TENANT_ID
+}
 import {
   validateBody,
   validateQuery,
@@ -105,7 +113,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         createdAt: new Date().toISOString(),
         inStock: true
       }
-      const saved = await addProduct(newProduct as any)
+      const saved = await addProduct(newProduct as any, reqTenantId(request))
       fastify.products.unshift(saved)
 
       // Log the action
@@ -132,9 +140,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const updates = validateBody(updateProductSchema, request.body)
 
       // Get product before update for audit log
-      const before = await getProductById(id)
+      const before = await getProductById(id, reqTenantId(request))
 
-      const updated = await updateProduct(id, updates)
+      const updated = await updateProduct(id, updates, reqTenantId(request))
       if (!updated) {
         reply.code(404)
         return { success: false, error: 'Product not found' }
@@ -167,9 +175,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
     const { id } = request.params as any
 
     // Get product before deletion for audit log
-    const before = await getProductById(id)
+    const before = await getProductById(id, reqTenantId(request))
 
-    const deleted = await deleteProduct(id)
+    const deleted = await deleteProduct(id, reqTenantId(request))
     if (!deleted) {
       reply.code(404)
       return { success: false, error: 'Product not found' }
@@ -319,13 +327,13 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
 
       // Get product before update for audit log
-      const before = await getProductById(id)
+      const before = await getProductById(id, reqTenantId(request))
 
       const updates: any = {}
       if (deliveryType !== undefined) updates.deliveryType = deliveryType
       if (deliveryInstructions !== undefined) updates.deliveryInstructions = deliveryInstructions
 
-      const updated = await updateProduct(id, updates)
+      const updated = await updateProduct(id, updates, reqTenantId(request))
 
       if (!updated) {
         reply.code(404)
@@ -364,9 +372,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // ============================================
 
   // Get all sellers
-  fastify.get('/admin/sellers', { preHandler: adminMiddleware }, async () => {
+  fastify.get('/admin/sellers', { preHandler: adminMiddleware }, async (request) => {
     try {
-      const sellers = await loadSellers()
+      const sellers = await loadSellers(reqTenantId(request))
       return { success: true, sellers }
     } catch (error: any) {
       return { success: false, error: error.message }
@@ -381,7 +389,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         ...sellerData,
         id: sellerData.id || String(Date.now()),
         createdAt: new Date().toISOString()
-      } as any)
+      } as any, reqTenantId(request))
 
       // Log the action
       const adminInfo = getAdminInfo(request)
@@ -407,9 +415,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const updates = validateBody(updateSellerSchema, request.body)
 
       // Get seller before update for audit log
-      const before = await getSellerById(id)
+      const before = await getSellerById(id, reqTenantId(request))
 
-      const updated = await updateSeller(id, updates)
+      const updated = await updateSeller(id, updates, reqTenantId(request))
       if (!updated) {
         reply.code(404)
         return { success: false, error: 'Seller not found' }
@@ -418,7 +426,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       for (const p of fastify.products) {
         if (p.seller.id === id) {
           p.seller = { ...p.seller, ...updates }
-          await updateProduct(p._id, { seller: p.seller })
+          await updateProduct(p._id, { seller: p.seller }, reqTenantId(request))
         }
       }
 
@@ -445,9 +453,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const { id } = request.params as any
 
       // Get seller before deletion for audit log
-      const before = await getSellerById(id)
+      const before = await getSellerById(id, reqTenantId(request))
 
-      const deleted = await deleteSeller(id)
+      const deleted = await deleteSeller(id, reqTenantId(request))
       if (!deleted) {
         reply.code(404)
         return { success: false, error: 'Seller not found' }
@@ -475,9 +483,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // ============================================
 
   // Get all admins
-  fastify.get('/admin/admins', { preHandler: adminMiddleware }, async () => {
+  fastify.get('/admin/admins', { preHandler: adminMiddleware }, async (request) => {
     try {
-      const admins = await loadAdmins()
+      const admins = await loadAdmins(reqTenantId(request))
       return { success: true, admins }
     } catch (error: any) {
       return { success: false, error: error.message }
@@ -496,14 +504,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       // Check if already exists
       if (userId) {
-        const existing = await getAdminByUserId(userId)
+        const existing = await getAdminByUserId(userId, reqTenantId(request))
         if (existing) {
           reply.code(400)
           return { success: false, error: 'Admin with this userId already exists' }
         }
       }
       if (username) {
-        const existing = await getAdminByUsername(username)
+        const existing = await getAdminByUsername(username, reqTenantId(request))
         if (existing) {
           reply.code(400)
           return { success: false, error: 'Admin with this username already exists' }
@@ -511,6 +519,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
 
       const admin: Admin = {
+        tenantId: reqTenantId(request),
         id: String(Date.now()),
         userId: userId || undefined,
         username: username?.toLowerCase() || undefined,
@@ -518,7 +527,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         addedAt: new Date().toISOString()
       }
 
-      const saved = await addAdmin(admin)
+      const saved = await addAdmin(admin, reqTenantId(request))
 
       // Log the action
       const adminInfo = getAdminInfo(request)
@@ -543,9 +552,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const { id } = request.params as any
 
       // Get admin before deletion for audit log
-      const before = await getAdminById(id)
+      const before = await getAdminById(id, reqTenantId(request))
 
-      const deleted = await deleteAdmin(id)
+      const deleted = await deleteAdmin(id, reqTenantId(request))
       if (!deleted) {
         reply.code(404)
         return { success: false, error: 'Admin not found' }
@@ -586,7 +595,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         usedCount: 0,
         createdAt: new Date().toISOString()
       }
-      await addPromoCode(newPromo as any)
+      await addPromoCode(newPromo as any, reqTenantId(request))
       fastify.promoCodes.push(newPromo)
 
       // Log the action
@@ -613,9 +622,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const updates = validateBody(updatePromoSchema, request.body)
 
       // Get promo code before update for audit log
-      const before = await getPromoByCode(code)
+      const before = await getPromoByCode(code, reqTenantId(request))
 
-      const updated = await updatePromoCode(code, updates)
+      const updated = await updatePromoCode(code, updates, reqTenantId(request))
       if (!updated) {
         reply.code(404)
         return { success: false, error: 'Promo code not found' }
@@ -645,9 +654,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
     const { code } = request.params as any
 
     // Get promo code before deletion for audit log
-    const before = await getPromoByCode(code)
+    const before = await getPromoByCode(code, reqTenantId(request))
 
-    const deleted = await deletePromoCode(code)
+    const deleted = await deletePromoCode(code, reqTenantId(request))
     if (!deleted) {
       reply.code(404)
       return { success: false, error: 'Promo code not found' }
@@ -707,7 +716,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // Get single order
   fastify.get('/admin/orders/:id', { preHandler: adminMiddleware }, async (request, reply) => {
     const { id } = request.params as any
-    const order = await getOrderById(id)
+    const order = await getOrderById(id, reqTenantId(request))
 
     if (!order) {
       reply.code(404)
@@ -737,14 +746,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const { status } = validateBody(updateOrderStatusSchema, request.body)
 
       // Get order before update for audit log
-      const before = await getOrderById(id)
+      const before = await getOrderById(id, reqTenantId(request))
 
       const updates: Partial<Order> = { status }
       if (status === 'delivered') {
         updates.deliveredAt = new Date().toISOString()
       }
 
-      const updatedOrder = await updateOrder(id, updates)
+      const updatedOrder = await updateOrder(id, updates, reqTenantId(request))
       if (!updatedOrder) {
         reply.code(404)
         return { success: false, error: 'Order not found' }
@@ -777,7 +786,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const { deliveryData, deliveryNote } = validateBody(deliverOrderSchema, request.body)
 
       // Get order before update for audit log
-      const before = await getOrderById(id)
+      const before = await getOrderById(id, reqTenantId(request))
 
       // Encrypt delivery data before storage
       let encryptedDeliveryData: any = deliveryData
@@ -793,7 +802,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         deliveryData: encryptedDeliveryData,
         deliveryNote,
         deliveredAt: new Date().toISOString()
-      })
+      }, reqTenantId(request))
 
       if (!updatedOrder) {
         reply.code(404)
@@ -827,11 +836,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
     const { id } = request.params as any
 
     // Get order before update for audit log
-    const before = await getOrderById(id)
+    const before = await getOrderById(id, reqTenantId(request))
 
     const updatedOrder = await updateOrder(id, {
       status: 'cancelled'
-    })
+    }, reqTenantId(request))
 
     if (!updatedOrder) {
       reply.code(404)
@@ -859,11 +868,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
     const { id } = request.params as any
 
     // Get order before update for audit log
-    const before = await getOrderById(id)
+    const before = await getOrderById(id, reqTenantId(request))
 
     const updatedOrder = await updateOrder(id, {
       status: 'refunded'
-    })
+    }, reqTenantId(request))
 
     if (!updatedOrder) {
       reply.code(404)
@@ -978,6 +987,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       const { saveFile } = await import('../dataStore')
       const file = await saveFile({
+        tenantId: reqTenantId(request),
         id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name,
         type,

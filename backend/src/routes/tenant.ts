@@ -97,5 +97,3 @@ export async function tenantRoutes(fastify: FastifyInstance): Promise<void> {
 
   fastify.log.info('Tenant info routes registered')
 }
-
-export { tenantRoutes }

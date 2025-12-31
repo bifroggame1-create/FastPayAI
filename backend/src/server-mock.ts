@@ -9,7 +9,7 @@ import path from 'path'
 dotenv.config({ path: path.join(__dirname, '../.env') })
 
 // Import after env vars are loaded
-import { connectDB } from './database'
+import { connectDB, ensureDefaultTenant } from './database'
 import { loadProducts, saveProducts, loadPromoCodes, savePromoCodes } from './dataStore'
 import { registerRoutes } from './routes'
 import { defaultProducts, defaultPromoCodes } from './data/defaults'
@@ -86,6 +86,9 @@ async function start() {
   try {
     // Connect to MongoDB
     await connectDB()
+
+    // Ensure default tenant exists and migrate products without tenantId
+    await ensureDefaultTenant()
 
     // Connect to Redis (optional - gracefully fails if not configured)
     await redis.connect()

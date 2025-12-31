@@ -1,6 +1,14 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { getUsersCollection, getReferralsCollection, Referral } from '../database'
 import { logger } from '../logger'
+
+// Default tenant ID for fallback
+const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
+
+// Helper to get tenant ID from request with fallback
+function reqTenantId(request: FastifyRequest): string {
+  return request.tenantId || DEFAULT_TENANT_ID
+}
 
 // Referral bonus amount in rubles
 const REFERRAL_BONUS = parseInt(process.env.REFERRAL_BONUS || '100', 10)
@@ -43,6 +51,7 @@ export async function referralRoutes(fastify: FastifyInstance) {
 
       // Create referral record
       const referral: Referral = {
+        tenantId: reqTenantId(request),
         userId,
         referrerId,
         bonusAwarded: REFERRAL_BONUS,

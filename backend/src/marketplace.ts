@@ -230,8 +230,10 @@ export async function createEscrowTransaction(
   orderId: string,
   sellerId: string,
   buyerId: string,
-  amount: number
+  amount: number,
+  tenantId?: string
 ): Promise<EscrowTransaction> {
+  const DEFAULT_TENANT_ID = tenantId || process.env.DEFAULT_TENANT_ID || 'fastpay'
   const sellers = getSellersCollection()
   const escrow = getEscrowCollection()
 
@@ -243,6 +245,7 @@ export async function createEscrowTransaction(
   const releaseAt = new Date(now.getTime() + escrowDays * 24 * 60 * 60 * 1000)
 
   const transaction: EscrowTransaction = {
+    tenantId: DEFAULT_TENANT_ID,
     id: `escrow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     orderId,
     sellerId,
@@ -381,8 +384,10 @@ export async function openDispute(
   buyerId: string,
   buyerName: string,
   reason: DisputeReason,
-  description: string
+  description: string,
+  tenantId?: string
 ): Promise<Dispute | { error: string }> {
+  const DEFAULT_TENANT_ID = tenantId || process.env.DEFAULT_TENANT_ID || 'fastpay'
   const orders = getOrdersCollection()
   const disputes = getDisputesCollection()
   const products = getProductsCollection()
@@ -413,6 +418,7 @@ export async function openDispute(
   const autoResolveAt = new Date(now.getTime() + DISPUTE_AUTO_RESOLVE_HOURS * 60 * 60 * 1000)
 
   const dispute: Dispute = {
+    tenantId: DEFAULT_TENANT_ID,
     id: `dispute_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     orderId,
     productId: order.productId,
@@ -601,8 +607,10 @@ export async function processAutoResolveDisputes(): Promise<number> {
 export async function requestKeyReplacement(
   orderId: string,
   buyerId: string,
-  reason: string
+  reason: string,
+  tenantId?: string
 ): Promise<KeyReplacement | Dispute | { error: string }> {
+  const DEFAULT_TENANT_ID = tenantId || process.env.DEFAULT_TENANT_ID || 'fastpay'
   const orders = getOrdersCollection()
   const products = getProductsCollection()
   const replacements = getKeyReplacementsCollection()
@@ -661,6 +669,7 @@ export async function requestKeyReplacement(
 
   // Mark old key info (we don't have the original key ID stored separately)
   const replacement: KeyReplacement = {
+    tenantId: DEFAULT_TENANT_ID,
     id: `repl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     orderId,
     productId: order.productId,

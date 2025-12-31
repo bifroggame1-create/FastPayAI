@@ -722,6 +722,74 @@ async function createIndexes(database: Db): Promise<void> {
   }
 }
 
+/**
+ * Ensure default tenant exists (for backward compatibility)
+ * Creates 'fastpay' tenant if it doesn't exist
+ */
+export async function ensureDefaultTenant(): Promise<void> {
+  const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
+
+  const existingTenant = await getTenantsCollection().findOne({ id: DEFAULT_TENANT_ID })
+
+  if (!existingTenant) {
+    console.log(`Creating default tenant: ${DEFAULT_TENANT_ID}`)
+
+    const defaultTenant: Tenant = {
+      id: DEFAULT_TENANT_ID,
+      slug: DEFAULT_TENANT_ID,
+      name: 'FastPay Shop',
+      status: 'active',
+      branding: {
+        shopName: 'FastPay Shop',
+        primaryColor: '#3B82F6',
+        accentColor: '#10B981',
+        welcomeMessage: 'Welcome to FastPay!'
+      },
+      settings: {
+        currency: 'RUB',
+        language: 'ru',
+        timezone: 'Europe/Moscow',
+        enableReferrals: true,
+        referralBonusAmount: 100,
+        enableReviews: true,
+        enableChat: true,
+        autoDeliveryEnabled: true,
+        requireEmailOnCheckout: false,
+        notifyAdminsOnNewOrder: true,
+        notifyOnPayment: true,
+        notifyOnDelivery: true
+      },
+      commissionRules: {
+        platformFeePercent: 5,
+        minimumPayout: 1000,
+        payoutSchedule: 'manual',
+        escrowDaysDefault: 3
+      },
+      paymentConfig: {
+        enabledMethods: ['cryptobot', 'cactuspay-sbp', 'cactuspay-card']
+      },
+      createdAt: new Date().toISOString(),
+      activatedAt: new Date().toISOString()
+    }
+
+    await getTenantsCollection().insertOne(defaultTenant)
+    console.log(`✅ Default tenant '${DEFAULT_TENANT_ID}' created`)
+  } else {
+    console.log(`✅ Default tenant '${DEFAULT_TENANT_ID}' exists`)
+  }
+
+  // Also ensure existing products have tenantId
+  const productsWithoutTenant = await getProductsCollection().countDocuments({ tenantId: { $exists: false } })
+  if (productsWithoutTenant > 0) {
+    console.log(`Migrating ${productsWithoutTenant} products to tenant '${DEFAULT_TENANT_ID}'...`)
+    await getProductsCollection().updateMany(
+      { tenantId: { $exists: false } },
+      { $set: { tenantId: DEFAULT_TENANT_ID } }
+    )
+    console.log(`✅ Products migrated to tenant '${DEFAULT_TENANT_ID}'`)
+  }
+}
+
 export function getDB(): Db {
   if (!db) {
     throw new Error('Database not connected. Call connectDB() first.')

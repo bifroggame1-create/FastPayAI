@@ -162,7 +162,7 @@ export default async function platformRoutes(fastify: FastifyInstance): Promise<
           payoutSchedule: 'instant',
           escrowDaysDefault: 3
         },
-        paymentConfig: body.paymentConfig || {},
+        paymentConfig: body.paymentConfig || { enabledMethods: ['cryptobot'] },
         botToken: body.botToken,
         botUsername: body.botUsername,
         webAppUrl: body.webAppUrl,

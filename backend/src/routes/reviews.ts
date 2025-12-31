@@ -1,6 +1,14 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { getReviewsCollection, getOrdersCollection, getProductsCollection, Review } from '../database'
 import { logger } from '../logger'
+
+// Default tenant ID for fallback
+const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
+
+// Helper to get tenant ID from request with fallback
+function reqTenantId(request: FastifyRequest): string {
+  return request.tenantId || DEFAULT_TENANT_ID
+}
 
 export async function reviewRoutes(fastify: FastifyInstance) {
   // Get reviews for a product
@@ -158,6 +166,7 @@ export async function reviewRoutes(fastify: FastifyInstance) {
 
       // Create review
       const review: Review = {
+        tenantId: reqTenantId(request),
         id: `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         productId,
         userId,

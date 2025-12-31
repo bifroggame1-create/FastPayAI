@@ -1,5 +1,13 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { adminMiddleware } from '../auth'
+
+// Default tenant ID for fallback
+const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
+
+// Helper to get tenant ID from request with fallback
+function reqTenantId(request: FastifyRequest): string {
+  return request.tenantId || DEFAULT_TENANT_ID
+}
 import {
   loadTags,
   getTagById,
@@ -52,6 +60,7 @@ export async function tagsRoutes(fastify: FastifyInstance) {
       }
 
       const tag: Tag = {
+        tenantId: reqTenantId(request),
         id: `tag-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: name.trim(),
         color: color?.trim() || undefined,

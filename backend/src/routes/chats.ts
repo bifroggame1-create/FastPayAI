@@ -1,5 +1,13 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { validateBody, createChatSchema } from '../validation'
+
+// Default tenant ID for fallback
+const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
+
+// Helper to get tenant ID from request with fallback
+function reqTenantId(request: FastifyRequest): string {
+  return reqTenantId(request) || DEFAULT_TENANT_ID
+}
 import {
   addChat,
   getChatsByUserId,
@@ -27,6 +35,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
       }
 
       const chat: Chat = {
+        tenantId: reqTenantId(request),
         id: `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         participants: [data.buyerId, data.sellerId],
         productId: data.productId,
@@ -75,7 +84,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
         return { success: false, error: 'Chat not found' }
       }
 
-      const messages = await getChatMessages(id, parseInt(limit), parseInt(offset))
+      const messages = await getChatMessages(id, reqTenantId(request), parseInt(limit), parseInt(offset))
       return { success: true, messages }
     } catch (error: any) {
       reply.code(500)
@@ -101,6 +110,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
       }
 
       const message: ChatMessage = {
+        tenantId: reqTenantId(request),
         id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         chatId: id,
         senderId,
@@ -155,6 +165,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
       const fileSize = Math.round((base64Length * 3) / 4)
 
       const message: ChatMessage = {
+        tenantId: reqTenantId(request),
         id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         chatId: id,
         senderId,

@@ -1,5 +1,13 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { adminMiddleware } from '../auth'
+
+// Default tenant ID for fallback
+const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
+
+// Helper to get tenant ID from request with fallback
+function reqTenantId(request: FastifyRequest): string {
+  return request.tenantId || DEFAULT_TENANT_ID
+}
 import {
   openDispute,
   addDisputeMessage,
@@ -84,6 +92,7 @@ export async function marketplaceRoutes(fastify: FastifyInstance) {
       }
 
       const application = {
+        tenantId: reqTenantId(request),
         id: uuidv4(),
         shopName,
         category,

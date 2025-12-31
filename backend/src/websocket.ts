@@ -3,6 +3,9 @@ import websocket from '@fastify/websocket'
 import { addChatMessage, getChatById, addChat } from './dataStore'
 import { logger } from './logger'
 
+// Default tenant ID for fallback
+const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
+
 // Store active connections
 const connections = new Map<string, Set<any>>()
 
@@ -84,6 +87,7 @@ export async function registerWebSocket(fastify: FastifyInstance) {
           case 'file':
             if (currentChatId && (message.content || message.fileUrl) && currentUserId) {
               const chatMessage = {
+                tenantId: DEFAULT_TENANT_ID,
                 id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 chatId: currentChatId,
                 senderId: currentUserId,

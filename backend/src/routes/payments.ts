@@ -1,5 +1,13 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { cryptoBot } from '../cryptobot'
+
+// Default tenant ID for fallback
+const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
+
+// Helper to get tenant ID from request with fallback
+function reqTenantId(request: FastifyRequest): string {
+  return reqTenantId(request) || DEFAULT_TENANT_ID
+}
 import { cactusPay, PaymentMethod } from '../cactuspay'
 import { validateBody, createCryptoInvoiceSchema, createCactusPaymentSchema, cancelPaymentSchema } from '../validation'
 import { convertRubToCrypto, CryptoAsset, getExchangeRates, refreshExchangeRates } from '../cryptoConverter'
@@ -125,6 +133,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       // Create order
       const orderId = `CB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       const order: Order = {
+        tenantId: reqTenantId(request),
         id: orderId,
         oderId: String(invoice.invoice_id),
         userId: data.userId || 'anonymous',
@@ -141,7 +150,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         promoCode: data.promoCode, // Store promo code for increment after payment
         createdAt: new Date().toISOString(),
       }
-      await addOrder(order)
+      await addOrder(order, reqTenantId(request))
       console.log('Order created:', orderId)
 
       return {
@@ -448,6 +457,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       if (result.status === 'success' && result.response) {
         // Create order
         const order: Order = {
+          tenantId: reqTenantId(request),
           id: orderId,
           oderId: orderId,
           userId: data.userId || 'anonymous',
@@ -464,7 +474,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
           promoCode: data.promoCode, // Store promo code for increment after payment
           createdAt: new Date().toISOString(),
         }
-        await addOrder(order)
+        await addOrder(order, reqTenantId(request))
         console.log('Order created:', orderId)
 
         return {

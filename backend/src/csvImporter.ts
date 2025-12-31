@@ -120,7 +120,8 @@ function parseValue(value: string, field: string): any {
 }
 
 // Import products from CSV
-export async function importProductsFromCSV(csvContent: string): Promise<CSVImportResult> {
+export async function importProductsFromCSV(csvContent: string, tenantId?: string): Promise<CSVImportResult> {
+  const DEFAULT_TENANT_ID = tenantId || process.env.DEFAULT_TENANT_ID || 'fastpay'
   const result: CSVImportResult = {
     success: true,
     imported: 0,
@@ -205,6 +206,7 @@ export async function importProductsFromCSV(csvContent: string): Promise<CSVImpo
         }
 
         const product: Omit<Product, '_id'> = {
+          tenantId: DEFAULT_TENANT_ID,
           name,
           price,
           oldPrice: getValue('oldPrice'),

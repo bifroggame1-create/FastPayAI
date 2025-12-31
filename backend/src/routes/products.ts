@@ -16,7 +16,8 @@ export async function productRoutes(fastify: FastifyInstance) {
     const query = validateQuery(productQuerySchema, request.query)
 
     // Always load fresh from MongoDB for data consistency
-    let products = await loadProducts()
+    // Pass tenantId from request context (set by tenant middleware)
+    let products = await loadProducts(request.tenantId)
 
     // Update in-memory cache for admin routes compatibility
     fastify.products = products
@@ -51,14 +52,14 @@ export async function productRoutes(fastify: FastifyInstance) {
   // Search suggestions - load from MongoDB
   fastify.get('/products/search/suggestions', async (request) => {
     const { q } = request.query as any
-    const products = await loadProducts()
+    const products = await loadProducts(request.tenantId)
     return getSearchSuggestions(products, q || '')
   })
 
   // Get single product by ID - load from MongoDB
   fastify.get('/products/:id', async (request) => {
     const { id } = request.params as any
-    const product = await getProductById(id)
+    const product = await getProductById(id, request.tenantId)
     return product || { error: 'Product not found' }
   })
 
@@ -66,7 +67,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   fastify.post('/products/favorites', async (request) => {
     const { favoriteIds } = request.body as any
     if (!favoriteIds || favoriteIds.length === 0) return []
-    const products = await loadProducts()
+    const products = await loadProducts(request.tenantId)
     return products.filter(p => favoriteIds.includes(p._id))
   })
 }
