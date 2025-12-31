@@ -29,7 +29,7 @@ const content = {
     contact: {
       title: 'Связаться с нами',
       items: [
-        { icon: '💬', label: 'Поддержка', value: '@FastPaySupport' },
+        { icon: '💬', label: 'Поддержка', value: '@fastpay_sup' },
         { icon: '📢', label: 'Новости', value: '@FastPayNews' },
         { icon: '👨‍💻', label: 'Разработчик', value: '@CheffDev' }
       ]
@@ -59,7 +59,7 @@ const content = {
     contact: {
       title: 'Contact Us',
       items: [
-        { icon: '💬', label: 'Support', value: '@FastPaySupport' },
+        { icon: '💬', label: 'Support', value: '@fastpay_sup' },
         { icon: '📢', label: 'News', value: '@FastPayNews' },
         { icon: '👨‍💻', label: 'Developer', value: '@CheffDev' }
       ]

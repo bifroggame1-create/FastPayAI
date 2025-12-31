@@ -70,7 +70,7 @@ const content = {
         content: `Мы можем изменять настоящие условия в любое время. Продолжение использования сервиса после изменений означает согласие с новыми условиями.`
       }
     ],
-    contact: 'По всем вопросам обращайтесь в поддержку: @FastPaySupport'
+    contact: 'По всем вопросам обращайтесь в поддержку: @fastpay_sup'
   },
   en: {
     title: 'Terms of Service',
@@ -136,7 +136,7 @@ We make every effort to ensure transaction security, but cannot guarantee 100% f
         content: `We may change these terms at any time. Continued use of the service after changes means agreement to new terms.`
       }
     ],
-    contact: 'For all questions, contact support: @FastPaySupport'
+    contact: 'For all questions, contact support: @fastpay_sup'
   }
 }
 

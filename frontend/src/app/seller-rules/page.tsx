@@ -66,7 +66,7 @@ const content = {
         'Нелегальный контент — немедленный бан'
       ]
     },
-    footer: 'Вопросы? Пишите @FastPaySupport'
+    footer: 'Вопросы? Пишите @fastpay_sup'
   },
   en: {
     title: 'Seller Rules',
@@ -128,7 +128,7 @@ const content = {
         'Illegal content — immediate ban'
       ]
     },
-    footer: 'Questions? Contact @FastPaySupport'
+    footer: 'Questions? Contact @fastpay_sup'
   }
 }
 

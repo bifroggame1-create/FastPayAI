@@ -25,7 +25,7 @@ export default function ContactsPage() {
             </p>
             <div className="flex flex-col gap-3">
               <a
-                href="https://t.me/fastpay_support"
+                href="https://t.me/fastpay_sup"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 bg-white/20 hover:bg-white/30 rounded-xl px-4 py-3 transition-colors"
@@ -35,7 +35,7 @@ export default function ContactsPage() {
                 </svg>
                 <div>
                   <div className="font-medium">Telegram</div>
-                  <div className="text-sm text-white/80">@fastpay_support</div>
+                  <div className="text-sm text-white/80">@fastpay_sup</div>
                 </div>
               </a>
             </div>
@@ -54,7 +54,7 @@ export default function ContactsPage() {
                 </div>
                 <div className="flex-1">
                   <div className="font-medium text-light-text dark:text-dark-text">Telegram (рекомендуется)</div>
-                  <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">@fastpay_support</div>
+                  <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">@fastpay_sup</div>
                 </div>
                 <div className="text-xs text-green-500 bg-green-500/10 px-2 py-1 rounded-full">Быстрый ответ</div>
               </div>

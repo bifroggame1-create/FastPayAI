@@ -178,7 +178,7 @@ export default function DeliveryPage() {
             10.1. По вопросам доставки обращайтесь:
           </p>
           <ul className="list-disc pl-6 mb-4 text-sm space-y-1">
-            <li>Telegram: @fastpay_support</li>
+            <li>Telegram: @fastpay_sup</li>
             <li>Email: support@fastpay.app</li>
           </ul>
 

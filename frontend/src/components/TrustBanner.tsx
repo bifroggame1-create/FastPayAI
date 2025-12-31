@@ -33,10 +33,10 @@ const content = {
 }
 
 const icons = {
-  lightning: <LightningFast className="w-4 h-4" />,
-  shield: <ShieldCheck className="w-4 h-4" />,
-  cashback: <Cashback className="w-4 h-4" />,
-  rocket: <RocketBoost className="w-4 h-4" />
+  lightning: <LightningFast className="w-5 h-5" />,
+  shield: <ShieldCheck className="w-5 h-5" />,
+  cashback: <Cashback className="w-5 h-5" />,
+  rocket: <RocketBoost className="w-5 h-5" />
 }
 
 export default function TrustBanner() {

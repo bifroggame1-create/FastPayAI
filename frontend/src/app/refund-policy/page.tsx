@@ -71,7 +71,7 @@ const content = {
         'Открывайте спор в пределах escrow периода'
       ]
     },
-    footer: 'Нужна помощь? @FastPaySupport'
+    footer: 'Нужна помощь? @fastpay_sup'
   },
   en: {
     title: 'Refunds and Disputes',
@@ -138,7 +138,7 @@ const content = {
         'Open dispute within escrow period'
       ]
     },
-    footer: 'Need help? @FastPaySupport'
+    footer: 'Need help? @fastpay_sup'
   }
 }
 

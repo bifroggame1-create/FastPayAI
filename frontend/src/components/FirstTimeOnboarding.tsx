@@ -30,9 +30,9 @@ const content = {
 }
 
 const icons = {
-  key: <GoldDiamond className="w-5 h-5" />,
-  lightning: <LightningFast className="w-5 h-5" />,
-  shield: <ShieldCheck className="w-5 h-5" />
+  key: <GoldDiamond className="w-7 h-7" />,
+  lightning: <LightningFast className="w-7 h-7" />,
+  shield: <ShieldCheck className="w-7 h-7" />
 }
 
 export default function FirstTimeOnboarding() {
@@ -81,8 +81,8 @@ export default function FirstTimeOnboarding() {
         {/* Features */}
         <div className="p-5 space-y-3">
           {t.features.map((feature, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/10 dark:bg-white/5 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div key={i} className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-accent-cyan/20 to-accent-blue/20 dark:from-accent-cyan/30 dark:to-accent-blue/30 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
                 {icons[feature.icon as keyof typeof icons]}
               </div>
               <span className="text-light-text dark:text-dark-text font-medium">

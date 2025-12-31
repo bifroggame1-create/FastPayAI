@@ -150,7 +150,7 @@ export default function RefundPage() {
           </p>
           <ul className="list-disc pl-6 mb-4 text-sm space-y-1">
             <li>Через систему споров на Платформе (приоритетный способ)</li>
-            <li>Telegram: @fastpay_support</li>
+            <li>Telegram: @fastpay_sup</li>
             <li>Email: support@fastpay.app</li>
           </ul>
 

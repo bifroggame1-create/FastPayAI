@@ -218,7 +218,7 @@ export default function FAQPage() {
   const [activeCategory, setActiveCategory] = useState(0)
 
   const openSupport = () => {
-    window.open('https://t.me/FastPaySupport', '_blank')
+    window.open('https://t.me/fastpay_sup', '_blank')
   }
 
   return (

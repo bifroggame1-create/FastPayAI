@@ -152,7 +152,7 @@ export default function PrivacyPage() {
             10.1. По вопросам обработки персональных данных обращайтесь:
           </p>
           <ul className="list-disc pl-6 mb-4 text-sm space-y-1">
-            <li>Telegram: @fastpay_support</li>
+            <li>Telegram: @fastpay_sup</li>
             <li>Email: privacy@fastpay.app</li>
           </ul>
 
