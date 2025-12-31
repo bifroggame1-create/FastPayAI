@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useAppStore } from '@/lib/store'
 import { useState } from 'react'
 import LanguageCurrencyModal from './LanguageCurrencyModal'
+import AnimatedTreeLogo from './AnimatedTreeLogo'
 import { t } from '@/lib/i18n'
 
 interface HeaderProps {
@@ -51,6 +52,9 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
           )}
           {title && !logo && (
             <h1 className="text-xl font-semibold text-light-text dark:text-dark-text">{title}</h1>
+          )}
+          {!title && !logo && (
+            <AnimatedTreeLogo />
           )}
         </div>
 
