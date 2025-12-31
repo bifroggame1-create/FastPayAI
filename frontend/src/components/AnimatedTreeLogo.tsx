@@ -26,15 +26,15 @@ export default function AnimatedTreeLogo() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const width = 110
-    const height = 120
+    const width = 96
+    const height = 105
     canvas.width = width
     canvas.height = height
 
     // Салют из звезды
     const spawnFirework = () => {
-      const cx = 55  // центр (позиция звезды)
-      const cy = 48  // позиция звезды
+      const cx = 48  // центр (позиция звезды)
+      const cy = 42  // позиция звезды
       const count = 12 + Math.random() * 8  // больше частиц
 
       for (let i = 0; i < count; i++) {
@@ -129,7 +129,7 @@ export default function AnimatedTreeLogo() {
 
     const fireworkInterval = setInterval(() => {
       spawnFirework()
-    }, 800 + Math.random() * 400)  // чаще выстреливает
+    }, 400 + Math.random() * 200)  // еще чаще выстреливает
 
     update()
 
@@ -191,13 +191,14 @@ export default function AnimatedTreeLogo() {
       <style jsx>{`
         .logo-wrap {
           position: relative;
-          width: 30px;
-          height: 40px;
+          width: 26px;
+          height: 35px;
+          transform: scale(0.9);
         }
 
         .effect-canvas {
           position: absolute;
-          inset: -40px;
+          inset: -35px;
           pointer-events: none;
           z-index: 1;
         }
@@ -205,8 +206,8 @@ export default function AnimatedTreeLogo() {
         .tonplay-logo {
           position: relative;
           z-index: 2;
-          width: 30px;
-          height: 40px;
+          width: 26px;
+          height: 35px;
         }
 
         .tonplay-logo :global(svg) {
