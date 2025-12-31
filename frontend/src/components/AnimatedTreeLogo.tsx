@@ -12,24 +12,42 @@ interface Snowflake {
   wobbleSpeed: number
 }
 
+interface FireworkParticle {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  life: number
+  size: number
+  type: 'ray' | 'star'
+  rotation: number
+  rotationSpeed: number
+}
+
 export default function AnimatedTreeLogo() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const snowCanvasRef = useRef<HTMLCanvasElement>(null)
+  const fireworkCanvasRef = useRef<HTMLCanvasElement>(null)
   const snowflakesRef = useRef<Snowflake[]>([])
+  const particlesRef = useRef<FireworkParticle[]>([])
   const animationRef = useRef<number>()
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const snowCanvas = snowCanvasRef.current
+    const fireworkCanvas = fireworkCanvasRef.current
+    if (!snowCanvas || !fireworkCanvas) return
 
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const snowCtx = snowCanvas.getContext('2d')
+    const fireworkCtx = fireworkCanvas.getContext('2d')
+    if (!snowCtx || !fireworkCtx) return
 
     const width = 110
     const height = 120
-    canvas.width = width
-    canvas.height = height
+    snowCanvas.width = width
+    snowCanvas.height = height
+    fireworkCanvas.width = width
+    fireworkCanvas.height = height
 
-    // Создаём начальные снежинки
+    // Создаём снежинку
     const createSnowflake = (): Snowflake => ({
       x: Math.random() * width,
       y: Math.random() * height - height,
@@ -41,40 +59,133 @@ export default function AnimatedTreeLogo() {
     })
 
     // Инициализация снежинок
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 25; i++) {
       const flake = createSnowflake()
-      flake.y = Math.random() * height // Распределяем по высоте
+      flake.y = Math.random() * height
       snowflakesRef.current.push(flake)
     }
 
-    const update = () => {
-      ctx.clearRect(0, 0, width, height)
+    // Салют из звезды
+    const spawnFirework = () => {
+      const cx = 55  // центр (позиция звезды)
+      const cy = 48  // позиция звезды
+      const count = 8 + Math.random() * 6
 
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3
+        const speed = 1.2 + Math.random() * 0.8
+        const isRay = Math.random() > 0.5
+
+        particlesRef.current.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          size: isRay ? 6 : 3,
+          type: isRay ? 'ray' : 'star',
+          rotation: Math.random() * Math.PI * 2,
+          rotationSpeed: (Math.random() - 0.5) * 0.2
+        })
+      }
+    }
+
+    // Рисуем звёздочку
+    const drawStar = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, rotation: number, opacity: number) => {
+      ctx.save()
+      ctx.translate(x, y)
+      ctx.rotate(rotation)
+      ctx.beginPath()
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * Math.PI * 2) / 5 - Math.PI / 2
+        const outerX = Math.cos(angle) * size
+        const outerY = Math.sin(angle) * size
+        const innerAngle = angle + Math.PI / 5
+        const innerX = Math.cos(innerAngle) * (size * 0.4)
+        const innerY = Math.sin(innerAngle) * (size * 0.4)
+
+        if (i === 0) {
+          ctx.moveTo(outerX, outerY)
+        } else {
+          ctx.lineTo(outerX, outerY)
+        }
+        ctx.lineTo(innerX, innerY)
+      }
+      ctx.closePath()
+      ctx.fillStyle = `rgba(255, 215, 0, ${opacity})`  // Золотой
+      ctx.fill()
+      ctx.restore()
+    }
+
+    // Рисуем луч
+    const drawRay = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, rotation: number, opacity: number) => {
+      ctx.save()
+      ctx.translate(x, y)
+      ctx.rotate(rotation)
+
+      const gradient = ctx.createLinearGradient(0, -size/2, 0, size/2)
+      gradient.addColorStop(0, `rgba(138, 43, 226, 0)`)  // Фиолетовый прозрачный
+      gradient.addColorStop(0.5, `rgba(138, 43, 226, ${opacity})`)  // Фиолетовый
+      gradient.addColorStop(1, `rgba(138, 43, 226, 0)`)  // Фиолетовый прозрачный
+
+      ctx.beginPath()
+      ctx.ellipse(0, 0, 1.5, size, 0, 0, Math.PI * 2)
+      ctx.fillStyle = gradient
+      ctx.fill()
+      ctx.restore()
+    }
+
+    const update = () => {
+      // Снег
+      snowCtx.clearRect(0, 0, width, height)
       snowflakesRef.current.forEach((flake, index) => {
-        // Движение вниз
         flake.y += flake.speed
-        // Покачивание
         flake.wobble += flake.wobbleSpeed
         flake.x += Math.sin(flake.wobble) * 0.3
 
-        // Рисуем снежинку
-        ctx.beginPath()
-        ctx.arc(flake.x, flake.y, flake.size, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`
-        ctx.fill()
+        snowCtx.beginPath()
+        snowCtx.arc(flake.x, flake.y, flake.size, 0, Math.PI * 2)
+        snowCtx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`
+        snowCtx.fill()
 
-        // Перезапуск снежинки сверху
         if (flake.y > height) {
           snowflakesRef.current[index] = createSnowflake()
         }
       })
 
+      // Салют
+      fireworkCtx.clearRect(0, 0, width, height)
+      for (let i = particlesRef.current.length - 1; i >= 0; i--) {
+        const p = particlesRef.current[i]
+        p.x += p.vx
+        p.y += p.vy
+        p.vy += 0.015  // лёгкая гравитация
+        p.life -= 0.02
+        p.rotation += p.rotationSpeed
+
+        if (p.type === 'star') {
+          drawStar(fireworkCtx, p.x, p.y, p.size * p.life, p.rotation, p.life)
+        } else {
+          drawRay(fireworkCtx, p.x, p.y, p.size * p.life, p.rotation, p.life)
+        }
+
+        if (p.life <= 0) {
+          particlesRef.current.splice(i, 1)
+        }
+      }
+
       animationRef.current = requestAnimationFrame(update)
     }
+
+    // Запуск салюта с интервалом
+    const fireworkInterval = setInterval(() => {
+      spawnFirework()
+    }, 1800 + Math.random() * 1000)
 
     update()
 
     return () => {
+      clearInterval(fireworkInterval)
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
       }
@@ -84,7 +195,10 @@ export default function AnimatedTreeLogo() {
   return (
     <div className="logo-wrap">
       {/* Canvas для снега */}
-      <canvas ref={canvasRef} id="snow" />
+      <canvas ref={snowCanvasRef} className="effect-canvas" />
+
+      {/* Canvas для салюта */}
+      <canvas ref={fireworkCanvasRef} className="effect-canvas" style={{ zIndex: 3 }} />
 
       {/* Ёлка */}
       <div className="tonplay-logo">
@@ -135,7 +249,7 @@ export default function AnimatedTreeLogo() {
           height: 40px;
         }
 
-        #snow {
+        .effect-canvas {
           position: absolute;
           inset: -40px;
           pointer-events: none;
