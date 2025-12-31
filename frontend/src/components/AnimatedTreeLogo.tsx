@@ -31,27 +31,32 @@ export default function AnimatedTreeLogo() {
     canvas.width = width
     canvas.height = height
 
-    // Салют из звезды
+    // Салют из звезды (оптимизировано для избежания конфликтов со снегом)
+    const MAX_PARTICLES = 30  // лимит частиц для производительности
+
     const spawnFirework = () => {
+      // Не спавнить если уже много частиц
+      if (particlesRef.current.length > MAX_PARTICLES) return
+
       const cx = 48  // центр (позиция звезды)
       const cy = 42  // позиция звезды
-      const count = 12 + Math.random() * 8  // больше частиц
+      const count = 6 + Math.random() * 4  // меньше частиц
 
       for (let i = 0; i < count; i++) {
         const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3
-        const speed = 1.5 + Math.random() * 1.2  // быстрее
-        const isRay = Math.random() > 0.4  // больше лучей
+        const speed = 1 + Math.random() * 0.8  // медленнее
+        const isRay = Math.random() > 0.5
 
         particlesRef.current.push({
           x: cx,
           y: cy,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
-          life: 1.2,  // дольше живут
-          size: isRay ? 8 : 4,  // крупнее
+          life: 0.8,  // короче живут
+          size: isRay ? 6 : 3,  // меньше
           type: isRay ? 'ray' : 'star',
           rotation: Math.random() * Math.PI * 2,
-          rotationSpeed: (Math.random() - 0.5) * 0.3
+          rotationSpeed: (Math.random() - 0.5) * 0.2
         })
       }
     }
@@ -110,7 +115,7 @@ export default function AnimatedTreeLogo() {
         p.x += p.vx
         p.y += p.vy
         p.vy += 0.015
-        p.life -= 0.02
+        p.life -= 0.03  // быстрее угасают
         p.rotation += p.rotationSpeed
 
         if (p.type === 'star') {
@@ -129,7 +134,7 @@ export default function AnimatedTreeLogo() {
 
     const fireworkInterval = setInterval(() => {
       spawnFirework()
-    }, 400 + Math.random() * 200)  // еще чаще выстреливает
+    }, 2500 + Math.random() * 1500)  // реже, чтобы не конфликтовать со снегом
 
     update()
 
