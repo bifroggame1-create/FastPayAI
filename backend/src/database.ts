@@ -357,6 +357,9 @@ export interface User extends TenantScoped {
   bonusBalance?: number
   createdAt: string
   lastSeen?: string
+  isBlocked?: boolean
+  blockReason?: string
+  isPremium?: boolean
 }
 
 export interface Referral extends TenantScoped {

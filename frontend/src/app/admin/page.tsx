@@ -8,7 +8,7 @@ import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi, sellerApplicationsApi } from '@/lib/api'
 import { initAuth, isAdmin as checkIsAdmin, getUser } from '@/lib/auth'
 
-type Tab = 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'orders' | 'admins' | 'applications'
+type Tab = 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'orders' | 'admins' | 'applications' | 'users'
 
 interface SellerApplication {
   id: string
@@ -57,12 +57,32 @@ interface Order {
   deliveredAt?: string
 }
 
+type SellerBadge = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky'
+
 interface Seller {
   id: string
   name: string
   avatar: string
   rating: number
   isVerified?: boolean
+  isBlocked?: boolean
+  blockReason?: string
+  badges?: SellerBadge[]
+}
+
+interface UserProfile {
+  id: string
+  oderId?: string
+  telegramId: string
+  username?: string
+  firstName?: string
+  lastName?: string
+  isBlocked?: boolean
+  blockReason?: string
+  isPremium?: boolean
+  ordersCount?: number
+  totalSpent?: number
+  createdAt?: string
 }
 
 interface Review {
@@ -134,6 +154,10 @@ export default function AdminPage() {
   // Seller Applications state
   const [applications, setApplications] = useState<SellerApplication[]>([])
 
+  // Users state
+  const [users, setUsers] = useState<UserProfile[]>([])
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
+
   useEffect(() => {
     const checkAccessAndLoad = async () => {
       const authUser = await initAuth()
@@ -152,7 +176,7 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData, applicationsData] = await Promise.all([
+      const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData, applicationsData, usersData] = await Promise.all([
         productsApi.getAll({}),
         adminApi.getPromoCodes().catch(() => []),
         adminApi.getOrders().catch(() => ({ orders: [], total: 0 })),
@@ -161,7 +185,8 @@ export default function AdminPage() {
         adminApi.getAdmins().catch(() => []),
         adminApi.getFiles().catch(() => ({ files: [] })),
         adminApi.getReviews().catch(() => ({ reviews: [] })),
-        sellerApplicationsApi.getAll().catch(() => ({ applications: [] }))
+        sellerApplicationsApi.getAll().catch(() => ({ applications: [] })),
+        adminApi.getUsers().catch(() => ({ users: [] }))
       ])
       setProducts(productsData)
       setPromoCodes(promoData?.promoCodes || promoData || [])
@@ -172,6 +197,7 @@ export default function AdminPage() {
       setUploadedFiles(filesData?.files || [])
       setReviews(reviewsData?.reviews || [])
       setApplications(applicationsData?.applications || [])
+      setUsers(usersData?.users || [])
     } catch (error) {
       // Error loading data
     } finally {
@@ -235,6 +261,19 @@ export default function AdminPage() {
     } catch (error: any) {
       console.error('Error saving seller:', error)
       const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || 'Ошибка сохранения продавца'
+      alert(errorMsg)
+    }
+  }
+
+  const handleSaveUser = async (user: UserProfile) => {
+    try {
+      await adminApi.updateUser(user.id, user)
+      setUsers(users.map(u => u.id === user.id ? user : u))
+      setEditingUser(null)
+      alert('Пользователь сохранён')
+    } catch (error: any) {
+      console.error('Error saving user:', error)
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || 'Ошибка сохранения пользователя'
       alert(errorMsg)
     }
   }
@@ -545,6 +584,7 @@ export default function AdminPage() {
           { id: 'admins', label: 'Админы', count: admins.length },
           { id: 'reviews', label: 'Отзывы', count: reviews.length },
           { id: 'promo', label: 'Промокоды', count: promoCodes.length },
+          { id: 'users', label: 'Юзеры', count: users.length },
           { id: 'files', label: 'Файлы', count: uploadedFiles.length },
         ].map(tab => (
           <button
@@ -1190,6 +1230,55 @@ export default function AdminPage() {
             )}
           </div>
         )}
+
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <div className="space-y-3">
+            {users.length === 0 ? (
+              <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8">
+                Пользователей пока нет
+              </p>
+            ) : (
+              users.map(u => (
+                <div
+                  key={u.id}
+                  className={`bg-light-card dark:bg-dark-card p-4 rounded-xl border ${u.isBlocked ? 'border-red-500' : 'border-light-border dark:border-dark-border'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-accent-cyan/20 rounded-full flex items-center justify-center text-accent-cyan font-bold">
+                        {(u.firstName || u.username || 'U').charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-light-text dark:text-dark-text">
+                            {u.firstName} {u.lastName || ''}
+                          </span>
+                          {u.isPremium && <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">⭐ Premium</span>}
+                          {u.isBlocked && <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded">🚫 Заблокирован</span>}
+                        </div>
+                        <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                          {u.username ? `@${u.username}` : ''} • ID: {u.telegramId}
+                        </div>
+                        {u.ordersCount !== undefined && (
+                          <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                            Заказов: {u.ordersCount} • Потрачено: {u.totalSpent?.toFixed(2) || 0} ₽
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setEditingUser(u)}
+                      className="px-3 py-1.5 bg-accent-cyan text-white rounded-lg text-sm"
+                    >
+                      Редактировать
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {/* Product Editor Modal */}
@@ -1215,6 +1304,15 @@ export default function AdminPage() {
           onSave={handleSaveSeller}
           onClose={() => setEditingSeller(null)}
           isNew={!editingSeller.id}
+        />
+      )}
+
+      {/* User Editor Modal */}
+      {editingUser && (
+        <UserEditor
+          user={editingUser}
+          onSave={handleSaveUser}
+          onClose={() => setEditingUser(null)}
         />
       )}
 
@@ -1693,17 +1791,79 @@ function SellerEditor({
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="verified"
-              checked={form.isVerified || false}
-              onChange={e => setForm({...form, isVerified: e.target.checked})}
-              className="w-5 h-5 rounded"
-            />
-            <label htmlFor="verified" className="text-sm text-light-text dark:text-dark-text">
-              Верифицированный продавец
-            </label>
+          {/* Status checkboxes */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="verified"
+                checked={form.isVerified || false}
+                onChange={e => setForm({...form, isVerified: e.target.checked})}
+                className="w-5 h-5 rounded accent-green-500"
+              />
+              <label htmlFor="verified" className="text-sm text-light-text dark:text-dark-text">
+                ✅ Верифицированный продавец
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="blocked"
+                checked={form.isBlocked || false}
+                onChange={e => setForm({...form, isBlocked: e.target.checked})}
+                className="w-5 h-5 rounded accent-red-500"
+              />
+              <label htmlFor="blocked" className="text-sm text-red-500">
+                🚫 Заблокирован
+              </label>
+            </div>
+          </div>
+
+          {form.isBlocked && (
+            <div>
+              <label className="block text-sm font-medium text-red-500 mb-1">Причина блокировки</label>
+              <input
+                type="text"
+                value={form.blockReason || ''}
+                onChange={e => setForm({...form, blockReason: e.target.value})}
+                placeholder="Укажите причину блокировки"
+                className="w-full px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800 text-light-text dark:text-dark-text"
+              />
+            </div>
+          )}
+
+          {/* Badges */}
+          <div>
+            <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">Бейджи</label>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { id: 'new', label: '🆕 Новичок', color: 'bg-blue-100 text-blue-800 border-blue-300' },
+                { id: 'trusted', label: '⭐ Надёжный', color: 'bg-green-100 text-green-800 border-green-300' },
+                { id: 'verified', label: '✓ Проверен', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
+                { id: 'top_seller', label: '🏆 Топ продавец', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+                { id: 'high_volume', label: '📈 Большой объём', color: 'bg-purple-100 text-purple-800 border-purple-300' },
+                { id: 'risky', label: '⚠️ Рискованный', color: 'bg-red-100 text-red-800 border-red-300' },
+              ] as { id: SellerBadge; label: string; color: string }[]).map(badge => (
+                <button
+                  key={badge.id}
+                  type="button"
+                  onClick={() => {
+                    const currentBadges = form.badges || []
+                    const newBadges = currentBadges.includes(badge.id)
+                      ? currentBadges.filter(b => b !== badge.id)
+                      : [...currentBadges, badge.id]
+                    setForm({...form, badges: newBadges})
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    (form.badges || []).includes(badge.id)
+                      ? badge.color + ' ring-2 ring-offset-1 ring-accent-cyan'
+                      : 'bg-gray-100 text-gray-500 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600'
+                  }`}
+                >
+                  {badge.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex gap-2 pt-4">
@@ -1738,6 +1898,95 @@ function SellerEditor({
             </div>
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// User Editor Component
+function UserEditor({
+  user,
+  onSave,
+  onClose
+}: {
+  user: UserProfile
+  onSave: (user: UserProfile) => void
+  onClose: () => void
+}) {
+  const [form, setForm] = useState(user)
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
+      <div className="bg-light-card dark:bg-dark-card w-full rounded-t-3xl relative max-h-[80vh] overflow-y-auto">
+        <div className="p-4 border-b border-light-border dark:border-dark-border flex justify-between items-center sticky top-0 bg-light-card dark:bg-dark-card">
+          <h2 className="text-lg font-bold text-light-text dark:text-dark-text">
+            Редактирование пользователя
+          </h2>
+          <button onClick={onClose} className="text-2xl text-light-text-secondary">×</button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* User Info */}
+          <div className="bg-light-bg dark:bg-dark-bg p-3 rounded-xl">
+            <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+              <p><strong>ID:</strong> {form.id}</p>
+              <p><strong>Telegram ID:</strong> {form.telegramId}</p>
+              {form.username && <p><strong>Username:</strong> @{form.username}</p>}
+              <p><strong>Имя:</strong> {form.firstName} {form.lastName || ''}</p>
+              {form.createdAt && <p><strong>Зарегистрирован:</strong> {new Date(form.createdAt).toLocaleDateString()}</p>}
+            </div>
+          </div>
+
+          {/* Premium status */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="premium"
+              checked={form.isPremium || false}
+              onChange={e => setForm({...form, isPremium: e.target.checked})}
+              className="w-5 h-5 rounded accent-yellow-500"
+            />
+            <label htmlFor="premium" className="text-sm text-light-text dark:text-dark-text">
+              ⭐ Premium пользователь
+            </label>
+          </div>
+
+          {/* Blocked status */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="userBlocked"
+              checked={form.isBlocked || false}
+              onChange={e => setForm({...form, isBlocked: e.target.checked})}
+              className="w-5 h-5 rounded accent-red-500"
+            />
+            <label htmlFor="userBlocked" className="text-sm text-red-500">
+              🚫 Заблокирован
+            </label>
+          </div>
+
+          {form.isBlocked && (
+            <div>
+              <label className="block text-sm font-medium text-red-500 mb-1">Причина блокировки</label>
+              <input
+                type="text"
+                value={form.blockReason || ''}
+                onChange={e => setForm({...form, blockReason: e.target.value})}
+                placeholder="Укажите причину блокировки"
+                className="w-full px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800 text-light-text dark:text-dark-text"
+              />
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-4">
+            <button onClick={onClose} className="flex-1 py-3 bg-gray-500 text-white rounded-xl font-semibold">
+              Отмена
+            </button>
+            <button onClick={() => onSave(form)} className="flex-1 py-3 bg-accent-cyan text-white rounded-xl font-semibold">
+              Сохранить
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

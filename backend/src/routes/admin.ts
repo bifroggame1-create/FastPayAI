@@ -63,6 +63,7 @@ import {
   AuditAction,
   AuditEntityType
 } from '../dataStore'
+import { getUsersCollection, getOrdersCollection } from '../database'
 import { createBackup, restoreFromBackup, getBackupStats, validateBackup } from '../backup'
 import { addDeliveryKeys, removeDeliveryKey, getDeliveryStats } from '../delivery'
 
@@ -475,6 +476,94 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return { success: true }
     } catch (error: any) {
       reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // USERS MANAGEMENT
+  // ============================================
+
+  // Get all users
+  fastify.get('/admin/users', { preHandler: adminMiddleware }, async (request) => {
+    try {
+      const tid = reqTenantId(request)
+      const users = await getUsersCollection()
+        .find({ tenantId: tid })
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .toArray()
+
+      // Enrich with order stats
+      const enrichedUsers = await Promise.all(users.map(async (user: any) => {
+        const orderStats = await getOrdersCollection().aggregate([
+          { $match: { userId: user.id, tenantId: tid, status: { $in: ['paid', 'delivered'] } } },
+          { $group: { _id: null, count: { $sum: 1 }, total: { $sum: '$total' } } }
+        ]).toArray()
+
+        return {
+          id: user._id?.toString() || user.id,
+          oderId: user.id,
+          telegramId: user.id,
+          username: user.username,
+          firstName: user.name?.split(' ')[0] || user.name,
+          lastName: user.name?.split(' ').slice(1).join(' ') || '',
+          isBlocked: user.isBlocked || false,
+          blockReason: user.blockReason,
+          isPremium: user.isPremium || false,
+          ordersCount: orderStats[0]?.count || 0,
+          totalSpent: orderStats[0]?.total || 0,
+          createdAt: user.createdAt
+        }
+      }))
+
+      return { success: true, users: enrichedUsers }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Update user
+  fastify.put('/admin/users/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as any
+      const { isBlocked, blockReason, isPremium } = request.body as any
+      const tid = reqTenantId(request)
+
+      // Find the user first
+      const user = await getUsersCollection().findOne({
+        $or: [{ id: id }, { _id: id }],
+        tenantId: tid
+      })
+
+      if (!user) {
+        reply.code(404)
+        return { success: false, error: 'User not found' }
+      }
+
+      const updates: any = {}
+      if (isBlocked !== undefined) updates.isBlocked = isBlocked
+      if (blockReason !== undefined) updates.blockReason = blockReason
+      if (isPremium !== undefined) updates.isPremium = isPremium
+
+      await getUsersCollection().updateOne(
+        { _id: user._id },
+        { $set: updates }
+      )
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'user',
+        entityId: id,
+        changes: { before: { isBlocked: user.isBlocked, isPremium: user.isPremium }, after: updates }
+      })
+
+      return { success: true }
+    } catch (error: any) {
+      reply.code(error.statusCode || 500)
       return { success: false, error: error.message }
     }
   })
