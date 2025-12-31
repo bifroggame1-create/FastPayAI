@@ -659,7 +659,13 @@ async function createIndexes(database: Db): Promise<void> {
     // Users
     await database.collection('users').createIndex({ tenantId: 1, id: 1 }, { unique: true })
 
-    // Promo codes
+    // Promo codes - drop old non-tenant-scoped index if exists
+    try {
+      await database.collection('promoCodes').dropIndex('code_1')
+      console.log('Dropped old code_1 index from promoCodes')
+    } catch (e) {
+      // Index doesn't exist, that's fine
+    }
     await database.collection('promoCodes').createIndex({ tenantId: 1, code: 1 }, { unique: true })
 
     // Chats
@@ -787,6 +793,15 @@ export async function ensureDefaultTenant(): Promise<void> {
       { $set: { tenantId: DEFAULT_TENANT_ID } }
     )
     console.log(`✅ Products migrated to tenant '${DEFAULT_TENANT_ID}'`)
+  }
+
+  // Migrate or clean up promo codes without tenantId
+  const promoCodesWithoutTenant = await getPromoCodesCollection().countDocuments({ tenantId: { $exists: false } })
+  if (promoCodesWithoutTenant > 0) {
+    console.log(`Migrating ${promoCodesWithoutTenant} promo codes to tenant '${DEFAULT_TENANT_ID}'...`)
+    // Delete old codes without tenantId to avoid conflicts (they will be re-seeded with tenantId)
+    await getPromoCodesCollection().deleteMany({ tenantId: { $exists: false } })
+    console.log(`✅ Old promo codes cleaned up`)
   }
 }
 

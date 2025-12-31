@@ -192,10 +192,17 @@ export async function loadPromoCodes(tenantId?: string): Promise<PromoCode[]> {
 export async function savePromoCodes(promoCodes: PromoCode[], tenantId?: string): Promise<void> {
   const tid = tenantId || DEFAULT_TENANT_ID
   const collection = getPromoCodesCollection()
-  await collection.deleteMany({ tenantId: tid })
+
+  // Use bulkWrite with upsert to handle existing codes gracefully
   if (promoCodes.length > 0) {
-    const codesWithTenant = promoCodes.map(c => ({ ...c, tenantId: tid }))
-    await collection.insertMany(codesWithTenant)
+    const operations = promoCodes.map(c => ({
+      updateOne: {
+        filter: { tenantId: tid, code: c.code.toUpperCase() },
+        update: { $setOnInsert: { ...c, tenantId: tid, code: c.code.toUpperCase() } },
+        upsert: true
+      }
+    }))
+    await collection.bulkWrite(operations)
   }
   // Invalidate cache
   await redis.del(tenantCacheKey(tid, 'promo_codes'))

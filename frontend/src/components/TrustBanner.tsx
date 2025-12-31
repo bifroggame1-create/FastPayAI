@@ -8,7 +8,8 @@ const content = {
     features: [
       { icon: 'lightning', text: 'Мгновенная доставка' },
       { icon: 'shield', text: 'Escrow защита' },
-      { icon: 'refresh', text: 'Возврат денег' }
+      { icon: 'refresh', text: 'Возврат денег' },
+      { icon: 'store', text: 'Открой свой магазин' }
     ],
     stats: {
       orders: '10K+ покупок',
@@ -20,7 +21,8 @@ const content = {
     features: [
       { icon: 'lightning', text: 'Instant delivery' },
       { icon: 'shield', text: 'Escrow protection' },
-      { icon: 'refresh', text: 'Money back' }
+      { icon: 'refresh', text: 'Money back' },
+      { icon: 'store', text: 'Open your store' }
     ],
     stats: {
       orders: '10K+ orders',
@@ -44,6 +46,11 @@ const icons = {
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
     </svg>
+  ),
+  store: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
   )
 }
 
@@ -59,8 +66,8 @@ export default function TrustBanner() {
           {t.headline}
         </h1>
 
-        {/* Features row */}
-        <div className="flex items-center justify-center gap-4 text-xs">
+        {/* Features grid */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs max-w-xs mx-auto">
           {t.features.map((feature, i) => (
             <div key={i} className="flex items-center gap-1.5 text-light-text-secondary dark:text-dark-text-secondary">
               <span className="text-accent-cyan">
