@@ -42,9 +42,9 @@ export default function Header({ title, logo, showBack, onBack, rightAction, sho
             </button>
           ) : (
             <img
-              src="/FastPay_logo_ULTRA_x8.png"
+              src="/logofast.png"
               alt="FastPay"
-              className="h-8 w-auto object-contain"
+              className="h-12 w-auto object-contain"
             />
           )}
         </div>
