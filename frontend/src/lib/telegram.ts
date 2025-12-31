@@ -68,8 +68,7 @@ export const useTelegramWebApp = () => {
   return window.Telegram?.WebApp || null
 }
 
-// Bootstrap admin ID for fallback
-const BOOTSTRAP_ADMIN_ID = '1301598469'
+// SECURITY: Removed hardcoded admin ID - admin status must be verified by backend via JWT
 
 export const getTelegramUser = () => {
   const webApp = useTelegramWebApp()
@@ -87,29 +86,7 @@ export const getTelegramUser = () => {
     }
   }
 
-  // Fallback for bootstrap admin when Telegram WebApp data is not available
-  // This allows admin access during development or when WebApp is not properly initialized
-  if (typeof window !== 'undefined') {
-    const storedUser = localStorage.getItem('fastpay_user')
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser)
-        if (parsed.id === BOOTSTRAP_ADMIN_ID) {
-          console.log('📱 Using stored bootstrap admin user')
-          return {
-            id: parsed.id,
-            name: parsed.name || 'Admin',
-            username: parsed.username,
-            avatar: parsed.avatar,
-            languageCode: 'ru',
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-  }
-
+  // SECURITY: No localStorage fallback - authentication must go through backend
   return null
 }
 

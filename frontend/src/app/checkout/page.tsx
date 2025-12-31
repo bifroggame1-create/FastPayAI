@@ -141,10 +141,9 @@ function CheckoutContent() {
       } else {
         window.open(url, '_blank')
       }
-      // Clear cart after initiating payment if it's a cart checkout
-      if (isCartCheckout) {
-        clearCart()
-      }
+      // SECURITY FIX: Don't clear cart here - cart is now cleared via callback after payment confirmation
+      // The backend sends confirmation to Telegram bot which handles cart state
+      // Users can return and retry payment if it fails
     }
 
     // Для CryptoBot используем крипту

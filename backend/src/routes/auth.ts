@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import {
   validateTelegramWebAppData,
   generateToken,
@@ -10,6 +10,59 @@ import { getAdminByUserId, getAdminByUsername } from '../dataStore'
 
 // Bootstrap admin IDs - can authenticate even without BOT_TOKEN
 const BOOTSTRAP_ADMIN_IDS = (process.env.ADMIN_IDS || '1301598469').split(',').map(id => id.trim())
+
+// ============================================
+// RATE LIMITING FOR AUTH ENDPOINTS
+// ============================================
+
+// Simple in-memory rate limiter (consider Redis for production clustering)
+const authAttempts = new Map<string, { count: number; resetAt: number }>()
+
+const RATE_LIMIT = {
+  MAX_ATTEMPTS: 10,    // max attempts per window
+  WINDOW_MS: 60000,    // 1 minute window
+  BLOCK_MS: 300000     // 5 minute block after exceeded
+}
+
+function getClientId(request: FastifyRequest): string {
+  const ip = request.ip || request.headers['x-forwarded-for'] || 'unknown'
+  return String(ip)
+}
+
+function checkRateLimit(clientId: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now()
+  const record = authAttempts.get(clientId)
+
+  if (!record || now > record.resetAt) {
+    // New window or expired
+    authAttempts.set(clientId, { count: 1, resetAt: now + RATE_LIMIT.WINDOW_MS })
+    return { allowed: true }
+  }
+
+  if (record.count >= RATE_LIMIT.MAX_ATTEMPTS) {
+    // Blocked
+    const retryAfter = Math.ceil((record.resetAt - now) / 1000)
+    return { allowed: false, retryAfter }
+  }
+
+  // Increment counter
+  record.count++
+  return { allowed: true }
+}
+
+async function rateLimitMiddleware(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const clientId = getClientId(request)
+  const { allowed, retryAfter } = checkRateLimit(clientId)
+
+  if (!allowed) {
+    reply.code(429).send({
+      success: false,
+      error: 'Too many authentication attempts',
+      retryAfter
+    })
+    return
+  }
+}
 
 // Check if user is admin (bootstrap IDs or in database)
 async function checkIsAdmin(userId: string, username?: string): Promise<boolean> {
@@ -50,24 +103,27 @@ function extractUserFromInitData(initData: string): { id: number; first_name: st
 }
 
 export async function authRoutes(fastify: FastifyInstance) {
-  // Telegram WebApp authentication
-  fastify.post('/auth/telegram', async (request, reply) => {
+  // Telegram WebApp authentication (with rate limiting)
+  fastify.post('/auth/telegram', { preHandler: rateLimitMiddleware }, async (request, reply) => {
     try {
       const { initData } = validateBody(telegramAuthSchema, request.body)
 
       let user = validateTelegramWebAppData(initData)
 
-      // If validation failed, try fallback for bootstrap admins
+      // If validation failed, check if we're in a safe development context
       if (!user) {
         const extractedUser = extractUserFromInitData(initData)
+        const clientIp = request.ip || request.headers['x-forwarded-for'] || ''
+        const isLocalhost = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp.includes('localhost')
 
-        // Allow bootstrap admins to authenticate even without BOT_TOKEN validation (dev only)
-        if (extractedUser && BOOTSTRAP_ADMIN_IDS.includes(String(extractedUser.id)) && process.env.NODE_ENV !== 'production') {
-          console.warn('⚠️ Using bootstrap admin fallback auth for user:', extractedUser.id)
+        // SECURITY: Only allow dev fallback on localhost AND in non-production
+        if (extractedUser && BOOTSTRAP_ADMIN_IDS.includes(String(extractedUser.id)) &&
+            process.env.NODE_ENV !== 'production' && isLocalhost) {
+          console.warn('⚠️ [LOCALHOST ONLY] Using bootstrap admin fallback auth for user:', extractedUser.id)
           user = extractedUser as any
-        } else if (process.env.NODE_ENV !== 'production') {
-          // In development, allow mock auth
-          console.warn('⚠️ Telegram validation failed, using mock auth (dev only)')
+        } else if (process.env.NODE_ENV !== 'production' && isLocalhost && process.env.ALLOW_DEV_AUTH === 'true') {
+          // SECURITY: Dev auth requires explicit ALLOW_DEV_AUTH=true AND localhost
+          console.warn('⚠️ [LOCALHOST ONLY] Using mock dev auth - set ALLOW_DEV_AUTH=false to disable')
           const mockToken = generateToken({
             id: 123456789,
             first_name: 'Dev',

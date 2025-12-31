@@ -156,23 +156,54 @@ export async function tenantMiddleware(
 /**
  * Super admin check middleware
  * For platform-level operations that should bypass tenant isolation
+ * SECURITY: Requires valid JWT token, not just headers
  */
 export async function superAdminMiddleware(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
-  const userId = request.headers['x-user-id'] as string
-
-  if (!userId) {
+  // SECURITY: Extract and verify JWT token (not just header)
+  const authHeader = request.headers.authorization
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     reply.code(401).send({
       error: 'Unauthorized',
-      message: 'Super admin authentication required',
+      message: 'Super admin authentication required (JWT token missing)',
       code: 'SUPERADMIN_REQUIRED'
     })
     return
   }
 
-  const superAdmin = await getSuperAdminsCollection().findOne({ id: userId })
+  const token = authHeader.slice(7)
+
+  // Import JWT verification from auth module
+  let payload: { userId: string; username?: string } | null = null
+  try {
+    const jwt = await import('jsonwebtoken')
+    const JWT_SECRET = process.env.JWT_SECRET
+    if (!JWT_SECRET) {
+      throw new Error('JWT_SECRET not configured')
+    }
+    payload = jwt.default.verify(token, JWT_SECRET) as any
+  } catch (err) {
+    reply.code(401).send({
+      error: 'Unauthorized',
+      message: 'Invalid or expired token',
+      code: 'INVALID_TOKEN'
+    })
+    return
+  }
+
+  if (!payload?.userId) {
+    reply.code(401).send({
+      error: 'Unauthorized',
+      message: 'Invalid token payload',
+      code: 'INVALID_TOKEN'
+    })
+    return
+  }
+
+  // Check if user is a super admin
+  const superAdmin = await getSuperAdminsCollection().findOne({ id: payload.userId })
 
   if (!superAdmin) {
     reply.code(403).send({

@@ -11,10 +11,10 @@ const log = (...args: any[]) => DEBUG && console.log(...args)
 const logError = (...args: any[]) => DEBUG && console.error(...args)
 
 // Storage keys
+// SECURITY: Admin status is stored only in USER object, never as separate flag
 const STORAGE = {
   TOKEN: 'fp_token',
-  USER: 'fp_user',
-  ADMIN: 'fp_admin'
+  USER: 'fp_user'
 }
 
 export interface AuthUser {
@@ -68,6 +68,7 @@ function getTelegramInitData(): string | null {
 
 /**
  * Save auth data to localStorage
+ * SECURITY: Admin status is stored only within user object
  */
 function saveAuth(token: string, user: AuthUser): void {
   if (typeof window === 'undefined') return
@@ -77,7 +78,7 @@ function saveAuth(token: string, user: AuthUser): void {
 
   localStorage.setItem(STORAGE.TOKEN, token)
   localStorage.setItem(STORAGE.USER, JSON.stringify(user))
-  localStorage.setItem(STORAGE.ADMIN, user.isAdmin ? '1' : '0')
+  // SECURITY: Removed separate admin flag - admin status only in user object
 }
 
 /**
@@ -117,7 +118,8 @@ export function clearAuth(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(STORAGE.TOKEN)
     localStorage.removeItem(STORAGE.USER)
-    localStorage.removeItem(STORAGE.ADMIN)
+    // Also clean up legacy admin flag if it exists
+    localStorage.removeItem('fp_admin')
   }
 }
 
@@ -138,21 +140,24 @@ export function getUser(): AuthUser | null {
 }
 
 /**
- * Check if current user is admin
+ * Check if current user is admin (local check only, for UI purposes)
+ * SECURITY: This is only for UI display. Backend ALWAYS verifies admin status via JWT.
+ * Never trust this for actual authorization - backend middleware enforces access control.
  */
 export function isAdmin(): boolean {
-  // Check cached user first
+  // Only trust cached user from authenticated session
   if (cachedUser?.isAdmin) return true
 
-  // Check localStorage
+  // Check user object from authenticated session (not raw localStorage flags)
   if (typeof window !== 'undefined') {
-    if (localStorage.getItem(STORAGE.ADMIN) === '1') return true
-
     const userStr = localStorage.getItem(STORAGE.USER)
     if (userStr) {
       try {
         const user = JSON.parse(userStr)
-        if (user.isAdmin) return true
+        // Only trust isAdmin if we also have a valid token
+        if (user.isAdmin && localStorage.getItem(STORAGE.TOKEN)) {
+          return true
+        }
       } catch (e) {}
     }
   }
@@ -260,26 +265,34 @@ export async function verifyToken(): Promise<boolean> {
 
 /**
  * Refresh admin status directly from backend
- * Works even without full authentication
+ * SECURITY: Requires valid JWT token - removed userId/username params to prevent enumeration
  */
-async function refreshAdminStatus(userId: string, username?: string): Promise<boolean> {
+async function refreshAdminStatus(): Promise<boolean> {
   try {
-    log('🔐 Refreshing admin status for:', userId, username)
+    const token = getToken()
+    if (!token) {
+      log('🔐 No token for admin refresh')
+      return false
+    }
+
+    log('🔐 Refreshing admin status via JWT...')
     const response = await fetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, username })
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
     })
     const data = await response.json()
     log('🔐 Refresh response:', data)
 
     if (data.success && data.isAdmin) {
-      // Update stored admin status
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE.ADMIN, '1')
-      }
       if (cachedUser) {
         cachedUser.isAdmin = true
+        // Update stored user
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE.USER, JSON.stringify(cachedUser))
+        }
       }
       return true
     }
@@ -322,29 +335,10 @@ export async function initAuth(): Promise<AuthUser | null> {
     return getUser()
   }
 
-  // Fallback: if we have Telegram user but auth failed,
-  // still try to get admin status directly
+  // SECURITY: No fallback without proper authentication
+  // If Telegram auth failed, user must re-authenticate
   if (tgUser) {
-    log('🔐 Auth failed but have TG user, checking admin status directly...')
-    const isAdminUser = await refreshAdminStatus(tgUser.id, tgUser.username)
-
-    // Create a basic user object
-    const basicUser: AuthUser = {
-      id: tgUser.id,
-      name: tgUser.firstName,
-      username: tgUser.username,
-      isAdmin: isAdminUser
-    }
-
-    // Save to cache (without token)
-    cachedUser = basicUser
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE.USER, JSON.stringify(basicUser))
-      localStorage.setItem(STORAGE.ADMIN, isAdminUser ? '1' : '0')
-    }
-
-    log('🔐 Created basic user:', basicUser)
-    return basicUser
+    log('🔐 Auth failed - user must re-authenticate via Telegram')
   }
 
   return null

@@ -74,13 +74,14 @@ declare module 'fastify' {
 }
 
 // Helper to extract admin info from request for audit logging
-function getAdminInfo(request: any): { adminId: string; adminName?: string; ipAddress?: string; userAgent?: string } {
+function getAdminInfo(request: any): { adminId: string; adminName?: string; ipAddress?: string; userAgent?: string; tenantId: string } {
   const user = request.user || {}
   return {
     adminId: user.userId || 'unknown',
     adminName: user.username || undefined,
     ipAddress: request.ip || request.headers['x-forwarded-for'] || undefined,
-    userAgent: request.headers['user-agent'] || undefined
+    userAgent: request.headers['user-agent'] || undefined,
+    tenantId: reqTenantId(request) // SECURITY: Always include tenant context in audit logs
   }
 }
 
@@ -116,7 +117,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const saved = await addProduct(newProduct as any, reqTenantId(request))
       fastify.products.unshift(saved)
 
-      // Log the action
+      // Log the action (tenantId included via getAdminInfo)
       const adminInfo = getAdminInfo(request)
       await logAdminAction({
         ...adminInfo,
@@ -581,9 +582,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // PROMO CODES MANAGEMENT
   // ============================================
 
-  // Get all promo codes
-  fastify.get('/admin/promo', { preHandler: adminMiddleware }, async () => {
-    return { success: true, promoCodes: fastify.promoCodes }
+  // Get all promo codes (tenant-scoped)
+  fastify.get('/admin/promo', { preHandler: adminMiddleware }, async (request) => {
+    const { loadPromoCodes } = await import('../dataStore')
+    const promoCodes = await loadPromoCodes(reqTenantId(request))
+    return { success: true, promoCodes }
   })
 
   // Create promo code
@@ -690,8 +693,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
       if (query.userId) filters.userId = query.userId
 
       const [orders, total] = await Promise.all([
-        getOrdersWithFilters(filters, query.limit, query.offset),
-        countOrders(filters)
+        getOrdersWithFilters(filters, query.limit, query.offset, reqTenantId(request)),
+        countOrders(filters, reqTenantId(request))
       ])
 
       return {
@@ -708,8 +711,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
   })
 
   // Get orders stats
-  fastify.get('/admin/orders/stats', { preHandler: adminMiddleware }, async () => {
-    const stats = await getOrderStats()
+  fastify.get('/admin/orders/stats', { preHandler: adminMiddleware }, async (request) => {
+    const stats = await getOrderStats(reqTenantId(request))
     return { success: true, stats }
   })
 
@@ -809,7 +812,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
         return { success: false, error: 'Order not found' }
       }
 
-      console.log('Order delivered:', id, { deliveryData, deliveryNote })
+      // SECURITY: Don't log sensitive delivery data
+      console.log('Order delivered:', id, { hasDeliveryData: !!deliveryData, hasNote: !!deliveryNote })
 
       // Log the action
       const adminInfo = getAdminInfo(request)
