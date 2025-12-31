@@ -373,11 +373,94 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // SELLERS MANAGEMENT
   // ============================================
 
-  // Get all sellers
+  // Sync sellers from products to sellers collection
+  // This ensures sellers embedded in products appear in the sellers list
+  async function syncSellersFromProducts(tenantId: string): Promise<number> {
+    const { loadProducts, addSeller: addSellerToDb } = await import('../dataStore')
+
+    const products = await loadProducts(tenantId)
+    const existingSellers = await loadSellers(tenantId)
+    const existingSellerIds = new Set(existingSellers.map(s => s.id))
+
+    let syncedCount = 0
+
+    // Collect unique sellers from products
+    const sellersFromProducts = new Map<string, any>()
+    for (const product of products) {
+      if (product.seller && product.seller.id && !existingSellerIds.has(product.seller.id)) {
+        if (!sellersFromProducts.has(product.seller.id)) {
+          sellersFromProducts.set(product.seller.id, product.seller)
+        }
+      }
+    }
+
+    // Add missing sellers to the sellers collection
+    for (const [sellerId, sellerData] of sellersFromProducts) {
+      try {
+        const newSeller = {
+          id: sellerId,
+          name: sellerData.name || 'Unknown',
+          avatar: sellerData.avatar || '',
+          rating: sellerData.rating || 5,
+          ratingCount: 0,
+          createdAt: new Date().toISOString(),
+          stats: {
+            totalOrders: 0,
+            successfulOrders: 0,
+            refundsCount: 0,
+            disputesCount: 0,
+            disputesLost: 0,
+            replacementsCount: 0,
+            totalRevenue: 0
+          },
+          balance: {
+            available: 0,
+            frozen: 0,
+            pendingWithdrawal: 0,
+            totalWithdrawn: 0,
+            totalEarned: 0
+          },
+          badges: ['new'] as ('new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky')[],
+          escrowDays: 3,
+          maxReplacementsPerOrder: 2,
+          isVerified: sellerData.isVerified || false,
+          isBlocked: false,
+          tenantId
+        }
+        await addSellerToDb(newSeller as any, tenantId)
+        syncedCount++
+      } catch (e) {
+        // Seller might already exist, ignore
+      }
+    }
+
+    return syncedCount
+  }
+
+  // Get all sellers (with auto-sync from products)
   fastify.get('/admin/sellers', { preHandler: adminMiddleware }, async (request) => {
     try {
-      const sellers = await loadSellers(reqTenantId(request))
+      const tenantId = reqTenantId(request)
+
+      // First, sync any missing sellers from products
+      const syncedCount = await syncSellersFromProducts(tenantId)
+      if (syncedCount > 0) {
+        console.log(`[Admin] Synced ${syncedCount} sellers from products to sellers collection`)
+      }
+
+      const sellers = await loadSellers(tenantId)
       return { success: true, sellers }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Manual sync endpoint
+  fastify.post('/admin/sellers/sync', { preHandler: adminMiddleware }, async (request) => {
+    try {
+      const tenantId = reqTenantId(request)
+      const syncedCount = await syncSellersFromProducts(tenantId)
+      return { success: true, syncedCount }
     } catch (error: any) {
       return { success: false, error: error.message }
     }

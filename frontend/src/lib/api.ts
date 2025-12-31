@@ -300,6 +300,11 @@ export const adminApi = {
     return data
   },
 
+  syncSellers: async () => {
+    const { data } = await adminApiInstance.post('/admin/sellers/sync')
+    return data
+  },
+
   createSeller: async (seller: any) => {
     const { data } = await adminApiInstance.post('/admin/sellers', seller)
     return data
