@@ -231,33 +231,44 @@ export default function ProfilePage() {
         </div>
 
         {/* Legal Links */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-8 mb-4">
+        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 mt-8 mb-4 border border-light-border dark:border-dark-border">
+          <h3 className="text-sm font-medium text-light-text dark:text-dark-text mb-3">
+            {language === 'ru' ? 'Правовая информация' : 'Legal'}
+          </h3>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <a
+              href="/legal/offer"
+              className="text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors py-1"
+            >
+              {language === 'ru' ? 'Публичная оферта' : 'Terms of Service'}
+            </a>
+            <a
+              href="/legal/privacy"
+              className="text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors py-1"
+            >
+              {language === 'ru' ? 'Конфиденциальность' : 'Privacy Policy'}
+            </a>
+            <a
+              href="/legal/refund"
+              className="text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors py-1"
+            >
+              {language === 'ru' ? 'Возврат и отмена' : 'Refund Policy'}
+            </a>
+            <a
+              href="/legal/delivery"
+              className="text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors py-1"
+            >
+              {language === 'ru' ? 'Условия доставки' : 'Delivery'}
+            </a>
+          </div>
           <a
-            href="/terms"
-            className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors"
+            href="/legal/contacts"
+            className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-light-border dark:border-dark-border text-accent-cyan text-xs"
           >
-            {language === 'ru' ? 'Условия' : 'Terms'}
-          </a>
-          <span className="text-light-text-secondary dark:text-dark-text-secondary">•</span>
-          <a
-            href="/refund-policy"
-            className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors"
-          >
-            {language === 'ru' ? 'Возвраты' : 'Refunds'}
-          </a>
-          <span className="text-light-text-secondary dark:text-dark-text-secondary">•</span>
-          <a
-            href="/about"
-            className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors"
-          >
-            {language === 'ru' ? 'О нас' : 'About'}
-          </a>
-          <span className="text-light-text-secondary dark:text-dark-text-secondary">•</span>
-          <a
-            href="/faq"
-            className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors"
-          >
-            FAQ
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            {language === 'ru' ? 'Поддержка' : 'Support'}
           </a>
         </div>
 

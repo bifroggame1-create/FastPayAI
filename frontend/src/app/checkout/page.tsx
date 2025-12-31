@@ -560,6 +560,26 @@ function CheckoutContent() {
             }
           </p>
         </div>
+
+        {/* Legal Agreement Notice */}
+        <div className="text-center text-[10px] text-light-text-secondary dark:text-dark-text-secondary mb-4">
+          <p>
+            {language === 'ru'
+              ? 'Нажимая «Оплатить», вы соглашаетесь с '
+              : 'By clicking "Pay", you agree to '}
+            <a href="/legal/offer" className="text-accent-cyan hover:underline">
+              {language === 'ru' ? 'Публичной офертой' : 'Terms of Service'}
+            </a>
+            {language === 'ru' ? ', ' : ', '}
+            <a href="/legal/privacy" className="text-accent-cyan hover:underline">
+              {language === 'ru' ? 'Политикой конфиденциальности' : 'Privacy Policy'}
+            </a>
+            {language === 'ru' ? ' и ' : ' and '}
+            <a href="/legal/refund" className="text-accent-cyan hover:underline">
+              {language === 'ru' ? 'Условиями возврата' : 'Refund Policy'}
+            </a>
+          </p>
+        </div>
       </div>
 
       {/* Sticky Checkout Footer */}
