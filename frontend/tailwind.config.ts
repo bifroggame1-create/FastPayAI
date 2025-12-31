@@ -28,6 +28,25 @@ const config: Config = {
         'accent-blue': '#3b82f6',    // Vibrant blue
         'accent-cyan': '#06b6d4',    // Cyan accent
       },
+      animation: {
+        'wiggle': 'wiggle 1s ease-in-out infinite',
+        'float': 'float 3s ease-in-out infinite',
+        'glow': 'glow 2s ease-in-out infinite',
+      },
+      keyframes: {
+        wiggle: {
+          '0%, 100%': { transform: 'rotate(-3deg)' },
+          '50%': { transform: 'rotate(3deg)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-5px)' },
+        },
+        glow: {
+          '0%, 100%': { filter: 'brightness(1)' },
+          '50%': { filter: 'brightness(1.2)' },
+        },
+      },
     },
   },
   plugins: [],

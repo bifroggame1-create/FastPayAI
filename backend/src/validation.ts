@@ -167,12 +167,17 @@ export const updatePromoSchema = createPromoSchema.partial()
 // Seller schemas
 // ============================================
 
+export const sellerBadgeSchema = z.enum(['new', 'trusted', 'verified', 'top_seller', 'high_volume', 'risky'])
+
 export const createSellerSchema = z.object({
   id: z.string().min(1).max(50),
   name: z.string().min(1).max(100),
   avatar: z.string().max(500000).optional(), // Allow base64 avatars
   rating: z.number().min(0).max(5).optional(),
   isVerified: z.boolean().optional(),
+  isBlocked: z.boolean().optional(),
+  blockReason: z.string().max(500).optional(),
+  badges: z.array(sellerBadgeSchema).optional(),
   joinedAt: z.string().optional()
 })
 

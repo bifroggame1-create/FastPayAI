@@ -247,11 +247,23 @@ export default function AdminPage() {
     try {
       const existingSeller = sellers.find(s => s.id === seller.id)
       if (existingSeller) {
-        await adminApi.updateSeller(seller.id, seller)
-        setSellers(sellers.map(s => s.id === seller.id ? seller : s))
+        const result = await adminApi.updateSeller(seller.id, seller)
+        if (result.success) {
+          // Reload sellers to get updated data from backend
+          const sellersData = await adminApi.getSellers()
+          setSellers(sellersData?.sellers || [])
+        } else {
+          throw new Error(result.error || 'Update failed')
+        }
       } else {
         const result = await adminApi.createSeller(seller)
-        setSellers([...sellers, result.seller || { ...seller, id: seller.id || String(Date.now()) }])
+        if (result.success) {
+          // Reload sellers to get the new seller with proper data
+          const sellersData = await adminApi.getSellers()
+          setSellers(sellersData?.sellers || [])
+        } else {
+          throw new Error(result.error || 'Create failed')
+        }
       }
       setEditingSeller(null)
       alert('Продавец сохранён')
@@ -261,7 +273,7 @@ export default function AdminPage() {
     } catch (error: any) {
       console.error('Error saving seller:', error)
       const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || 'Ошибка сохранения продавца'
-      alert(errorMsg)
+      alert('Ошибка: ' + errorMsg)
     }
   }
 

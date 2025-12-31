@@ -508,10 +508,12 @@ export async function adminRoutes(fastify: FastifyInstance) {
         return { success: false, error: 'Seller not found' }
       }
       // Also update seller info in products
-      for (const p of fastify.products) {
-        if (p.seller.id === id) {
-          p.seller = { ...p.seller, ...updates }
-          await updateProduct(p._id, { seller: p.seller }, reqTenantId(request))
+      const { loadProducts } = await import('../dataStore')
+      const products = await loadProducts(reqTenantId(request))
+      for (const p of products) {
+        if (p.seller && p.seller.id === id && p._id) {
+          const updatedProductSeller = { ...p.seller, ...updates }
+          await updateProduct(String(p._id), { seller: updatedProductSeller }, reqTenantId(request))
         }
       }
 
