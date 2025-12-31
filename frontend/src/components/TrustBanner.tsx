@@ -1,6 +1,7 @@
 'use client'
 
 import { useAppStore } from '@/lib/store'
+import { LightningFast, ShieldCheck, Cashback, RocketBoost } from './Icons'
 
 const content = {
   ru: {
@@ -8,8 +9,8 @@ const content = {
     features: [
       { icon: 'lightning', text: 'Мгновенная доставка' },
       { icon: 'shield', text: 'Escrow защита' },
-      { icon: 'refresh', text: 'Возврат денег' },
-      { icon: 'store', text: 'Открой свой магазин' }
+      { icon: 'cashback', text: 'Возврат денег' },
+      { icon: 'rocket', text: 'Открой свой магазин' }
     ],
     stats: {
       orders: '10K+ покупок',
@@ -21,8 +22,8 @@ const content = {
     features: [
       { icon: 'lightning', text: 'Instant delivery' },
       { icon: 'shield', text: 'Escrow protection' },
-      { icon: 'refresh', text: 'Money back' },
-      { icon: 'store', text: 'Open your store' }
+      { icon: 'cashback', text: 'Money back' },
+      { icon: 'rocket', text: 'Open your store' }
     ],
     stats: {
       orders: '10K+ orders',
@@ -32,26 +33,10 @@ const content = {
 }
 
 const icons = {
-  lightning: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-    </svg>
-  ),
-  shield: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-  ),
-  refresh: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-    </svg>
-  ),
-  store: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-    </svg>
-  )
+  lightning: <LightningFast className="w-4 h-4" />,
+  shield: <ShieldCheck className="w-4 h-4" />,
+  cashback: <Cashback className="w-4 h-4" />,
+  rocket: <RocketBoost className="w-4 h-4" />
 }
 
 export default function TrustBanner() {
@@ -70,7 +55,7 @@ export default function TrustBanner() {
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs max-w-xs mx-auto">
           {t.features.map((feature, i) => (
             <div key={i} className="flex items-center gap-1.5 text-light-text-secondary dark:text-dark-text-secondary">
-              <span className="text-accent-cyan">
+              <span className="flex-shrink-0">
                 {icons[feature.icon as keyof typeof icons]}
               </span>
               <span>{feature.text}</span>
@@ -86,21 +71,24 @@ export default function TrustBanner() {
 export function TrustBadge({ type, size = 'sm' }: { type: 'escrow' | 'instant' | 'guarantee'; size?: 'sm' | 'md' }) {
   const { language } = useAppStore()
 
+  const badgeIcons = {
+    escrow: <ShieldCheck className={size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'} />,
+    instant: <LightningFast className={size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'} />,
+    guarantee: <Cashback className={size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+  }
+
   const badges = {
     escrow: {
-      icon: icons.shield,
       text: { ru: 'Escrow', en: 'Escrow' },
-      color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30'
+      color: 'bg-green-50 dark:bg-green-900/30'
     },
     instant: {
-      icon: icons.lightning,
       text: { ru: 'Мгновенно', en: 'Instant' },
-      color: 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/30'
+      color: 'bg-yellow-50 dark:bg-yellow-900/30'
     },
     guarantee: {
-      icon: icons.refresh,
       text: { ru: 'Гарантия', en: 'Guarantee' },
-      color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
+      color: 'bg-blue-50 dark:bg-blue-900/30'
     }
   }
 
@@ -108,8 +96,8 @@ export function TrustBadge({ type, size = 'sm' }: { type: 'escrow' | 'instant' |
   const sizeClasses = size === 'sm' ? 'px-1.5 py-0.5 text-xs gap-1' : 'px-2 py-1 text-sm gap-1.5'
 
   return (
-    <span className={`inline-flex items-center rounded-full font-medium ${badge.color} ${sizeClasses}`}>
-      {badge.icon}
+    <span className={`inline-flex items-center rounded-full font-medium text-light-text dark:text-dark-text ${badge.color} ${sizeClasses}`}>
+      {badgeIcons[type]}
       <span>{badge.text[language]}</span>
     </span>
   )
