@@ -19,6 +19,7 @@ import { registerSwagger } from './swagger'
 import { registerWebSocket } from './websocket'
 import { initExchangeRates } from './cryptoConverter'
 import { initEmail } from './email'
+import { registerTenantPlugin } from './tenant'
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
@@ -37,6 +38,7 @@ console.log('Environment:')
 console.log('  PORT:', process.env.PORT || '3001')
 console.log('  HOST:', process.env.HOST || '0.0.0.0')
 console.log('  FRONTEND_URL:', process.env.FRONTEND_URL || 'not set')
+console.log('  DEFAULT_TENANT_ID:', process.env.DEFAULT_TENANT_ID || 'fastpay')
 console.log('  MONGODB_URI:', process.env.MONGODB_URI ? '✅ Set' : '❌ Not set')
 console.log('  REDIS_URL:', process.env.REDIS_URL ? '✅ Set' : '⚠️ Not set (caching disabled)')
 console.log('  CRYPTOBOT_TOKEN:', process.env.CRYPTOBOT_TOKEN ? '✅ Set' : '❌ Not set')
@@ -130,7 +132,7 @@ async function start() {
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Admin-Id']
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Admin-Id', 'X-Tenant-ID', 'X-User-ID']
     })
 
     // Security headers
@@ -156,6 +158,9 @@ async function start() {
 
     // Register WebSocket for real-time chat
     await registerWebSocket(fastify)
+
+    // Register tenant middleware for multi-tenant support
+    await registerTenantPlugin(fastify)
 
     // Register all routes
     await registerRoutes(fastify)

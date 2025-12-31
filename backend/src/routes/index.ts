@@ -14,9 +14,25 @@ import { notificationRoutes } from './notifications'
 import { tagsRoutes } from './tags'
 import { fileRoutes } from './files'
 import { marketplaceRoutes } from './marketplace'
+import platformRoutes from './platform'
+import billingRoutes from './billing'
+import { tenantRoutes } from './tenant'
+import { registerBotWebhookRoutes } from '../botWebhookHandler'
 
 export async function registerRoutes(fastify: FastifyInstance) {
-  // Register all route modules
+  // Register platform routes (super admin - no tenant middleware)
+  await fastify.register(platformRoutes, { prefix: '/platform' })
+
+  // Register billing routes (tenant-scoped)
+  await fastify.register(billingRoutes)
+
+  // Register tenant info routes
+  await fastify.register(tenantRoutes)
+
+  // Register bot webhook routes (multi-tenant bots)
+  await registerBotWebhookRoutes(fastify)
+
+  // Register all other route modules
   await fastify.register(authRoutes)
   await fastify.register(productRoutes)
   await fastify.register(adminRoutes)
@@ -33,7 +49,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(fileRoutes)
   await fastify.register(marketplaceRoutes)
 
-  console.log('All routes registered')
+  console.log('All routes registered (multi-tenant enabled)')
 }
 
 export {
@@ -51,5 +67,8 @@ export {
   notificationRoutes,
   tagsRoutes,
   fileRoutes,
-  marketplaceRoutes
+  marketplaceRoutes,
+  platformRoutes,
+  billingRoutes,
+  tenantRoutes
 }
