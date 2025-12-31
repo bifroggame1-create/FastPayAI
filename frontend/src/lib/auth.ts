@@ -4,6 +4,7 @@
  */
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
+const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'fastpay'
 
 // Debug logging (disabled in production)
 const DEBUG = process.env.NODE_ENV === 'development'
@@ -203,7 +204,10 @@ export async function authenticate(): Promise<boolean> {
     // Call backend
     const response = await fetch(`${API_URL}/auth/telegram`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant-ID': TENANT_ID
+      },
       body: JSON.stringify({ initData })
     })
 
@@ -241,7 +245,10 @@ export async function verifyToken(): Promise<boolean> {
 
   try {
     const response = await fetch(`${API_URL}/auth/verify`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-Tenant-ID': TENANT_ID
+      }
     })
 
     const data = await response.json()
@@ -280,7 +287,8 @@ async function refreshAdminStatus(): Promise<boolean> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'X-Tenant-ID': TENANT_ID
       }
     })
     const data = await response.json()
