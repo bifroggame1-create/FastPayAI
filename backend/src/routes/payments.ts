@@ -6,7 +6,7 @@ const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
 
 // Helper to get tenant ID from request with fallback
 function reqTenantId(request: FastifyRequest): string {
-  return reqTenantId(request) || DEFAULT_TENANT_ID
+  return request.tenantId || DEFAULT_TENANT_ID
 }
 import { cactusPay, PaymentMethod } from '../cactuspay'
 import { validateBody, createCryptoInvoiceSchema, createCactusPaymentSchema, cancelPaymentSchema } from '../validation'
