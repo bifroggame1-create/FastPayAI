@@ -152,7 +152,7 @@ export default function AnimatedTreeLogo() {
         .tonplay-logo {
           position: relative;
           width: 30px;
-          height: 46px;
+          height: 40px;
         }
 
         .tonplay-logo :global(svg) {
@@ -169,19 +169,19 @@ export default function AnimatedTreeLogo() {
         }
 
         .tp-top {
-          top: 12px;
+          top: 6px;
           transform-origin: center top;
           animation: swing 2.4s ease-in-out infinite;
         }
 
         .tp-mid {
-          top: 24px;
+          top: 14px;
           transform-origin: center top;
           animation: swing 2.4s ease-in-out 0.2s infinite;
         }
 
         .tp-bottom {
-          top: 36px;
+          top: 24px;
         }
 
         @keyframes swing {
