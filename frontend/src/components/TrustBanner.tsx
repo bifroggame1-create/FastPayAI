@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppStore } from '@/lib/store'
-import { LightningFast, ShieldCheck, Cashback, RocketBoost } from './Icons'
+import { LightningFast, ShieldCheck, RefundMoney, StoreFront } from './Icons'
 
 const content = {
   ru: {
@@ -9,8 +9,8 @@ const content = {
     features: [
       { icon: 'lightning', text: 'Мгновенная доставка' },
       { icon: 'shield', text: 'Escrow защита' },
-      { icon: 'cashback', text: 'Возврат денег' },
-      { icon: 'rocket', text: 'Открой свой магазин' }
+      { icon: 'refund', text: 'Возврат денег' },
+      { icon: 'store', text: 'Открой свой магазин' }
     ],
     stats: {
       orders: '10K+ покупок',
@@ -22,8 +22,8 @@ const content = {
     features: [
       { icon: 'lightning', text: 'Instant delivery' },
       { icon: 'shield', text: 'Escrow protection' },
-      { icon: 'cashback', text: 'Money back' },
-      { icon: 'rocket', text: 'Open your store' }
+      { icon: 'refund', text: 'Money back' },
+      { icon: 'store', text: 'Open your store' }
     ],
     stats: {
       orders: '10K+ orders',
@@ -35,8 +35,8 @@ const content = {
 const icons = {
   lightning: <LightningFast className="w-5 h-5" />,
   shield: <ShieldCheck className="w-5 h-5" />,
-  cashback: <Cashback className="w-5 h-5" />,
-  rocket: <RocketBoost className="w-5 h-5" />
+  refund: <RefundMoney className="w-5 h-5" />,
+  store: <StoreFront className="w-5 h-5" />
 }
 
 export default function TrustBanner() {

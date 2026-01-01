@@ -290,9 +290,27 @@ export const HeartFilled = ({ className = "w-5 h-5" }: { className?: string }) =
 export const Cashback = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="10" fill="#10B981" />
-    <path d="M12 6V8M12 16V18M8 12H7M17 12H16" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-    <circle cx="12" cy="12" r="3" stroke="white" strokeWidth="1.5" />
-    <path d="M9 9L6 6M15 9L18 6M9 15L6 18M15 15L18 18" stroke="white" strokeWidth="1" strokeLinecap="round" />
+    <path d="M8 12h8M12 8v8" stroke="white" strokeWidth="2" strokeLinecap="round" />
+    <path d="M16 8l-8 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.5" />
+  </svg>
+)
+
+// Refund/Money Back icon
+export const RefundMoney = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="10" fill="#06B6D4" />
+    <path d="M8 12L11 9L11 11L16 11L16 13L11 13L11 15L8 12Z" fill="white" />
+    <text x="14" y="16" fontSize="6" fill="white" fontWeight="bold">₽</text>
+  </svg>
+)
+
+// Store/Shop icon
+export const StoreFront = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <path d="M4 7L2 12H22L20 7H4Z" fill="#8B5CF6" />
+    <path d="M2 12V20C2 21 3 22 4 22H20C21 22 22 21 22 20V12" stroke="#8B5CF6" strokeWidth="2" />
+    <rect x="8" y="14" width="8" height="8" rx="1" fill="#A78BFA" />
+    <path d="M5 7V4C5 3 6 2 7 2H17C18 2 19 3 19 4V7" stroke="#8B5CF6" strokeWidth="2" />
   </svg>
 )
 
@@ -344,6 +362,8 @@ export const Icons = {
   Sparkle,
   HeartFilled,
   Cashback,
+  RefundMoney,
+  StoreFront,
   DiscountTag,
 }
 
