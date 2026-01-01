@@ -686,7 +686,15 @@ export default function AdminPage() {
         <header className="h-14 bg-[#0f1117] border-b border-[#1e2028] flex items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-2 md:gap-4">
             <button
-              onClick={() => { setMobileMenuOpen(!mobileMenuOpen); setSidebarCollapsed(!sidebarCollapsed) }}
+              onClick={() => {
+                // Mobile: toggle mobile menu, Desktop: toggle sidebar collapse
+                const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+                if (isMobile) {
+                  setMobileMenuOpen(prev => !prev)
+                } else {
+                  setSidebarCollapsed(prev => !prev)
+                }
+              }}
               className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-[#1a1d27] transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
