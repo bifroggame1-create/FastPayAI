@@ -17,6 +17,44 @@ interface CreateInvoiceParams {
   expires_in?: number // Invoice expiration time in seconds (1-2678400)
 }
 
+interface CreateCheckParams {
+  asset: string // Currency code (USDT, TON, BTC, etc.)
+  amount: string | number // Amount in float
+  pin_to_user_id?: number // Telegram user ID who can activate
+  pin_to_username?: string // Username who can activate
+}
+
+interface Check {
+  check_id: number
+  hash: string
+  asset: string
+  amount: string
+  bot_check_url: string
+  status: 'active' | 'activated'
+  created_at: string
+  activated_at?: string
+}
+
+interface TransferParams {
+  user_id: number // Recipient Telegram ID
+  asset: string // Currency code
+  amount: string | number // Amount in float
+  spend_id: string // Unique identifier for idempotency (max 64 chars)
+  comment?: string // Optional comment (max 1024 chars)
+  disable_send_notification?: boolean
+}
+
+interface Transfer {
+  transfer_id: number
+  spend_id: string
+  user_id: number
+  asset: string
+  amount: string
+  status: 'completed'
+  completed_at: string
+  comment?: string
+}
+
 interface Invoice {
   invoice_id: number
   hash: string
@@ -150,6 +188,71 @@ export class CryptoBotAPI {
 
   async getCurrencies(): Promise<any> {
     return this.makeRequest('GET', '/getCurrencies')
+  }
+
+  // ============================================
+  // CHECK METHODS
+  // ============================================
+
+  /**
+   * Create a check that users can activate to receive crypto
+   */
+  async createCheck(params: CreateCheckParams): Promise<Check> {
+    const requestParams = {
+      ...params,
+      amount: String(params.amount),
+    }
+    return this.makeRequest('POST', '/createCheck', requestParams)
+  }
+
+  /**
+   * Get list of checks
+   */
+  async getChecks(params?: {
+    asset?: string
+    check_ids?: string
+    status?: 'active' | 'activated'
+    offset?: number
+    count?: number
+  }): Promise<{ items: Check[] }> {
+    const queryParams = new URLSearchParams(params as any).toString()
+    return this.makeRequest('GET', `/getChecks?${queryParams}`)
+  }
+
+  /**
+   * Delete a check by ID
+   */
+  async deleteCheck(checkId: number): Promise<boolean> {
+    return this.makeRequest('POST', '/deleteCheck', { check_id: checkId })
+  }
+
+  // ============================================
+  // TRANSFER METHODS
+  // ============================================
+
+  /**
+   * Send crypto from app balance to a Telegram user
+   * Note: Must be enabled in CryptoBot app security settings
+   */
+  async transfer(params: TransferParams): Promise<Transfer> {
+    const requestParams = {
+      ...params,
+      amount: String(params.amount),
+    }
+    return this.makeRequest('POST', '/transfer', requestParams)
+  }
+
+  /**
+   * Get list of completed transfers
+   */
+  async getTransfers(params?: {
+    asset?: string
+    transfer_ids?: string
+    offset?: number
+    count?: number
+  }): Promise<{ items: Transfer[] }> {
+    const queryParams = new URLSearchParams(params as any).toString()
+    return this.makeRequest('GET', `/getTransfers?${queryParams}`)
   }
 
   isConfigured(): boolean {

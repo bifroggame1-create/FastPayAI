@@ -379,6 +379,101 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   })
 
   // ============================================
+  // CRYPTOBOT CHECKS
+  // ============================================
+
+  // Create a crypto check (gift link)
+  fastify.post('/payment/create-check', async (request, reply) => {
+    try {
+      const { asset, amount, pin_to_user_id, pin_to_username } = request.body as any
+
+      if (!asset || !amount) {
+        reply.code(400)
+        return { success: false, error: 'asset and amount are required' }
+      }
+
+      const check = await cryptoBot.createCheck({
+        asset,
+        amount,
+        pin_to_user_id,
+        pin_to_username
+      })
+
+      return { success: true, check }
+    } catch (error: any) {
+      console.error('Create check error:', error)
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get checks list
+  fastify.get('/payment/checks', async (request, reply) => {
+    try {
+      const { asset, status } = request.query as any
+      const checks = await cryptoBot.getChecks({ asset, status })
+      return { success: true, checks: checks.items || [] }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Delete a check
+  fastify.delete('/payment/check/:checkId', async (request, reply) => {
+    try {
+      const { checkId } = request.params as any
+      await cryptoBot.deleteCheck(Number(checkId))
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // CRYPTOBOT TRANSFERS
+  // ============================================
+
+  // Transfer crypto to a user
+  fastify.post('/payment/transfer', async (request, reply) => {
+    try {
+      const { user_id, asset, amount, spend_id, comment } = request.body as any
+
+      if (!user_id || !asset || !amount || !spend_id) {
+        reply.code(400)
+        return { success: false, error: 'user_id, asset, amount, and spend_id are required' }
+      }
+
+      const transfer = await cryptoBot.transfer({
+        user_id: Number(user_id),
+        asset,
+        amount,
+        spend_id,
+        comment
+      })
+
+      return { success: true, transfer }
+    } catch (error: any) {
+      console.error('Transfer error:', error)
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get transfers list
+  fastify.get('/payment/transfers', async (request, reply) => {
+    try {
+      const { asset } = request.query as any
+      const transfers = await cryptoBot.getTransfers({ asset })
+      return { success: true, transfers: transfers.items || [] }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
   // CACTUSPAY PAYMENTS
   // ============================================
 
