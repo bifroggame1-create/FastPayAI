@@ -209,23 +209,127 @@ async function handlePreCheckoutQuery(tenant: Tenant, query: any, log: any): Pro
     totalAmount: query.total_amount
   }, 'Handling pre-checkout query')
 
-  // Always approve for now (add validation logic as needed)
-  await answerPreCheckoutQuery(tenant, query.id, true)
+  try {
+    // Parse payload to validate order
+    const payload = JSON.parse(query.invoice_payload || '{}')
+
+    if (payload.orderId) {
+      const { getOrderById } = await import('./dataStore')
+      const order = await getOrderById(payload.orderId)
+
+      if (!order) {
+        log.warn({ orderId: payload.orderId }, 'Order not found for pre-checkout')
+        await answerPreCheckoutQuery(tenant, query.id, false, 'Заказ не найден')
+        return
+      }
+
+      if (order.status !== 'pending') {
+        log.warn({ orderId: payload.orderId, status: order.status }, 'Order already processed')
+        await answerPreCheckoutQuery(tenant, query.id, false, 'Заказ уже обработан')
+        return
+      }
+    }
+
+    // Approve the checkout
+    await answerPreCheckoutQuery(tenant, query.id, true)
+  } catch (error) {
+    log.error({ error, queryId: query.id }, 'Error in pre-checkout validation')
+    await answerPreCheckoutQuery(tenant, query.id, false, 'Ошибка обработки заказа')
+  }
 }
 
 async function handleSuccessfulPayment(tenant: Tenant, message: any, log: any): Promise<void> {
   const payment = message.successful_payment
+  const chatId = message.chat.id
 
   log.info({
     tenantId: tenant.id,
     userId: message.from.id,
     totalAmount: payment.total_amount,
     currency: payment.currency,
+    chargeId: payment.telegram_payment_charge_id,
     invoicePayload: payment.invoice_payload
   }, 'Successful payment received')
 
-  // Process the payment (create order, etc.)
-  // This would integrate with the existing order system
+  try {
+    // Parse payload
+    const payload = JSON.parse(payment.invoice_payload || '{}')
+
+    if (!payload.orderId) {
+      log.warn('No orderId in payment payload')
+      return
+    }
+
+    const { getOrderById, updateOrder, incrementPromoUsage } = await import('./dataStore')
+    const { processAutoDelivery } = await import('./delivery')
+    const { onOrderPaid, onOrderDelivered } = await import('./marketplace')
+
+    // Get order
+    const order = await getOrderById(payload.orderId)
+
+    if (!order) {
+      log.warn({ orderId: payload.orderId }, 'Order not found for successful payment')
+      return
+    }
+
+    // Check if already processed
+    if (order.status === 'paid' || order.status === 'delivered') {
+      log.info({ orderId: order.id, status: order.status }, 'Order already processed')
+      return
+    }
+
+    // Update order to paid
+    const updatedOrder = await updateOrder(order.id, {
+      status: 'paid',
+      paidAt: new Date().toISOString(),
+      paymentId: payment.telegram_payment_charge_id,
+    })
+
+    if (!updatedOrder) {
+      log.error({ orderId: order.id }, 'Failed to update order status')
+      return
+    }
+
+    log.info({ orderId: order.id }, 'Telegram Stars order marked as paid')
+
+    // Create escrow transaction
+    try {
+      await onOrderPaid(order.id)
+    } catch (escrowError) {
+      log.warn({ orderId: order.id, error: escrowError }, 'Failed to create escrow transaction')
+    }
+
+    // Increment promo code usage
+    if (updatedOrder.promoCode) {
+      try {
+        await incrementPromoUsage(updatedOrder.promoCode)
+      } catch (promoError) {
+        log.warn({ orderId: order.id, error: promoError }, 'Failed to increment promo usage')
+      }
+    }
+
+    // Process auto-delivery
+    const deliveryResult = await processAutoDelivery(updatedOrder)
+
+    if (deliveryResult.success) {
+      log.info({ orderId: order.id }, 'Auto-delivery successful')
+
+      try {
+        await onOrderDelivered(order.id)
+      } catch (statsError) {
+        log.warn({ orderId: order.id, error: statsError }, 'Failed to update seller stats')
+      }
+
+      // Send delivery message to user
+      await sendMessage(tenant, chatId, `✅ Оплата получена!\n\n📦 Ваш товар:\n${deliveryResult.deliveryData || 'Проверьте раздел "Мои заказы"'}`)
+    } else {
+      // Send confirmation message
+      await sendMessage(tenant, chatId, `✅ Оплата получена!\n\nВаш заказ #${order.id} обрабатывается. Товар будет доставлен в ближайшее время.`)
+    }
+
+  } catch (error) {
+    log.error({ error }, 'Error processing successful payment')
+  }
 }
 
 async function sendWelcomeMessage(tenant: Tenant, chatId: number | string, userName: string): Promise<void> {
