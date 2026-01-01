@@ -376,7 +376,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // Sync sellers from products to sellers collection
   // This ensures sellers embedded in products appear in the sellers list
   async function syncSellersFromProducts(tenantId: string): Promise<number> {
-    const { loadProducts, addSeller: addSellerToDb } = await import('../dataStore')
+    const { loadProducts } = await import('../dataStore')
+    const { getSellersCollection } = await import('../database')
 
     const products = await loadProducts(tenantId)
     const existingSellers = await loadSellers(tenantId)
@@ -394,10 +395,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
     }
 
-    // Add missing sellers to the sellers collection
+    // Add or update missing sellers using upsert
+    const collection = getSellersCollection()
     for (const [sellerId, sellerData] of sellersFromProducts) {
       try {
-        const newSeller = {
+        const sellerDoc = {
           id: sellerId,
           name: sellerData.name || 'Unknown',
           avatar: sellerData.avatar || '',
@@ -427,10 +429,20 @@ export async function adminRoutes(fastify: FastifyInstance) {
           isBlocked: false,
           tenantId
         }
-        await addSellerToDb(newSeller as any, tenantId)
-        syncedCount++
-      } catch (e) {
-        // Seller might already exist, ignore
+        // Use upsert to handle sellers with wrong/missing tenantId
+        const result = await collection.updateOne(
+          { id: sellerId },
+          {
+            $set: { tenantId, name: sellerDoc.name, avatar: sellerDoc.avatar },
+            $setOnInsert: sellerDoc
+          },
+          { upsert: true }
+        )
+        if (result.upsertedCount > 0 || result.modifiedCount > 0) {
+          syncedCount++
+        }
+      } catch (e: any) {
+        console.error(`Error syncing seller ${sellerId}:`, e.message)
       }
     }
 
