@@ -275,6 +275,23 @@ export const paymentApi = {
     const { data } = await api.post('/payment/cactuspay/cancel', { orderId })
     return data
   },
+
+  // XRocket payments
+  createXRocketInvoice: async (params: {
+    amount: number
+    currency?: string
+    description?: string
+    productId: string
+    variantId?: string
+  }) => {
+    const { data } = await api.post('/payment/xrocket/create-invoice', params)
+    return data
+  },
+
+  getXRocketInvoice: async (invoiceId: number) => {
+    const { data } = await api.get(`/payment/xrocket/invoice/${invoiceId}`)
+    return data
+  },
 }
 
 export const adminApi = {

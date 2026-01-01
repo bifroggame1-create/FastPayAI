@@ -35,7 +35,7 @@ function CheckoutContent() {
   const [discount, setDiscount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<'cryptobot' | 'cactuspay-sbp' | 'cactuspay-card'>('cryptobot')
+  const [paymentMethod, setPaymentMethod] = useState<'cryptobot' | 'xrocket' | 'cactuspay-sbp' | 'cactuspay-card'>('cryptobot')
   const [selectedCrypto, setSelectedCrypto] = useState<'TON' | 'USDT'>('TON')
   const [showPromo, setShowPromo] = useState(false)
 
@@ -186,6 +186,43 @@ function CheckoutContent() {
       } finally {
         setProcessing(false)
       }
+    } else if (paymentMethod === 'xrocket') {
+      // XRocket payment
+      try {
+        setProcessing(true)
+
+        const invoiceParams = {
+          amount: finalPrice,
+          currency: selectedCrypto === 'TON' ? 'TONCOIN' : 'USDT',
+          description: getDescription(),
+          productId: checkoutItems[0].productId,
+          variantId: checkoutItems[0].variantId,
+          items: checkoutItems.length > 1 ? checkoutItems : undefined,
+        }
+
+        console.log('[FastPay] Creating XRocket invoice:', invoiceParams)
+
+        const response = await paymentApi.createXRocketInvoice(invoiceParams)
+
+        console.log('[FastPay] XRocket response:', response)
+
+        if (response.success && response.invoice) {
+          openPaymentUrl(response.invoice.payUrl)
+        } else {
+          const errorMsg = response.error || 'Неизвестная ошибка'
+          alert('Ошибка создания платежа:\n' + errorMsg)
+        }
+      } catch (error: any) {
+        console.error('XRocket checkout error:', error)
+        const errorTitle = language === 'ru' ? 'Оплата не прошла' : 'Payment failed'
+        const errorHelp = language === 'ru'
+          ? '\n\nЧаще всего помогает:\n— другая криптовалюта\n— повтор через 1 минуту'
+          : '\n\nUsually helps:\n— different crypto\n— retry in 1 minute'
+
+        alert(errorTitle + errorHelp)
+      } finally {
+        setProcessing(false)
+      }
     } else if (paymentMethod === 'cactuspay-sbp' || paymentMethod === 'cactuspay-card') {
       // CactusPay payment (SBP or Card)
       try {
@@ -247,10 +284,12 @@ function CheckoutContent() {
 
   const discountedPrice = itemsTotal - discount
 
-  // Add 5% markup for CryptoBot payments (no markup for CactusPay)
+  // Add markup for crypto payments (CryptoBot 5%, XRocket 2%, no markup for CactusPay)
   const cryptoBotMarkup = paymentMethod === 'cryptobot' ? discountedPrice * 0.05 : 0
-  const finalPrice = discountedPrice + cryptoBotMarkup
+  const xRocketMarkup = paymentMethod === 'xrocket' ? discountedPrice * 0.02 : 0
+  const finalPrice = discountedPrice + cryptoBotMarkup + xRocketMarkup
   const isCactusPay = paymentMethod.startsWith('cactuspay')
+  const isCryptoPayment = paymentMethod === 'cryptobot' || paymentMethod === 'xrocket'
 
   const bonusToUse = Math.min(user?.bonusBalance || 0, finalPrice * 0.3) // Можно использовать до 30% от суммы
 
@@ -296,7 +335,7 @@ function CheckoutContent() {
                       </span>
                     )}
                   </div>
-                  {paymentMethod === 'cryptobot' && (
+                  {isCryptoPayment && (
                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                       ≈ {formatCryptoAmount(item.price * item.quantity, selectedCrypto)}
                     </p>
@@ -433,6 +472,67 @@ function CheckoutContent() {
                 </div>
               </div>
             )}
+
+            {/* XRocket */}
+            <button
+              onClick={() => setPaymentMethod('xrocket')}
+              className={`w-full p-4 transition-all text-left border-t border-light-border dark:border-dark-border ${
+                paymentMethod === 'xrocket'
+                  ? 'bg-accent-cyan/10'
+                  : ''
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 flex items-center justify-center rounded-xl overflow-hidden ${paymentMethod === 'xrocket' ? 'ring-2 ring-accent-cyan' : ''}`}>
+                  <img
+                    src="/xrocket.jpg"
+                    alt="xRocket"
+                    className="w-10 h-10 object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-light-text dark:text-dark-text">xRocket</p>
+                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                    Криптокошелек в Telegram
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-600 dark:text-green-400 rounded-full">+2%</span>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'xrocket' ? 'border-accent-cyan bg-accent-cyan' : 'border-light-border dark:border-dark-border'}`}>
+                    {paymentMethod === 'xrocket' && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {paymentMethod === 'xrocket' && (
+              <div className="px-4 pb-4 pt-2 border-t border-light-border dark:border-dark-border">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedCrypto('TON')}
+                    className={`flex-1 px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 ${
+                      selectedCrypto === 'TON'
+                        ? 'bg-accent-cyan text-white font-semibold'
+                        : 'bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text'
+                    }`}
+                  >
+                    <img src="/payment-icons/ton.svg" alt="TON" className="w-5 h-5" />
+                    TON
+                  </button>
+                  <button
+                    onClick={() => setSelectedCrypto('USDT')}
+                    className={`flex-1 px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 ${
+                      selectedCrypto === 'USDT'
+                        ? 'bg-accent-cyan text-white font-semibold'
+                        : 'bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text'
+                    }`}
+                  >
+                    <img src="/payment-icons/usdt.svg" alt="USDT" className="w-5 h-5" />
+                    USDT
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Fiat Section */}
@@ -517,6 +617,12 @@ function CheckoutContent() {
                 <span>+{formatPrice(cryptoBotMarkup, currency)}</span>
               </div>
             )}
+            {paymentMethod === 'xrocket' && xRocketMarkup > 0 && (
+              <div className="flex justify-between text-orange-500">
+                <span>Комиссия xRocket +2%</span>
+                <span>+{formatPrice(xRocketMarkup, currency)}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -592,7 +698,7 @@ function CheckoutContent() {
             </div>
             <div className="text-xl font-bold text-accent-cyan">
               {formatPrice(finalPrice, currency)}
-              {paymentMethod === 'cryptobot' && (
+              {isCryptoPayment && (
                 <span className="text-sm font-normal text-light-text-secondary dark:text-dark-text-secondary ml-1">
                   ≈ {formatCryptoAmount(finalPrice, selectedCrypto)}
                 </span>
