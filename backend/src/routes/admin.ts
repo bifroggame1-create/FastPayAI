@@ -478,6 +478,25 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   })
 
+  // Fix sellers tenantId - updates all sellers without correct tenantId
+  fastify.post('/admin/sellers/fix-tenant', { preHandler: adminMiddleware }, async (request) => {
+    try {
+      const tenantId = reqTenantId(request)
+      const { getSellersCollection } = await import('../database')
+      const collection = getSellersCollection()
+
+      // Update all sellers that don't have the correct tenantId
+      const result = await collection.updateMany(
+        { $or: [{ tenantId: { $ne: tenantId } }, { tenantId: { $exists: false } }] },
+        { $set: { tenantId } }
+      )
+
+      return { success: true, modifiedCount: result.modifiedCount }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
   // Create seller
   fastify.post('/admin/sellers', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
