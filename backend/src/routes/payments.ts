@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest } from 'fastify'
 import { cryptoBot } from '../cryptobot'
+import { xRocket } from '../xrocket'
 
 // Default tenant ID for fallback
 const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
@@ -467,6 +468,399 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       const { asset } = request.query as any
       const transfers = await cryptoBot.getTransfers({ asset })
       return { success: true, transfers: transfers.items || [] }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // XROCKET PAYMENTS
+  // ============================================
+
+  // Test XRocket connection
+  fastify.get('/payment/test-xrocket', async (request, reply) => {
+    try {
+      const tokenInfo = xRocket.getTokenInfo()
+      console.log('Testing XRocket connection:', tokenInfo)
+
+      if (!tokenInfo.configured) {
+        return {
+          success: false,
+          error: 'XRocket token not configured',
+          tokenInfo
+        }
+      }
+
+      const result = await xRocket.getAppInfo()
+      return {
+        success: true,
+        data: result,
+        tokenInfo
+      }
+    } catch (error: any) {
+      console.error('XRocket test error:', error)
+      reply.code(500)
+      return {
+        success: false,
+        error: error.message,
+        tokenInfo: xRocket.getTokenInfo()
+      }
+    }
+  })
+
+  // Create XRocket invoice
+  fastify.post('/payment/xrocket/create-invoice', async (request, reply) => {
+    try {
+      const { amount, currency, productId, variantId, userId, userName, userUsername, description, promoCode } = request.body as any
+      const tokenInfo = xRocket.getTokenInfo()
+
+      console.log('Creating XRocket invoice:', { amount, currency, productId, tokenInfo })
+
+      if (!tokenInfo.configured) {
+        reply.code(500)
+        return {
+          success: false,
+          error: 'XRocket payment system not configured',
+          details: { tokenInfo }
+        }
+      }
+
+      const { loadProducts } = await import('../dataStore')
+      const products = await loadProducts(reqTenantId(request))
+      const product = products.find(p => p._id === productId)
+      const variant = product?.variants?.find((v: any) => v.id === variantId)
+
+      // Generate order ID
+      const orderId = `XR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+      // Convert RUB to crypto
+      const cryptoAmount = await convertRubToCrypto(amount, (currency || 'TONCOIN') as CryptoAsset)
+
+      const invoice = await xRocket.createInvoice({
+        amount: Number(cryptoAmount),
+        currency: currency || 'TONCOIN',
+        description: description || `Payment for ${product?.name || 'Product'}${variant ? ` - ${variant.name}` : ''}`,
+        callbackUrl: `${process.env.WEBHOOK_BASE_URL || 'https://fastpayai.onrender.com'}/payment/xrocket/webhook`,
+        payload: JSON.stringify({
+          orderId,
+          productId,
+          variantId,
+          userId,
+          userName,
+          userUsername,
+          originalAmount: amount
+        })
+      })
+
+      // Create order
+      const order: Order = {
+        tenantId: reqTenantId(request),
+        id: orderId,
+        oderId: String(invoice.id),
+        userId: userId || 'anonymous',
+        userName,
+        userUsername,
+        productId,
+        productName: product?.name || 'Unknown',
+        variantId,
+        variantName: variant?.name,
+        amount,
+        paymentMethod: 'xrocket',
+        paymentId: String(invoice.id),
+        status: 'pending',
+        promoCode,
+        createdAt: new Date().toISOString(),
+      }
+      await addOrder(order, reqTenantId(request))
+      console.log('XRocket order created:', orderId)
+
+      return {
+        success: true,
+        invoice: {
+          id: invoice.id,
+          payUrl: invoice.link,
+          amount: invoice.amount,
+          currency: invoice.currency,
+          status: invoice.status,
+        },
+        orderId
+      }
+    } catch (error: any) {
+      console.error('❌ Error creating XRocket invoice:', error)
+      reply.code(500)
+      return {
+        success: false,
+        error: error.message || 'Failed to create XRocket invoice'
+      }
+    }
+  })
+
+  // Get XRocket invoice status
+  fastify.get('/payment/xrocket/invoice/:invoiceId', async (request, reply) => {
+    try {
+      const { invoiceId } = request.params as any
+      const invoice = await xRocket.getInvoice(Number(invoiceId))
+
+      return { success: true, invoice }
+    } catch (error: any) {
+      console.error('Error getting XRocket invoice:', error)
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get XRocket invoices list
+  fastify.get('/payment/xrocket/invoices', async (request, reply) => {
+    try {
+      const { limit, offset } = request.query as any
+      const invoices = await xRocket.getInvoices({ limit: Number(limit) || 100, offset: Number(offset) || 0 })
+      return { success: true, invoices }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // XRocket webhook
+  fastify.post('/payment/xrocket/webhook', {
+    config: {
+      rawBody: true
+    }
+  }, async (request, reply) => {
+    try {
+      const signature = request.headers['rocket-pay-signature'] as string
+      const rawBody = (request as any).rawBody || JSON.stringify(request.body)
+
+      // Verify signature if provided
+      if (signature && !xRocket.verifyWebhookSignature(signature, rawBody)) {
+        console.error('Invalid XRocket webhook signature')
+        reply.code(401)
+        return { error: 'Invalid signature' }
+      }
+
+      const webhookData = request.body as any
+
+      console.log('XRocket webhook received:', webhookData)
+
+      // Handle invoice paid event
+      if (webhookData.status === 'paid' || webhookData.type === 'invoice_paid') {
+        const payload = webhookData.payload ? JSON.parse(webhookData.payload) : {}
+        const invoiceId = webhookData.id || webhookData.invoice_id
+
+        logger.info({
+          invoiceId,
+          amount: webhookData.amount,
+          currency: webhookData.currency,
+        }, 'XRocket payment confirmed')
+
+        // Find order
+        let order = await getOrderById(payload.orderId)
+
+        if (!order) {
+          const orders = await import('../dataStore')
+          const allOrders = await orders.loadOrders()
+          order = allOrders.find(o => o.paymentId === String(invoiceId)) || null
+        }
+
+        if (!order) {
+          logger.warn({ invoiceId }, 'Order not found for XRocket payment')
+          return { success: true }
+        }
+
+        // SECURITY: Check if order already processed
+        if (order.status === 'paid' || order.status === 'delivered') {
+          logger.info({ orderId: order.id, status: order.status }, 'Order already processed, skipping')
+          return { success: true }
+        }
+
+        // Update order status to paid
+        const updatedOrder = await updateOrder(order.id, {
+          status: 'paid',
+          paidAt: new Date().toISOString(),
+        })
+
+        if (updatedOrder) {
+          logger.info({ orderId: order.id }, 'XRocket order marked as paid')
+
+          // Marketplace: Create escrow transaction
+          try {
+            await onOrderPaid(order.id)
+          } catch (escrowError) {
+            logger.warn({ orderId: order.id, error: escrowError }, 'Failed to create escrow transaction')
+          }
+
+          // Send Telegram notifications
+          try {
+            await sendPaymentNotification(updatedOrder)
+            await sendOrderNotification(updatedOrder)
+          } catch (notifyError) {
+            logger.warn({ orderId: order.id, error: notifyError }, 'Failed to send Telegram notifications')
+          }
+
+          // Increment promo code usage
+          if (updatedOrder.promoCode) {
+            try {
+              await incrementPromoUsage(updatedOrder.promoCode)
+            } catch (promoError) {
+              logger.warn({ orderId: order.id, error: promoError }, 'Failed to increment promo usage')
+            }
+          }
+
+          // Process auto-delivery
+          const deliveryResult = await processAutoDelivery(updatedOrder)
+
+          if (deliveryResult.success) {
+            logger.info({ orderId: order.id }, 'XRocket auto-delivery successful')
+
+            try {
+              await onOrderDelivered(order.id)
+            } catch (statsError) {
+              logger.warn({ orderId: order.id, error: statsError }, 'Failed to update seller stats')
+            }
+
+            try {
+              await sendTelegramDeliveryNotification(updatedOrder)
+            } catch (notifyError) {
+              logger.warn({ orderId: order.id, error: notifyError }, 'Failed to send Telegram delivery notification')
+            }
+          } else {
+            await sendAdminNewOrderNotification({
+              orderNumber: order.id,
+              productName: order.productName,
+              amount: order.amount,
+              userName: order.userName || 'Unknown',
+              paymentMethod: order.paymentMethod
+            })
+          }
+        }
+      }
+
+      return { success: true }
+    } catch (error: any) {
+      console.error('XRocket webhook error:', error)
+      reply.code(500)
+      return { error: error.message }
+    }
+  })
+
+  // ============================================
+  // XROCKET TRANSFERS
+  // ============================================
+
+  // Transfer crypto to a user via XRocket
+  fastify.post('/payment/xrocket/transfer', async (request, reply) => {
+    try {
+      const { tgUserId, currency, amount, transferId, description } = request.body as any
+
+      if (!tgUserId || !currency || !amount || !transferId) {
+        reply.code(400)
+        return { success: false, error: 'tgUserId, currency, amount, and transferId are required' }
+      }
+
+      const transfer = await xRocket.transfer({
+        tgUserId: Number(tgUserId),
+        currency,
+        amount: Number(amount),
+        transferId,
+        description
+      })
+
+      return { success: true, transfer }
+    } catch (error: any) {
+      console.error('XRocket transfer error:', error)
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get XRocket transfers list
+  fastify.get('/payment/xrocket/transfers', async (request, reply) => {
+    try {
+      const { limit, offset } = request.query as any
+      const transfers = await xRocket.getTransfers({ limit: Number(limit) || 100, offset: Number(offset) || 0 })
+      return { success: true, transfers }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // XROCKET MULTI-CHEQUES (similar to CryptoBot checks)
+  // ============================================
+
+  // Create multi-cheque
+  fastify.post('/payment/xrocket/create-cheque', async (request, reply) => {
+    try {
+      const { currency, chequePerUser, usersNumber, password, description } = request.body as any
+
+      if (!currency || !chequePerUser || !usersNumber) {
+        reply.code(400)
+        return { success: false, error: 'currency, chequePerUser, and usersNumber are required' }
+      }
+
+      const cheque = await xRocket.createMultiCheque({
+        currency,
+        chequePerUser: Number(chequePerUser),
+        usersNumber: Number(usersNumber),
+        password,
+        description
+      })
+
+      return { success: true, cheque }
+    } catch (error: any) {
+      console.error('Create XRocket cheque error:', error)
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get multi-cheques list
+  fastify.get('/payment/xrocket/cheques', async (request, reply) => {
+    try {
+      const { limit, offset } = request.query as any
+      const cheques = await xRocket.getMultiCheques({ limit: Number(limit) || 100, offset: Number(offset) || 0 })
+      return { success: true, cheques }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get single multi-cheque
+  fastify.get('/payment/xrocket/cheque/:chequeId', async (request, reply) => {
+    try {
+      const { chequeId } = request.params as any
+      const cheque = await xRocket.getMultiCheque(Number(chequeId))
+      return { success: true, cheque }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Delete multi-cheque
+  fastify.delete('/payment/xrocket/cheque/:chequeId', async (request, reply) => {
+    try {
+      const { chequeId } = request.params as any
+      await xRocket.deleteMultiCheque(Number(chequeId))
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // XROCKET COINS INFO
+  // ============================================
+
+  // Get available coins
+  fastify.get('/payment/xrocket/coins', async (request, reply) => {
+    try {
+      const coins = await xRocket.getCoins()
+      return { success: true, coins }
     } catch (error: any) {
       reply.code(500)
       return { success: false, error: error.message }
