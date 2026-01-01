@@ -11,10 +11,9 @@ import { hapticImpact, hapticNotification } from '@/lib/telegram'
 interface ProductCardProps {
   product: Product
   onClick?: () => void
-  featured?: boolean
 }
 
-export default function ProductCard({ product, onClick, featured }: ProductCardProps) {
+export default function ProductCard({ product, onClick }: ProductCardProps) {
   const router = useRouter()
   const { toggleFavorite, isFavorite, language, currency, addToCart } = useAppStore()
   const toast = useToast()
@@ -24,6 +23,11 @@ export default function ProductCard({ product, onClick, featured }: ProductCardP
   const salesCount = (product as any).salesCount || 0
   const sellerRating = product.seller.rating
   const displayRating = sellerRating > 5 ? sellerRating : Math.round(sellerRating * 20)
+
+  // Calculate savings percentage
+  const savingsPercent = product.oldPrice && product.oldPrice > product.price
+    ? Math.round((1 - product.price / product.oldPrice) * 100)
+    : 0
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -57,136 +61,146 @@ export default function ProductCard({ product, onClick, featured }: ProductCardP
     router.push(`/checkout?productId=${product._id}`)
   }
 
-  // Featured card style (for main offer)
-  if (featured) {
-    return (
-      <div
-        onClick={handleClick}
-        className="relative bg-gradient-to-br from-[#4789F4] to-[#6BA3FF] rounded-3xl p-5 cursor-pointer overflow-hidden group"
-        style={{ boxShadow: '0 10px 40px -10px rgba(71, 137, 244, 0.4)' }}
-      >
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-
-        {/* Badge */}
-        <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full mb-3">
-          <span className="text-yellow-300">⭐</span>
-          <span className="text-white text-xs font-medium">
-            {language === 'ru' ? 'Предложение дня' : 'Offer of the day'}
-          </span>
-        </div>
-
-        {/* Content */}
-        <h3 className="text-white text-xl font-bold mb-1">{product.name}</h3>
-        <p className="text-white/70 text-sm mb-3">
-          {hasAutoDelivery
-            ? (language === 'ru' ? 'Мгновенная доставка' : 'Instant delivery')
-            : (language === 'ru' ? 'Доставка до 30 мин' : 'Delivery ~30 min')
-          }
-        </p>
-        <p className="text-white text-2xl font-bold">{formatPrice(product.price, currency)}</p>
-
-        {/* Product image */}
-        <img
-          src={product.images[0] || '/placeholder.jpg'}
-          alt={product.name}
-          className="absolute bottom-0 right-0 w-28 h-28 object-contain opacity-90 group-hover:scale-105 transition-transform"
-        />
-      </div>
-    )
-  }
-
-  // Regular card - soft UI style
   return (
     <div
       onClick={handleClick}
-      className="bg-white rounded-2xl overflow-hidden cursor-pointer group transition-all duration-200 hover:-translate-y-1"
-      style={{ boxShadow: '0 4px 20px -4px rgba(0, 0, 0, 0.08)' }}
+      className="bg-light-card dark:bg-dark-card rounded-2xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity border border-light-border dark:border-dark-border"
     >
-      {/* Image Section */}
-      <div className="relative aspect-square bg-[#F8F9FC]">
+      {/* Image Section - balanced size */}
+      <div className="relative aspect-square max-h-44">
         <img
           src={product.images[0] || '/placeholder.jpg'}
           alt={product.name}
-          className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover"
         />
 
-        {/* Favorite */}
+        {/* Favorite - smaller, less prominent */}
         <button
           onClick={handleFavoriteClick}
-          className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110"
+          className="absolute top-2 right-2 w-7 h-7 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center"
         >
           <svg
-            className={`w-4 h-4 ${favorite ? 'fill-[#FD6086] text-[#FD6086]' : 'fill-none text-gray-400'}`}
+            className={`w-4 h-4 ${favorite ? 'fill-pink-500 text-pink-500' : 'fill-none text-white/80'}`}
             stroke="currentColor"
-            strokeWidth={2}
             viewBox="0 0 24 24"
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
+              strokeWidth={2}
               d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
             />
           </svg>
         </button>
 
-        {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-          {hasAutoDelivery && (
-            <div className="flex items-center gap-1 bg-[#4789F4] px-2 py-1 rounded-lg text-[10px] font-semibold text-white">
-              ⚡ {language === 'ru' ? 'Мгновенно' : 'Instant'}
-            </div>
-          )}
+        {/* Primary badges - Delivery & Protection */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {/* Delivery speed - PRIMARY */}
+          <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium ${
+            hasAutoDelivery
+              ? 'bg-accent-cyan text-white'
+              : 'bg-white/90 dark:bg-dark-card/90 text-light-text dark:text-dark-text'
+          }`}>
+            {hasAutoDelivery ? '⚡' : '⏳'}
+            <span>{hasAutoDelivery
+              ? (language === 'ru' ? 'Мгновенно' : 'Instant')
+              : (language === 'ru' ? 'до 30 мин' : '~30 min')
+            }</span>
+          </div>
+
+          {/* Protection badge */}
           {product.condition === 'new' && (
-            <div className="flex items-center gap-1 bg-emerald-500 px-2 py-1 rounded-lg text-[10px] font-semibold text-white">
-              🛡 {language === 'ru' ? 'Гарантия' : 'Warranty'}
+            <div className="flex items-center gap-1 bg-white/90 dark:bg-dark-card/90 px-2 py-0.5 rounded text-[10px] text-light-text dark:text-dark-text">
+              🛡 {language === 'ru' ? 'Защита' : 'Protected'}
             </div>
           )}
         </div>
+
+        {/* Social proof - bottom */}
+        {salesCount > 0 && (
+          <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] text-white/90">
+            {salesCount}+ {language === 'ru' ? 'продано' : 'sold'}
+          </div>
+        )}
       </div>
 
       {/* Content Section */}
-      <div className="p-4">
-        {/* Product name */}
-        <h3 className="text-sm font-medium text-gray-800 line-clamp-2 leading-snug mb-2 min-h-[40px]">
+      <div className="p-3">
+        {/* Product name - secondary */}
+        <h3 className="text-xs text-light-text-secondary dark:text-dark-text-secondary line-clamp-2 leading-tight mb-2">
           {product.name}
         </h3>
 
-        {/* Meta info pills */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <div className="flex items-center gap-1 bg-[#F0F4FF] px-2 py-1 rounded-lg">
-            <span className="text-[10px]">📍</span>
-            <span className="text-[10px] text-[#4789F4] font-medium">
-              {salesCount > 0 ? `${salesCount}+ ${language === 'ru' ? 'продаж' : 'sold'}` : (language === 'ru' ? 'Новинка' : 'New')}
-            </span>
+        {/* PRICE - PRIMARY, LARGEST */}
+        <div className="mb-2">
+          <div className="flex items-baseline gap-2">
+            <p className="text-xl font-bold text-light-text dark:text-dark-text">
+              {formatPrice(product.price, currency)}
+            </p>
+            {product.oldPrice && product.oldPrice > product.price && (
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary line-through">
+                {formatPrice(product.oldPrice, currency)}
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-1 bg-[#FFF4F0] px-2 py-1 rounded-lg">
-            <span className="text-[10px]">⭐</span>
-            <span className="text-[10px] text-[#FD6086] font-medium">{displayRating}%</span>
-          </div>
-        </div>
-
-        {/* Price */}
-        <div className="flex items-baseline gap-2 mb-3">
-          <p className="text-xl font-bold text-gray-900">
-            {formatPrice(product.price, currency)}
-          </p>
-          {product.oldPrice && product.oldPrice > product.price && (
-            <p className="text-xs text-gray-400 line-through">
-              {formatPrice(product.oldPrice, currency)}
+          {/* Savings anchor - Task 2 */}
+          {savingsPercent > 0 && (
+            <p className="text-[10px] text-green-500 mt-0.5">
+              {language === 'ru'
+                ? `Экономия ${savingsPercent}%`
+                : `Save ${savingsPercent}%`
+              }
             </p>
           )}
         </div>
 
-        {/* CTA Button */}
-        <button
-          onClick={handleBuyClick}
-          className="w-full bg-[#FD6086] hover:bg-[#E54D73] text-white font-semibold py-3 rounded-xl transition-colors text-sm"
-          style={{ boxShadow: '0 4px 14px -4px rgba(253, 96, 134, 0.4)' }}
-        >
-          {t('buy', language)}
-        </button>
+        {/* Seller info - SECONDARY, reduced */}
+        <div className="flex items-center gap-1.5 mb-3 opacity-70">
+          <img
+            src={product.seller.avatar || '/default-avatar.png'}
+            alt={product.seller.name}
+            className="w-4 h-4 rounded-full"
+          />
+          <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary truncate flex-1">
+            {product.seller.name}
+          </span>
+          {/* Seller success % */}
+          <div className={`flex items-center gap-0.5 text-[10px] ${
+            displayRating >= 90 ? 'text-green-500' : displayRating >= 70 ? 'text-yellow-500' : 'text-red-500'
+          }`}>
+            <span>⭐</span>
+            <span>{displayRating}%</span>
+          </div>
+        </div>
+
+        {/* CTA Section - Task 3: Dominant Buy button */}
+        <div className="flex gap-2">
+          {/* Cart - SECONDARY, smaller */}
+          <button
+            onClick={handleAddToCart}
+            className="w-8 h-9 flex items-center justify-center bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-lg opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+          >
+            <svg className="w-4 h-4 text-light-text dark:text-dark-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </button>
+
+          {/* Buy - PRIMARY, dominant */}
+          <button
+            onClick={handleBuyClick}
+            className="flex-1 bg-accent-cyan hover:bg-accent-cyan/90 text-white font-bold py-2.5 rounded-lg transition-colors text-sm shadow-sm shadow-accent-cyan/20"
+          >
+            {t('buy', language)}
+          </button>
+        </div>
+
+        {/* Purchase flow hint - Task 1 */}
+        <p className="text-[9px] text-light-text-secondary dark:text-dark-text-secondary text-center mt-2 opacity-60">
+          {language === 'ru'
+            ? 'Оплата → доставка в чат'
+            : 'Pay → delivery to chat'
+          }
+        </p>
       </div>
     </div>
   )
