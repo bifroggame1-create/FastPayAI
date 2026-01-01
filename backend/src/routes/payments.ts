@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest } from 'fastify'
 import { cryptoBot } from '../cryptobot'
 import { xRocket } from '../xrocket'
+import { telegramStars, rubToStars } from '../telegram-stars'
 
 // Default tenant ID for fallback
 const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
@@ -862,6 +863,293 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       const coins = await xRocket.getCoins()
       return { success: true, coins }
     } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // TELEGRAM STARS PAYMENTS
+  // ============================================
+
+  // Test Telegram Stars connection
+  fastify.get('/payment/test-stars', async (request, reply) => {
+    try {
+      const tokenInfo = telegramStars.getTokenInfo()
+      console.log('Testing Telegram Stars connection:', tokenInfo)
+
+      if (!tokenInfo.configured) {
+        return {
+          success: false,
+          error: 'BOT_TOKEN not configured for Telegram Stars',
+          tokenInfo
+        }
+      }
+
+      return {
+        success: true,
+        message: 'Telegram Stars configured',
+        tokenInfo
+      }
+    } catch (error: any) {
+      console.error('Telegram Stars test error:', error)
+      reply.code(500)
+      return {
+        success: false,
+        error: error.message,
+        tokenInfo: telegramStars.getTokenInfo()
+      }
+    }
+  })
+
+  // Create Telegram Stars invoice link
+  fastify.post('/payment/stars/create-invoice', async (request, reply) => {
+    try {
+      const { amount, productId, variantId, userId, userName, userUsername, description, promoCode } = request.body as any
+      const tokenInfo = telegramStars.getTokenInfo()
+
+      console.log('Creating Telegram Stars invoice:', { amount, productId, tokenInfo })
+
+      if (!tokenInfo.configured) {
+        reply.code(500)
+        return {
+          success: false,
+          error: 'Telegram Stars not configured',
+          details: { tokenInfo }
+        }
+      }
+
+      const { loadProducts } = await import('../dataStore')
+      const products = await loadProducts(reqTenantId(request))
+      const product = products.find(p => p._id === productId)
+      const variant = product?.variants?.find((v: any) => v.id === variantId)
+
+      // Generate order ID
+      const orderId = `STARS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+      // Convert RUB to Stars
+      const starsAmount = rubToStars(amount)
+
+      const invoiceLink = await telegramStars.createInvoiceLink({
+        title: product?.name || 'Товар',
+        description: description || `${product?.name || 'Product'}${variant ? ` - ${variant.name}` : ''}`,
+        payload: JSON.stringify({
+          orderId,
+          productId,
+          variantId,
+          userId,
+          userName,
+          userUsername,
+          originalAmount: amount,
+          tenantId: reqTenantId(request)
+        }),
+        prices: [{ label: product?.name || 'Товар', amount: starsAmount }]
+      })
+
+      // Create order
+      const order: Order = {
+        tenantId: reqTenantId(request),
+        id: orderId,
+        oderId: orderId,
+        userId: userId || 'anonymous',
+        userName,
+        userUsername,
+        productId,
+        productName: product?.name || 'Unknown',
+        variantId,
+        variantName: variant?.name,
+        amount,
+        paymentMethod: 'telegram-stars',
+        paymentId: orderId,
+        status: 'pending',
+        promoCode,
+        createdAt: new Date().toISOString(),
+      }
+      await addOrder(order, reqTenantId(request))
+      console.log('Telegram Stars order created:', orderId)
+
+      return {
+        success: true,
+        invoice: {
+          payUrl: invoiceLink,
+          starsAmount,
+          originalAmount: amount,
+        },
+        orderId
+      }
+    } catch (error: any) {
+      console.error('❌ Error creating Telegram Stars invoice:', error)
+      reply.code(500)
+      return {
+        success: false,
+        error: error.message || 'Failed to create Telegram Stars invoice'
+      }
+    }
+  })
+
+  // Telegram Stars webhook (handles pre_checkout_query and successful_payment)
+  fastify.post('/payment/stars/webhook', async (request, reply) => {
+    try {
+      const update = request.body as any
+
+      console.log('Telegram Stars webhook received:', update)
+
+      // Handle pre_checkout_query - must respond within 10 seconds
+      if (update.pre_checkout_query) {
+        const query = update.pre_checkout_query
+        logger.info({ queryId: query.id, payload: query.invoice_payload }, 'Pre-checkout query received')
+
+        // Validate the order
+        try {
+          const payload = JSON.parse(query.invoice_payload)
+          const order = await getOrderById(payload.orderId)
+
+          if (!order) {
+            await telegramStars.answerPreCheckoutQuery(query.id, false, 'Заказ не найден')
+            return { success: true }
+          }
+
+          if (order.status !== 'pending') {
+            await telegramStars.answerPreCheckoutQuery(query.id, false, 'Заказ уже обработан')
+            return { success: true }
+          }
+
+          // Approve the checkout
+          await telegramStars.answerPreCheckoutQuery(query.id, true)
+        } catch (e) {
+          await telegramStars.answerPreCheckoutQuery(query.id, false, 'Ошибка обработки заказа')
+        }
+
+        return { success: true }
+      }
+
+      // Handle successful_payment
+      if (update.message?.successful_payment) {
+        const payment = update.message.successful_payment
+        logger.info({
+          chargeId: payment.telegram_payment_charge_id,
+          amount: payment.total_amount,
+          currency: payment.currency,
+        }, 'Telegram Stars payment successful')
+
+        let payload: any = {}
+        try {
+          payload = JSON.parse(payment.invoice_payload)
+        } catch (e) {
+          logger.warn({ payload: payment.invoice_payload }, 'Failed to parse payment payload')
+        }
+
+        // Find order
+        let order = await getOrderById(payload.orderId)
+
+        if (!order) {
+          logger.warn({ orderId: payload.orderId }, 'Order not found for Stars payment')
+          return { success: true }
+        }
+
+        // SECURITY: Check if order already processed
+        if (order.status === 'paid' || order.status === 'delivered') {
+          logger.info({ orderId: order.id, status: order.status }, 'Order already processed, skipping')
+          return { success: true }
+        }
+
+        // Update order status to paid
+        const updatedOrder = await updateOrder(order.id, {
+          status: 'paid',
+          paidAt: new Date().toISOString(),
+          paymentId: payment.telegram_payment_charge_id,
+        })
+
+        if (updatedOrder) {
+          logger.info({ orderId: order.id }, 'Telegram Stars order marked as paid')
+
+          // Marketplace: Create escrow transaction
+          try {
+            await onOrderPaid(order.id)
+          } catch (escrowError) {
+            logger.warn({ orderId: order.id, error: escrowError }, 'Failed to create escrow transaction')
+          }
+
+          // Send Telegram notifications
+          try {
+            await sendPaymentNotification(updatedOrder)
+            await sendOrderNotification(updatedOrder)
+          } catch (notifyError) {
+            logger.warn({ orderId: order.id, error: notifyError }, 'Failed to send Telegram notifications')
+          }
+
+          // Increment promo code usage
+          if (updatedOrder.promoCode) {
+            try {
+              await incrementPromoUsage(updatedOrder.promoCode)
+            } catch (promoError) {
+              logger.warn({ orderId: order.id, error: promoError }, 'Failed to increment promo usage')
+            }
+          }
+
+          // Process auto-delivery
+          const deliveryResult = await processAutoDelivery(updatedOrder)
+
+          if (deliveryResult.success) {
+            logger.info({ orderId: order.id }, 'Telegram Stars auto-delivery successful')
+
+            try {
+              await onOrderDelivered(order.id)
+            } catch (statsError) {
+              logger.warn({ orderId: order.id, error: statsError }, 'Failed to update seller stats')
+            }
+
+            try {
+              await sendTelegramDeliveryNotification(updatedOrder)
+            } catch (notifyError) {
+              logger.warn({ orderId: order.id, error: notifyError }, 'Failed to send Telegram delivery notification')
+            }
+          } else {
+            await sendAdminNewOrderNotification({
+              orderNumber: order.id,
+              productName: order.productName,
+              amount: order.amount,
+              userName: order.userName || 'Unknown',
+              paymentMethod: order.paymentMethod
+            })
+          }
+        }
+      }
+
+      return { success: true }
+    } catch (error: any) {
+      console.error('Telegram Stars webhook error:', error)
+      reply.code(500)
+      return { error: error.message }
+    }
+  })
+
+  // Get Stars transactions
+  fastify.get('/payment/stars/transactions', async (request, reply) => {
+    try {
+      const { limit, offset } = request.query as any
+      const transactions = await telegramStars.getStarTransactions(Number(offset) || 0, Number(limit) || 100)
+      return { success: true, transactions }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Refund Stars payment
+  fastify.post('/payment/stars/refund', async (request, reply) => {
+    try {
+      const { userId, telegramPaymentChargeId } = request.body as any
+
+      if (!userId || !telegramPaymentChargeId) {
+        reply.code(400)
+        return { success: false, error: 'userId and telegramPaymentChargeId are required' }
+      }
+
+      await telegramStars.refundStarPayment(Number(userId), telegramPaymentChargeId)
+      return { success: true, message: 'Refund processed' }
+    } catch (error: any) {
+      console.error('Stars refund error:', error)
       reply.code(500)
       return { success: false, error: error.message }
     }

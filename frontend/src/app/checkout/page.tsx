@@ -35,7 +35,7 @@ function CheckoutContent() {
   const [discount, setDiscount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<'cryptobot' | 'xrocket' | 'cactuspay-sbp' | 'cactuspay-card'>('cryptobot')
+  const [paymentMethod, setPaymentMethod] = useState<'cryptobot' | 'xrocket' | 'telegram-stars' | 'cactuspay-sbp' | 'cactuspay-card'>('cryptobot')
   const [selectedCrypto, setSelectedCrypto] = useState<'TON' | 'USDT'>('TON')
   const [showPromo, setShowPromo] = useState(false)
 
@@ -223,6 +223,42 @@ function CheckoutContent() {
       } finally {
         setProcessing(false)
       }
+    } else if (paymentMethod === 'telegram-stars') {
+      // Telegram Stars payment
+      try {
+        setProcessing(true)
+
+        const invoiceParams = {
+          amount: finalPrice,
+          description: getDescription(),
+          productId: checkoutItems[0].productId,
+          variantId: checkoutItems[0].variantId,
+          items: checkoutItems.length > 1 ? checkoutItems : undefined,
+        }
+
+        console.log('[FastPay] Creating Telegram Stars invoice:', invoiceParams)
+
+        const response = await paymentApi.createStarsInvoice(invoiceParams)
+
+        console.log('[FastPay] Telegram Stars response:', response)
+
+        if (response.success && response.invoice) {
+          openPaymentUrl(response.invoice.payUrl)
+        } else {
+          const errorMsg = response.error || 'Неизвестная ошибка'
+          alert('Ошибка создания платежа:\n' + errorMsg)
+        }
+      } catch (error: any) {
+        console.error('Telegram Stars checkout error:', error)
+        const errorTitle = language === 'ru' ? 'Оплата не прошла' : 'Payment failed'
+        const errorHelp = language === 'ru'
+          ? '\n\nПопробуйте другой способ оплаты'
+          : '\n\nTry a different payment method'
+
+        alert(errorTitle + errorHelp)
+      } finally {
+        setProcessing(false)
+      }
     } else if (paymentMethod === 'cactuspay-sbp' || paymentMethod === 'cactuspay-card') {
       // CactusPay payment (SBP or Card)
       try {
@@ -290,6 +326,10 @@ function CheckoutContent() {
   const finalPrice = discountedPrice + cryptoBotMarkup + xRocketMarkup
   const isCactusPay = paymentMethod.startsWith('cactuspay')
   const isCryptoPayment = paymentMethod === 'cryptobot' || paymentMethod === 'xrocket'
+  const isStarsPayment = paymentMethod === 'telegram-stars'
+
+  // Convert RUB to Telegram Stars (1 Star ≈ 1.8 RUB)
+  const rubToStars = (rub: number) => Math.ceil(rub / 1.8)
 
   const bonusToUse = Math.min(user?.bonusBalance || 0, finalPrice * 0.3) // Можно использовать до 30% от суммы
 
@@ -533,6 +573,36 @@ function CheckoutContent() {
                 </div>
               </div>
             )}
+
+            {/* Telegram Stars */}
+            <button
+              onClick={() => setPaymentMethod('telegram-stars')}
+              className={`w-full p-4 transition-all text-left border-t border-light-border dark:border-dark-border ${
+                paymentMethod === 'telegram-stars'
+                  ? 'bg-accent-cyan/10'
+                  : ''
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 ${paymentMethod === 'telegram-stars' ? 'ring-2 ring-accent-cyan' : ''}`}>
+                  <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-light-text dark:text-dark-text">Telegram Stars</p>
+                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                    ≈ {rubToStars(finalPrice)} ⭐ • Встроенная оплата
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-full">Быстро</span>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'telegram-stars' ? 'border-accent-cyan bg-accent-cyan' : 'border-light-border dark:border-dark-border'}`}>
+                    {paymentMethod === 'telegram-stars' && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </div>
+                </div>
+              </div>
+            </button>
           </div>
 
           {/* Fiat Section */}
@@ -701,6 +771,11 @@ function CheckoutContent() {
               {isCryptoPayment && (
                 <span className="text-sm font-normal text-light-text-secondary dark:text-dark-text-secondary ml-1">
                   ≈ {formatCryptoAmount(finalPrice, selectedCrypto)}
+                </span>
+              )}
+              {isStarsPayment && (
+                <span className="text-sm font-normal text-light-text-secondary dark:text-dark-text-secondary ml-1">
+                  ≈ {rubToStars(finalPrice)} ⭐
                 </span>
               )}
             </div>

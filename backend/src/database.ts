@@ -334,7 +334,7 @@ export interface Order extends TenantScoped {
   variantId?: string
   variantName?: string
   amount: number
-  paymentMethod: 'cryptobot' | 'xrocket' | 'cactuspay-sbp' | 'cactuspay-card'
+  paymentMethod: 'cryptobot' | 'xrocket' | 'telegram-stars' | 'cactuspay-sbp' | 'cactuspay-card'
   paymentId?: string
   status: OrderStatus
   promoCode?: string

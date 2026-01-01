@@ -292,6 +292,17 @@ export const paymentApi = {
     const { data } = await api.get(`/payment/xrocket/invoice/${invoiceId}`)
     return data
   },
+
+  // Telegram Stars payments
+  createStarsInvoice: async (params: {
+    amount: number
+    description?: string
+    productId: string
+    variantId?: string
+  }) => {
+    const { data } = await api.post('/payment/stars/create-invoice', params)
+    return data
+  },
 }
 
 export const adminApi = {
