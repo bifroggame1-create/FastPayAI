@@ -43,7 +43,6 @@ export default function ProfilePage() {
     try {
       const telegramUser = getTelegramUser()
       if (telegramUser) {
-        // Try to get user from backend
         try {
           const userData = await userApi.getById(telegramUser.id)
           setUser({
@@ -54,7 +53,6 @@ export default function ProfilePage() {
             stats: userData.stats || { rating: 5.0, reviewsCount: 0, ordersCount: 0, returnsCount: 0 }
           })
         } catch {
-          // Use telegram user data as fallback
           setUser({
             id: telegramUser.id,
             name: telegramUser.name,
@@ -73,207 +71,214 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-cyan"></div>
+      <div className="min-h-screen bg-[#FBFAFE] flex items-center justify-center">
+        <div className="w-10 h-10 border-3 border-[#4789F4] border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
-        <p className="text-light-text-secondary dark:text-dark-text-secondary">Не удалось загрузить профиль</p>
+      <div className="min-h-screen bg-[#FBFAFE] flex items-center justify-center">
+        <p className="text-gray-500">Не удалось загрузить профиль</p>
       </div>
     )
   }
 
   const stats = user.stats || { rating: 5.0, reviewsCount: 0, ordersCount: 0, returnsCount: 0 }
+  const firstName = user.name.split(' ')[0]
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
-      <Header
-        title="Профиль"
-        showBack
-        onBack={() => router.back()}
-      />
-
-      <div className="px-4 py-6">
-        <div className="flex items-center gap-4 mb-6">
+    <div className="min-h-screen bg-[#FBFAFE] pb-24">
+      {/* Custom Header */}
+      <div className="px-5 pt-6 pb-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <img
             src={user.avatar || '/default-avatar.png'}
             alt={user.name}
-            className="w-16 h-16 rounded-full"
+            className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
           />
           <div>
-            <h2 className="text-xl font-semibold text-light-text dark:text-dark-text">{user.name}</h2>
-            {user.joinedAt && (
-              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                На платформе с {format(new Date(user.joinedAt), 'd MMM. yyyy', { locale: ru })}
-              </p>
-            )}
+            <p className="text-gray-500 text-sm">
+              {language === 'ru' ? 'Привет,' : 'Hello,'}
+            </p>
+            <h1 className="text-xl font-bold text-gray-900">{firstName}</h1>
           </div>
         </div>
-
-        <button
-          onClick={() => router.push('/orders')}
-          className="w-full bg-light-card dark:bg-dark-card hover:bg-light-border dark:hover:bg-dark-border text-accent-cyan py-3 rounded-lg mb-6 transition-colors border border-light-border dark:border-dark-border flex items-center justify-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        <button className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
-          Мои заказы
         </button>
+      </div>
 
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <svg className="w-5 h-5 text-yellow-500 fill-current" viewBox="0 0 20 20">
-                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-              </svg>
-              <span className="text-lg font-semibold text-light-text dark:text-dark-text">{stats.rating.toFixed(1)}</span>
+      <div className="px-5 space-y-4">
+        {/* Featured Card - Bonus Balance */}
+        <div
+          className="relative bg-gradient-to-br from-[#4789F4] to-[#6BA3FF] rounded-3xl p-6 overflow-hidden"
+          style={{ boxShadow: '0 10px 40px -10px rgba(71, 137, 244, 0.4)' }}
+        >
+          {/* Decorative circles */}
+          <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
+
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full mb-4">
+              <span className="text-yellow-300">💰</span>
+              <span className="text-white text-xs font-medium">
+                {language === 'ru' ? 'Бонусный баланс' : 'Bonus balance'}
+              </span>
             </div>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{stats.reviewsCount} отзывов</p>
+
+            <p className="text-white/80 text-sm mb-1">
+              {language === 'ru' ? 'Доступно к использованию' : 'Available to use'}
+            </p>
+            <p className="text-white text-4xl font-bold mb-2">{user.bonusBalance || 0} ₽</p>
+            <p className="text-white/60 text-xs">
+              {language === 'ru' ? 'Можно использовать при оплате' : 'Can be used for payment'}
+            </p>
           </div>
 
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <svg className="w-5 h-5 text-light-text-secondary dark:text-dark-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-              <span className="text-lg font-semibold text-light-text dark:text-dark-text">{stats.ordersCount}</span>
-            </div>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">заказов</p>
-          </div>
+          {/* Decorative 3D element */}
+          <div className="absolute bottom-2 right-4 text-6xl opacity-30">💎</div>
+        </div>
 
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <svg className="w-5 h-5 text-light-text-secondary dark:text-dark-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-              </svg>
-              <span className="text-lg font-semibold text-light-text dark:text-dark-text">{stats.returnsCount}</span>
+        {/* Quick Actions Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => router.push('/orders')}
+            className="bg-white rounded-2xl p-4 text-left transition-all hover:-translate-y-0.5"
+            style={{ boxShadow: '0 4px 20px -4px rgba(0, 0, 0, 0.08)' }}
+          >
+            <div className="w-12 h-12 bg-[#F0F4FF] rounded-xl flex items-center justify-center mb-3">
+              <span className="text-2xl">📦</span>
             </div>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">возвратов</p>
-          </div>
+            <h3 className="font-semibold text-gray-900 mb-0.5">
+              {language === 'ru' ? 'Мои заказы' : 'My Orders'}
+            </h3>
+            <p className="text-xs text-gray-500">{stats.ordersCount} {language === 'ru' ? 'заказов' : 'orders'}</p>
+          </button>
 
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <svg className="w-5 h-5 text-pink-500 fill-current" viewBox="0 0 24 24">
-                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <span className="text-lg font-semibold text-light-text dark:text-dark-text">-</span>
+          <button
+            onClick={() => router.push('/favorites')}
+            className="bg-white rounded-2xl p-4 text-left transition-all hover:-translate-y-0.5"
+            style={{ boxShadow: '0 4px 20px -4px rgba(0, 0, 0, 0.08)' }}
+          >
+            <div className="w-12 h-12 bg-[#FFF0F4] rounded-xl flex items-center justify-center mb-3">
+              <span className="text-2xl">❤️</span>
             </div>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Нравится</p>
+            <h3 className="font-semibold text-gray-900 mb-0.5">
+              {language === 'ru' ? 'Избранное' : 'Favorites'}
+            </h3>
+            <p className="text-xs text-gray-500">{language === 'ru' ? 'Сохранённое' : 'Saved items'}</p>
+          </button>
+        </div>
+
+        {/* Stats Cards */}
+        <div
+          className="bg-white rounded-2xl p-5"
+          style={{ boxShadow: '0 4px 20px -4px rgba(0, 0, 0, 0.08)' }}
+        >
+          <h3 className="font-semibold text-gray-900 mb-4">
+            {language === 'ru' ? 'Статистика' : 'Statistics'}
+          </h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-[#FFF9E6] rounded-xl flex items-center justify-center mx-auto mb-2">
+                <span className="text-xl">⭐</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900">{stats.rating.toFixed(1)}</p>
+              <p className="text-xs text-gray-500">{language === 'ru' ? 'Рейтинг' : 'Rating'}</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-[#E8F5E9] rounded-xl flex items-center justify-center mx-auto mb-2">
+                <span className="text-xl">✅</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900">{stats.ordersCount}</p>
+              <p className="text-xs text-gray-500">{language === 'ru' ? 'Покупок' : 'Orders'}</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-[#F3E5F5] rounded-xl flex items-center justify-center mx-auto mb-2">
+                <span className="text-xl">💬</span>
+              </div>
+              <p className="text-lg font-bold text-gray-900">{stats.reviewsCount}</p>
+              <p className="text-xs text-gray-500">{language === 'ru' ? 'Отзывов' : 'Reviews'}</p>
+            </div>
           </div>
         </div>
 
-        {/* Бонусный баланс */}
-        <div className="bg-gradient-to-r from-accent-blue to-accent-cyan rounded-2xl p-6 mb-4 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold">Бонусный баланс</h3>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <p className="text-3xl font-bold mb-1">{user.bonusBalance || 0} ₽</p>
-          <p className="text-sm opacity-90">Можно использовать при оплате</p>
-        </div>
-
-        {/* Реферальная система */}
+        {/* Referral Card */}
         <ReferralSection user={user} language={language} />
 
-        {/* Стать продавцом */}
+        {/* Become Seller */}
         <button
           onClick={() => setShowSellerModal(true)}
-          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl p-5 mb-4 flex items-center gap-4 transition-all active:scale-[0.98]"
+          className="w-full bg-gradient-to-r from-[#FD6086] to-[#FF8BA7] rounded-2xl p-5 flex items-center gap-4 transition-all hover:-translate-y-0.5"
+          style={{ boxShadow: '0 8px 30px -8px rgba(253, 96, 134, 0.4)' }}
         >
-          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
+          <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <span className="text-3xl">🏪</span>
           </div>
           <div className="flex-1 text-left">
-            <h3 className="font-bold text-lg">
+            <h3 className="font-bold text-lg text-white">
               {language === 'ru' ? 'Стать продавцом' : 'Become a Seller'}
             </h3>
             <p className="text-sm text-white/80">
-              {language === 'ru' ? 'Продавайте свои товары на FastPay' : 'Sell your products on FastPay'}
+              {language === 'ru' ? 'Продавайте на FastPay' : 'Sell on FastPay'}
             </p>
           </div>
-          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
 
-        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-6 border border-light-border dark:border-dark-border">
-          <h3 className="text-lg font-semibold mb-4 text-light-text dark:text-dark-text">
-            {language === 'ru' ? 'Отзывы' : 'Reviews'}
-          </h3>
-
-          <div className="flex flex-col items-center justify-center py-10">
-            <svg
-              className="w-16 h-16 text-light-text-secondary dark:text-dark-text-secondary mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-              />
-            </svg>
-            <h4 className="text-base font-medium mb-2 text-light-text dark:text-dark-text">Отзывов пока нет</h4>
-            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
-              Зато есть комплимент от нас — ты чудесно выглядишь!
-            </p>
+        {/* Support & Legal */}
+        <div
+          className="bg-white rounded-2xl p-5"
+          style={{ boxShadow: '0 4px 20px -4px rgba(0, 0, 0, 0.08)' }}
+        >
+          <div className="space-y-1">
+            <a href="/support" className="flex items-center justify-between py-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#F0F4FF] rounded-xl flex items-center justify-center">
+                  <span className="text-lg">💬</span>
+                </div>
+                <span className="font-medium text-gray-900">{language === 'ru' ? 'Поддержка' : 'Support'}</span>
+              </div>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+            <a href="/legal/offer" className="flex items-center justify-between py-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#FFF0F4] rounded-xl flex items-center justify-center">
+                  <span className="text-lg">📄</span>
+                </div>
+                <span className="font-medium text-gray-900">{language === 'ru' ? 'Правовая информация' : 'Legal'}</span>
+              </div>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+            <a href="/faq" className="flex items-center justify-between py-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#E8F5E9] rounded-xl flex items-center justify-center">
+                  <span className="text-lg">❓</span>
+                </div>
+                <span className="font-medium text-gray-900">{language === 'ru' ? 'FAQ' : 'FAQ'}</span>
+              </div>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
           </div>
         </div>
 
-        {/* Legal Links */}
-        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 mt-8 mb-4 border border-light-border dark:border-dark-border">
-          <h3 className="text-sm font-medium text-light-text dark:text-dark-text mb-3">
-            {language === 'ru' ? 'Правовая информация' : 'Legal'}
-          </h3>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <a
-              href="/legal/offer"
-              className="text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors py-1"
-            >
-              {language === 'ru' ? 'Публичная оферта' : 'Terms of Service'}
-            </a>
-            <a
-              href="/legal/privacy"
-              className="text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors py-1"
-            >
-              {language === 'ru' ? 'Конфиденциальность' : 'Privacy Policy'}
-            </a>
-            <a
-              href="/legal/refund"
-              className="text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors py-1"
-            >
-              {language === 'ru' ? 'Возврат и отмена' : 'Refund Policy'}
-            </a>
-            <a
-              href="/legal/delivery"
-              className="text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan transition-colors py-1"
-            >
-              {language === 'ru' ? 'Условия доставки' : 'Delivery'}
-            </a>
-          </div>
-          <a
-            href="/legal/contacts"
-            className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-light-border dark:border-dark-border text-accent-cyan text-xs"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            {language === 'ru' ? 'Поддержка' : 'Support'}
-          </a>
-        </div>
-
-        <div className="text-center text-sm text-light-text-secondary dark:text-dark-text-secondary">
-          by <span className="text-accent-cyan">@CheffDev</span> with &lt;3
+        {/* Footer */}
+        <div className="text-center py-4">
+          <p className="text-xs text-gray-400">
+            by <span className="text-[#4789F4] font-medium">@CheffDev</span> with ❤️
+          </p>
         </div>
       </div>
 
@@ -291,8 +296,6 @@ export default function ProfilePage() {
 function ReferralSection({ user, language }: { user: { id: string; referralCode?: string; referralCount?: number }; language: 'ru' | 'en' }) {
   const [copied, setCopied] = useState(false)
   const botUsername = process.env.NEXT_PUBLIC_BOT_USERNAME || 'FastPayAI_bot'
-
-  // Generate referral link using user ID
   const referralLink = `https://t.me/${botUsername}?start=ref_${user.id}`
 
   const copyLink = () => {
@@ -310,31 +313,42 @@ function ReferralSection({ user, language }: { user: { id: string; referralCode?
   }
 
   return (
-    <div className="bg-light-card dark:bg-dark-card rounded-2xl p-6 mb-4 border border-light-border dark:border-dark-border">
+    <div
+      className="bg-white rounded-2xl p-5"
+      style={{ boxShadow: '0 4px 20px -4px rgba(0, 0, 0, 0.08)' }}
+    >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">
-          {language === 'ru' ? 'Пригласи друзей' : 'Invite Friends'}
-        </h3>
-        <span className="text-sm text-accent-cyan font-medium">
-          {language === 'ru' ? '+200₽ за друга' : '+200₽ per friend'}
-        </span>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-[#E8F5E9] rounded-xl flex items-center justify-center">
+            <span className="text-2xl">🎁</span>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">
+              {language === 'ru' ? 'Пригласи друзей' : 'Invite Friends'}
+            </h3>
+            <p className="text-xs text-[#4789F4] font-medium">
+              +200₽ {language === 'ru' ? 'за друга' : 'per friend'}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-bold text-gray-900">{user.referralCount || 0}</p>
+          <p className="text-xs text-gray-500">{language === 'ru' ? 'друзей' : 'friends'}</p>
+        </div>
       </div>
 
       {/* Referral Link */}
-      <div className="bg-light-bg dark:bg-dark-bg rounded-xl p-4 mb-4">
-        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-2">
-          {language === 'ru' ? 'Твоя пригласительная ссылка' : 'Your referral link'}
-        </p>
-        <div className="flex items-center gap-2 bg-light-card dark:bg-dark-card rounded-lg p-3 border border-light-border dark:border-dark-border">
-          <span className="flex-1 text-sm text-light-text dark:text-dark-text truncate font-mono">
+      <div className="bg-[#F8F9FC] rounded-xl p-3 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="flex-1 text-xs text-gray-600 truncate font-mono">
             {referralLink}
           </span>
           <button
             onClick={copyLink}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               copied
-                ? 'bg-green-500 text-white'
-                : 'bg-accent-cyan text-white hover:bg-accent-cyan/90'
+                ? 'bg-emerald-500 text-white'
+                : 'bg-[#4789F4] text-white hover:bg-[#3A7AE0]'
             }`}
           >
             {copied ? '✓' : (language === 'ru' ? 'Копировать' : 'Copy')}
@@ -345,7 +359,8 @@ function ReferralSection({ user, language }: { user: { id: string; referralCode?
       {/* Share Button */}
       <button
         onClick={shareLink}
-        className="w-full py-3 bg-gradient-to-r from-accent-blue to-accent-cyan text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity mb-4"
+        className="w-full py-3 bg-[#4789F4] text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-[#3A7AE0] transition-colors"
+        style={{ boxShadow: '0 4px 14px -4px rgba(71, 137, 244, 0.4)' }}
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
@@ -353,28 +368,12 @@ function ReferralSection({ user, language }: { user: { id: string; referralCode?
         {language === 'ru' ? 'Поделиться в Telegram' : 'Share on Telegram'}
       </button>
 
-      {/* Stats */}
-      <div className="flex items-center justify-between text-sm mb-4">
-        <span className="text-light-text-secondary dark:text-dark-text-secondary">
-          {language === 'ru' ? 'Приглашено друзей' : 'Friends invited'}
-        </span>
-        <span className="font-semibold text-light-text dark:text-dark-text">{user.referralCount || 0}</span>
-      </div>
-
-      {/* Info */}
-      <div className="p-3 bg-accent-blue/10 dark:bg-accent-blue/20 rounded-lg">
-        <p className="text-xs text-light-text dark:text-dark-text">
-          {language === 'ru' ? (
-            <>
-              💰 Ты получаешь <span className="font-bold text-accent-cyan">200₽</span> за каждого друга<br />
-              🎁 Друг получает <span className="font-bold text-accent-cyan">100₽</span> при регистрации
-            </>
-          ) : (
-            <>
-              💰 You get <span className="font-bold text-accent-cyan">200₽</span> for each friend<br />
-              🎁 Friend gets <span className="font-bold text-accent-cyan">100₽</span> on registration
-            </>
-          )}
+      {/* Bonus Info */}
+      <div className="mt-4 p-3 bg-[#F0F4FF] rounded-xl">
+        <p className="text-xs text-gray-700">
+          💰 {language === 'ru' ? 'Ты получаешь' : 'You get'} <span className="font-bold text-[#4789F4]">200₽</span> {language === 'ru' ? 'за друга' : 'per friend'}
+          <br />
+          🎁 {language === 'ru' ? 'Друг получает' : 'Friend gets'} <span className="font-bold text-[#4789F4]">100₽</span> {language === 'ru' ? 'при регистрации' : 'on signup'}
         </p>
       </div>
     </div>
