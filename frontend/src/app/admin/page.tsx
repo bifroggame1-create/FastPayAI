@@ -201,6 +201,7 @@ export default function AdminPage() {
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Sellers state
   const [sellers, setSellers] = useState<Seller[]>([])
@@ -603,8 +604,6 @@ export default function AdminPage() {
       </div>
     )
   }
-
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
     <div className="min-h-screen bg-[#0f1117] flex">
