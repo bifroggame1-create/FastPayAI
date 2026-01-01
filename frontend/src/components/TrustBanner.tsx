@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppStore } from '@/lib/store'
-import { LightningFast, ShieldCheck, RefundMoney, StoreFront } from './Icons'
+import { LightningFast, ShieldCheck, RefundMoney, StoreFront, Cashback } from './Icons'
 
 const content = {
   ru: {
