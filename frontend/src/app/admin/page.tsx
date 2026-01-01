@@ -604,16 +604,38 @@ export default function AdminPage() {
     )
   }
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   return (
     <div className="min-h-screen bg-[#0f1117] flex">
+      {/* Mobile Sidebar Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setMobileMenuOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className={`${sidebarCollapsed ? 'w-16' : 'w-56'} bg-[#0f1117] border-r border-[#1e2028] flex flex-col transition-all duration-200`}>
+      <aside className={`
+        fixed md:relative inset-y-0 left-0 z-50
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+        ${sidebarCollapsed ? 'md:w-16' : 'md:w-56'} w-64
+        bg-[#0f1117] border-r border-[#1e2028] flex flex-col transition-all duration-200
+      `}>
         {/* Logo */}
-        <div className="h-14 flex items-center px-4 border-b border-[#1e2028]">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">FP</span>
+        <div className="h-14 flex items-center justify-between px-4 border-b border-[#1e2028]">
+          <div className="flex items-center">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">FP</span>
+            </div>
+            {(!sidebarCollapsed || mobileMenuOpen) && <span className="ml-3 font-semibold text-white">FastPay</span>}
           </div>
-          {!sidebarCollapsed && <span className="ml-3 font-semibold text-white">FastPay</span>}
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="md:hidden p-1 text-gray-400 hover:text-white"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         {/* Navigation */}
@@ -621,7 +643,7 @@ export default function AdminPage() {
           {navItems.map(item => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id as Tab)}
+              onClick={() => { setActiveTab(item.id as Tab); setMobileMenuOpen(false) }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 activeTab === item.id
                   ? 'bg-blue-600/10 text-blue-500'
@@ -629,7 +651,7 @@ export default function AdminPage() {
               }`}
             >
               {item.icon}
-              {!sidebarCollapsed && (
+              {(!sidebarCollapsed || mobileMenuOpen) && (
                 <>
                   <span className="flex-1 text-left">{item.label}</span>
                   {item.count !== undefined && item.count > 0 && (
@@ -654,31 +676,31 @@ export default function AdminPage() {
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-gray-200 hover:bg-[#1a1d27] transition-colors"
           >
             {Icons.logout}
-            {!sidebarCollapsed && <span>Выйти</span>}
+            {(!sidebarCollapsed || mobileMenuOpen) && <span>Выйти</span>}
           </button>
         </div>
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen w-full md:w-auto">
         {/* Top bar */}
-        <header className="h-14 bg-[#0f1117] border-b border-[#1e2028] flex items-center justify-between px-6">
-          <div className="flex items-center gap-4">
+        <header className="h-14 bg-[#0f1117] border-b border-[#1e2028] flex items-center justify-between px-4 md:px-6">
+          <div className="flex items-center gap-2 md:gap-4">
             <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              onClick={() => { setMobileMenuOpen(!mobileMenuOpen); setSidebarCollapsed(!sidebarCollapsed) }}
               className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-[#1a1d27] transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <div className="relative">
+            <div className="relative hidden sm:block">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Поиск..."
-                className="w-64 pl-9 pr-4 py-2 bg-[#1a1d27] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                className="w-48 md:w-64 pl-9 pr-4 py-2 bg-[#1a1d27] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
                 {Icons.search}
@@ -686,14 +708,14 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <button className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#1a1d27] transition-colors relative">
               {Icons.notification}
               {applications.filter(a => a.status === 'pending').length > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full"></span>
               )}
             </button>
-            <button className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#1a1d27] transition-colors">
+            <button className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#1a1d27] transition-colors hidden sm:block">
               {Icons.settings}
             </button>
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -703,14 +725,14 @@ export default function AdminPage() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
           {/* Dashboard */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
               <h1 className="text-xl font-semibold text-white">Dashboard</h1>
 
               {/* KPI Cards */}
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 <div className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
@@ -823,7 +845,7 @@ export default function AdminPage() {
               </div>
 
               {/* Quick Stats Grid */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                 <div className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
                   <h3 className="text-sm font-medium text-gray-400 mb-3">Товары</h3>
                   <div className="text-2xl font-bold text-white mb-1">{products.length}</div>
@@ -1109,7 +1131,7 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 {sellers.map(seller => (
                   <div key={seller.id} className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
                     <div className="flex items-center gap-3 mb-3">
@@ -1228,7 +1250,7 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 {reviews.map(review => (
                   <div key={review.id} className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
                     <div className="flex items-start justify-between mb-2">
@@ -1427,7 +1449,7 @@ export default function AdminPage() {
 
               <FileUploader onUpload={handleFileUpload} />
 
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                 {uploadedFiles.map(file => (
                   <div key={file.id} className="bg-[#1a1d27] rounded-lg border border-[#2a2d37] overflow-hidden">
                     {file.type.startsWith('image/') ? (
@@ -1592,8 +1614,8 @@ function ProductEditor({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1a1d27] rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-[#2a2d37]">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end md:items-center justify-center md:p-4">
+      <div className="bg-[#1a1d27] rounded-t-2xl md:rounded-lg w-full md:max-w-2xl max-h-[90vh] overflow-y-auto border border-[#2a2d37]">
         <div className="sticky top-0 bg-[#1a1d27] px-6 py-4 border-b border-[#2a2d37] flex justify-between items-center">
           <h2 className="text-lg font-semibold text-white">{isNew ? 'Новый товар' : 'Редактирование'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">×</button>
@@ -1629,7 +1651,7 @@ function ProductEditor({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Категория</label>
               <select
@@ -1781,25 +1803,40 @@ function SellerEditor({
   isNew: boolean
 }) {
   const [form, setForm] = useState(seller)
+  const [showFilePicker, setShowFilePicker] = useState(false)
+
+  const selectImage = (url: string) => {
+    setForm({ ...form, avatar: url })
+    setShowFilePicker(false)
+  }
+
+  const badgeOptions: { id: SellerBadge; label: string; color: string }[] = [
+    { id: 'new', label: '🆕 Новичок', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    { id: 'trusted', label: '⭐ Надёжный', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+    { id: 'verified', label: '✓ Проверен', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+    { id: 'top_seller', label: '🏆 Топ продавец', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+    { id: 'high_volume', label: '📈 Большой объём', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+    { id: 'risky', label: '⚠️ Рискованный', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+  ]
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1a1d27] rounded-lg w-full max-w-md border border-[#2a2d37]">
-        <div className="px-6 py-4 border-b border-[#2a2d37] flex justify-between items-center">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end md:items-center justify-center">
+      <div className="bg-[#1a1d27] rounded-t-2xl md:rounded-lg w-full md:max-w-md max-h-[90vh] overflow-y-auto border border-[#2a2d37]">
+        <div className="sticky top-0 bg-[#1a1d27] px-4 md:px-6 py-4 border-b border-[#2a2d37] flex justify-between items-center">
           <h2 className="text-lg font-semibold text-white">{isNew ? 'Новый продавец' : 'Редактирование'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">×</button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 md:p-6 space-y-4">
+          {/* Avatar */}
           <div className="flex items-center gap-4">
             <img src={form.avatar || '/default-avatar.png'} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
-            <input
-              type="text"
-              value={form.avatar}
-              onChange={e => setForm({...form, avatar: e.target.value})}
-              placeholder="URL аватара"
-              className="flex-1 px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white"
-            />
+            <button
+              onClick={() => setShowFilePicker(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
+            >
+              Изменить аватар
+            </button>
           </div>
 
           <div>
@@ -1808,6 +1845,7 @@ function SellerEditor({
               type="text"
               value={form.id}
               onChange={e => setForm({...form, id: e.target.value})}
+              placeholder="Telegram ID"
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
             />
           </div>
@@ -1827,38 +1865,121 @@ function SellerEditor({
             <input
               type="number"
               step="0.1"
+              min="0"
+              max="5"
               value={form.rating}
               onChange={e => setForm({...form, rating: parseFloat(e.target.value) || 0})}
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
             />
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Status checkboxes */}
+          <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm text-gray-300">
               <input
                 type="checkbox"
                 checked={form.isVerified || false}
                 onChange={e => setForm({...form, isVerified: e.target.checked})}
-                className="rounded"
+                className="w-4 h-4 rounded accent-green-500"
               />
-              Верифицирован
+              ✅ Верифицированный продавец
             </label>
             <label className="flex items-center gap-2 text-sm text-red-400">
               <input
                 type="checkbox"
                 checked={form.isBlocked || false}
                 onChange={e => setForm({...form, isBlocked: e.target.checked})}
-                className="rounded"
+                className="w-4 h-4 rounded accent-red-500"
               />
-              Заблокирован
+              🚫 Заблокирован
             </label>
           </div>
 
+          {form.isBlocked && (
+            <div>
+              <label className="block text-sm text-red-400 mb-1">Причина блокировки</label>
+              <input
+                type="text"
+                value={form.blockReason || ''}
+                onChange={e => setForm({...form, blockReason: e.target.value})}
+                placeholder="Укажите причину блокировки"
+                className="w-full px-3 py-2 bg-red-900/20 border border-red-800 rounded-lg text-white"
+              />
+            </div>
+          )}
+
+          {/* Badges */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Бейджи</label>
+            <div className="flex flex-wrap gap-2">
+              {badgeOptions.map(badge => (
+                <button
+                  key={badge.id}
+                  type="button"
+                  onClick={() => {
+                    const currentBadges = form.badges || []
+                    const newBadges = currentBadges.includes(badge.id)
+                      ? currentBadges.filter(b => b !== badge.id)
+                      : [...currentBadges, badge.id]
+                    setForm({...form, badges: newBadges})
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    (form.badges || []).includes(badge.id)
+                      ? badge.color + ' ring-2 ring-offset-1 ring-offset-[#1a1d27] ring-blue-500'
+                      : 'bg-[#0f1117] text-gray-500 border-[#2a2d37]'
+                  }`}
+                >
+                  {badge.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-4">
-            <button onClick={onClose} className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">Отмена</button>
-            <button onClick={() => onSave(form)} className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">Сохранить</button>
+            <button onClick={onClose} className="flex-1 py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">Отмена</button>
+            <button onClick={() => onSave(form)} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">Сохранить</button>
           </div>
         </div>
+
+        {/* File Picker */}
+        {showFilePicker && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-[#1a1d27] rounded-lg p-4 w-full max-w-sm border border-[#2a2d37]">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-medium text-white">Выберите аватар</h3>
+                <button onClick={() => setShowFilePicker(false)} className="text-gray-400 hover:text-white text-xl">×</button>
+              </div>
+              <div className="mb-3">
+                <input
+                  type="text"
+                  value={form.avatar}
+                  onChange={e => setForm({...form, avatar: e.target.value})}
+                  placeholder="Или введите URL"
+                  className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white"
+                />
+              </div>
+              {uploadedFiles.filter(f => f.type.startsWith('image/')).length > 0 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {uploadedFiles.filter(f => f.type.startsWith('image/')).map(file => (
+                    <button
+                      key={file.id}
+                      onClick={() => selectImage(file.data)}
+                      className="aspect-square rounded-full overflow-hidden border-2 border-transparent hover:border-blue-500"
+                    >
+                      <img src={file.data} alt={file.name} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => setShowFilePicker(false)}
+                className="w-full mt-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
+              >
+                Готово
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1877,8 +1998,8 @@ function UserEditor({
   const [form, setForm] = useState(user)
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1a1d27] rounded-lg w-full max-w-md border border-[#2a2d37]">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end md:items-center justify-center md:p-4">
+      <div className="bg-[#1a1d27] rounded-t-2xl md:rounded-lg w-full md:max-w-md max-h-[90vh] overflow-y-auto border border-[#2a2d37]">
         <div className="px-6 py-4 border-b border-[#2a2d37] flex justify-between items-center">
           <h2 className="text-lg font-semibold text-white">Редактирование пользователя</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">×</button>
@@ -1946,8 +2067,8 @@ function ReviewEditor({
   const [form, setForm] = useState(review)
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1a1d27] rounded-lg w-full max-w-md border border-[#2a2d37]">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end md:items-center justify-center md:p-4">
+      <div className="bg-[#1a1d27] rounded-t-2xl md:rounded-lg w-full md:max-w-md max-h-[90vh] overflow-y-auto border border-[#2a2d37]">
         <div className="px-6 py-4 border-b border-[#2a2d37] flex justify-between items-center">
           <h2 className="text-lg font-semibold text-white">Редактирование отзыва</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">×</button>
@@ -2021,8 +2142,8 @@ function PromoEditor({
   const [form, setForm] = useState(promo)
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1a1d27] rounded-lg w-full max-w-md border border-[#2a2d37]">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end md:items-center justify-center md:p-4">
+      <div className="bg-[#1a1d27] rounded-t-2xl md:rounded-lg w-full md:max-w-md max-h-[90vh] overflow-y-auto border border-[#2a2d37]">
         <div className="px-6 py-4 border-b border-[#2a2d37] flex justify-between items-center">
           <h2 className="text-lg font-semibold text-white">Промокод</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">×</button>
@@ -2039,7 +2160,7 @@ function PromoEditor({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Тип</label>
               <select
@@ -2062,7 +2183,7 @@ function PromoEditor({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Мин. сумма</label>
               <input
@@ -2117,8 +2238,8 @@ function OrderDeliveryEditor({
   const [deliveryNote, setDeliveryNote] = useState('')
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1a1d27] rounded-lg w-full max-w-md border border-[#2a2d37]">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end md:items-center justify-center md:p-4">
+      <div className="bg-[#1a1d27] rounded-t-2xl md:rounded-lg w-full md:max-w-md max-h-[90vh] overflow-y-auto border border-[#2a2d37]">
         <div className="px-6 py-4 border-b border-[#2a2d37] flex justify-between items-center">
           <h2 className="text-lg font-semibold text-white">Выдача товара</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">×</button>
