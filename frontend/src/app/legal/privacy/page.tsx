@@ -153,7 +153,7 @@ export default function PrivacyPage() {
           </p>
           <ul className="list-disc pl-6 mb-4 text-sm space-y-1">
             <li>Telegram: @fastpay_sup</li>
-            <li>Email: privacy@fastpay.app</li>
+            <li>Email: FastPayAI@yandex.ru</li>
           </ul>
 
           <div className="mt-8 pt-4 border-t border-light-border dark:border-dark-border">

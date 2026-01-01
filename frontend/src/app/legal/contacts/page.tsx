@@ -69,7 +69,7 @@ export default function ContactsPage() {
                 </div>
                 <div className="flex-1">
                   <div className="font-medium text-light-text dark:text-dark-text">Email</div>
-                  <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">support@fastpay.app</div>
+                  <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">FastPayAI@yandex.ru</div>
                 </div>
               </div>
             </div>
