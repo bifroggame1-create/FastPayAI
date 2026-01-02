@@ -31,10 +31,10 @@ const content = {
       items: [
         { icon: '💬', label: 'Поддержка', value: '@fastpay_sup' },
         { icon: '📢', label: 'Новости', value: '@FastPayNews' },
-        { icon: '👨‍💻', label: 'Разработчик', value: '@CheffDev' }
+        { icon: '👨‍💻', label: 'Разработчик', value: '@cheffofgang' }
       ]
     },
-    footer: 'Made with ❤️ by CheffDev'
+    footer: 'Made with ❤️ by cheffofgang'
   },
   en: {
     title: 'About FastPay',
@@ -61,10 +61,10 @@ const content = {
       items: [
         { icon: '💬', label: 'Support', value: '@fastpay_sup' },
         { icon: '📢', label: 'News', value: '@FastPayNews' },
-        { icon: '👨‍💻', label: 'Developer', value: '@CheffDev' }
+        { icon: '👨‍💻', label: 'Developer', value: '@cheffofgang' }
       ]
     },
-    footer: 'Made with ❤️ by CheffDev'
+    footer: 'Made with ❤️ by cheffofgang'
   }
 }
 
