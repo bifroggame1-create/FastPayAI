@@ -161,11 +161,7 @@ function CheckoutContent() {
           items: checkoutItems.length > 1 ? checkoutItems : undefined,
         }
 
-        console.log('[FastPay] Creating invoice:', invoiceParams)
-
         const response = await paymentApi.createInvoice(invoiceParams)
-
-        console.log('[FastPay] Invoice response:', response)
 
         if (response.success && response.invoice) {
           openPaymentUrl(response.invoice.payUrl)
@@ -200,11 +196,7 @@ function CheckoutContent() {
           items: checkoutItems.length > 1 ? checkoutItems : undefined,
         }
 
-        console.log('[FastPay] Creating XRocket invoice:', invoiceParams)
-
         const response = await paymentApi.createXRocketInvoice(invoiceParams)
-
-        console.log('[FastPay] XRocket response:', response)
 
         if (response.success && response.invoice) {
           openPaymentUrl(response.invoice.payUrl)
@@ -236,11 +228,7 @@ function CheckoutContent() {
           items: checkoutItems.length > 1 ? checkoutItems : undefined,
         }
 
-        console.log('[FastPay] Creating Telegram Stars invoice:', invoiceParams)
-
         const response = await paymentApi.createStarsInvoice(invoiceParams)
-
-        console.log('[FastPay] Telegram Stars response:', response)
 
         if (response.success && response.invoice) {
           openPaymentUrl(response.invoice.payUrl)
@@ -275,11 +263,7 @@ function CheckoutContent() {
           items: checkoutItems.length > 1 ? checkoutItems : undefined,
         }
 
-        console.log('[FastPay] Creating CactusPay payment:', paymentParams)
-
         const response = await paymentApi.createCactusPayment(paymentParams)
-
-        console.log('[FastPay] CactusPay response:', response)
 
         if (response.success && response.payment) {
           openPaymentUrl(response.payment.payUrl)
