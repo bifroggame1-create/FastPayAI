@@ -16,6 +16,7 @@ const badgeConfig: Record<SellerBadgeType, {
   color: string
   bgColor: string
   description: { ru: string; en: string }
+  animation?: string
 }> = {
   new: {
     icon: (
@@ -26,7 +27,8 @@ const badgeConfig: Record<SellerBadgeType, {
     label: { ru: 'Новичок', en: 'New' },
     color: 'text-emerald-500',
     bgColor: 'bg-emerald-500/10',
-    description: { ru: 'Новый продавец', en: 'New seller' }
+    description: { ru: 'Новый продавец', en: 'New seller' },
+    animation: 'animate-pulse'
   },
   trusted: {
     icon: (
@@ -37,7 +39,8 @@ const badgeConfig: Record<SellerBadgeType, {
     label: { ru: 'Надежный', en: 'Trusted' },
     color: 'text-blue-500',
     bgColor: 'bg-blue-500/10',
-    description: { ru: 'Проверенный продавец', en: 'Trusted seller' }
+    description: { ru: 'Проверенный продавец', en: 'Trusted seller' },
+    animation: 'animate-badge-glow-blue'
   },
   verified: {
     icon: (
@@ -49,7 +52,8 @@ const badgeConfig: Record<SellerBadgeType, {
     label: { ru: 'Верифицирован', en: 'Verified' },
     color: 'text-cyan-500',
     bgColor: 'bg-cyan-500/10',
-    description: { ru: 'Личность подтверждена', en: 'Identity verified' }
+    description: { ru: 'Личность подтверждена', en: 'Identity verified' },
+    animation: 'animate-badge-glow-cyan'
   },
   top_seller: {
     icon: (
@@ -60,7 +64,8 @@ const badgeConfig: Record<SellerBadgeType, {
     label: { ru: 'Топ', en: 'Top' },
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
-    description: { ru: 'Топ-продавец', en: 'Top seller' }
+    description: { ru: 'Топ-продавец', en: 'Top seller' },
+    animation: 'animate-badge-glow-amber'
   },
   high_volume: {
     icon: (
@@ -71,7 +76,8 @@ const badgeConfig: Record<SellerBadgeType, {
     label: { ru: '100+', en: '100+' },
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
-    description: { ru: '100+ продаж', en: '100+ sales' }
+    description: { ru: '100+ продаж', en: '100+ sales' },
+    animation: 'animate-badge-glow-purple'
   },
   risky: {
     icon: (
@@ -82,7 +88,8 @@ const badgeConfig: Record<SellerBadgeType, {
     label: { ru: 'Риск', en: 'Risky' },
     color: 'text-red-500',
     bgColor: 'bg-red-500/10',
-    description: { ru: 'Проблемы с заказами', en: 'Order issues' }
+    description: { ru: 'Проблемы с заказами', en: 'Order issues' },
+    animation: 'animate-badge-pulse-red'
   }
 }
 
@@ -113,7 +120,7 @@ export default function SellerBadge({ badge, size = 'md', showLabel = false }: S
   if (showLabel) {
     return (
       <span
-        className={`inline-flex items-center ${config.bgColor} ${paddingClasses[size]} rounded-full`}
+        className={`inline-flex items-center ${config.bgColor} ${paddingClasses[size]} rounded-full ${config.animation || ''}`}
         title={config.description[language]}
       >
         <span className={`${sizeClasses[size]} ${config.color}`}>
@@ -128,7 +135,7 @@ export default function SellerBadge({ badge, size = 'md', showLabel = false }: S
 
   return (
     <span
-      className={`${sizeClasses[size]} ${config.color} inline-flex`}
+      className={`${sizeClasses[size]} ${config.color} inline-flex ${config.animation || ''}`}
       title={`${config.label[language]}: ${config.description[language]}`}
     >
       {config.icon}

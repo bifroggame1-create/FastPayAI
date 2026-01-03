@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Header from '@/components/Header'
-import ProductCard from '@/components/ProductCard'
 import BottomNav from '@/components/BottomNav'
 import { ProductDetailSkeleton } from '@/components/Skeleton'
 import { Product, ProductVariant, Review } from '@/types'
@@ -18,7 +17,6 @@ export default function ProductDetailPage() {
   const router = useRouter()
   const toast = useToast()
   const [product, setProduct] = useState<Product | null>(null)
-  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([])
   const [reviews, setReviews] = useState<Review[]>([])
   const [reviewStats, setReviewStats] = useState<{ count: number; average: number } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -39,10 +37,6 @@ export default function ProductDetailPage() {
       if (data.variants && data.variants.length > 0) {
         setSelectedVariant(data.variants[0])
       }
-
-      const allProducts = await productsApi.getAll({ category: data.category })
-      const recommended = allProducts.filter(p => p._id !== data._id).slice(0, 5)
-      setRecommendedProducts(recommended)
 
       try {
         const [reviewsData, statsData] = await Promise.all([
@@ -333,22 +327,6 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
                   <p className="text-[13px] text-tg-hint">{review.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Recommended */}
-        {recommendedProducts.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-[17px] font-semibold text-tg-text mb-4">
-              {language === 'ru' ? 'Похожие товары' : 'Similar products'}
-            </h3>
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">
-              {recommendedProducts.map((recProduct) => (
-                <div key={recProduct._id} className="flex-shrink-0 w-44">
-                  <ProductCard product={recProduct} />
                 </div>
               ))}
             </div>
