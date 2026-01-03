@@ -22,6 +22,10 @@ export async function productRoutes(fastify: FastifyInstance) {
     // Update in-memory cache for admin routes compatibility
     fastify.products = products
 
+    // Filter out disabled products for regular users (isEnabled !== false)
+    // Products without isEnabled field are considered enabled (backward compat)
+    products = products.filter(p => p.isEnabled !== false)
+
     // Apply category filter
     if (query.category) {
       products = products.filter(p => p.category === query.category)

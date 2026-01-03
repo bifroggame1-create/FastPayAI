@@ -669,6 +669,44 @@ export const adminApi = {
     const { data } = await adminApiInstance.get(`/admin/audit-logs/${entityType}/${entityId}`, { params: { limit, offset } })
     return data
   },
+
+  // Product Toggle (enable/disable)
+  toggleProduct: async (id: string, isEnabled: boolean) => {
+    const { data } = await adminApiInstance.patch(`/admin/products/${id}/toggle`, { isEnabled })
+    return data
+  },
+
+  // Shop Settings
+  getSettings: async () => {
+    const { data } = await adminApiInstance.get('/admin/settings')
+    return data
+  },
+
+  updatePaymentMethods: async (enabledMethods: string[]) => {
+    const { data } = await adminApiInstance.patch('/admin/settings/payment-methods', { enabledMethods })
+    return data
+  },
+
+  updateBranding: async (branding: any) => {
+    const { data } = await adminApiInstance.patch('/admin/settings/branding', branding)
+    return data
+  },
+
+  // My Shop (Seller Dashboard)
+  getMyShopProducts: async () => {
+    const { data } = await adminApiInstance.get('/admin/my-shop/products')
+    return data
+  },
+
+  getMyShopOrders: async () => {
+    const { data } = await adminApiInstance.get('/admin/my-shop/orders')
+    return data
+  },
+
+  getMyShopStats: async () => {
+    const { data } = await adminApiInstance.get('/admin/my-shop/stats')
+    return data
+  },
 }
 
 export const chatApi = {

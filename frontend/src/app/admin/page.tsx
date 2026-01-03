@@ -7,7 +7,7 @@ import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi, sellerApplicationsApi } from '@/lib/api'
 import { initAuth, isAdmin as checkIsAdmin, getUser } from '@/lib/auth'
 
-type Tab = 'dashboard' | 'orders' | 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'admins' | 'applications' | 'users'
+type Tab = 'dashboard' | 'orders' | 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'admins' | 'applications' | 'users' | 'settings' | 'myshop'
 
 interface SellerApplication {
   id: string
@@ -576,6 +576,8 @@ export default function AdminPage() {
     { id: 'promo', label: 'Промокоды', icon: Icons.promo, count: promoCodes.length },
     { id: 'admins', label: 'Админы', icon: Icons.admins, count: admins.length },
     { id: 'files', label: 'Файлы', icon: Icons.files, count: uploadedFiles.length },
+    { id: 'settings', label: 'Настройки', icon: Icons.settings },
+    { id: 'myshop', label: 'Мой магазин', icon: Icons.products },
   ]
 
   if (loading) {

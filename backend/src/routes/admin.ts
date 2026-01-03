@@ -26,6 +26,7 @@ import {
   updateProduct,
   deleteProduct,
   getProductById,
+  loadProducts,
   addPromoCode,
   updatePromoCode,
   deletePromoCode,
@@ -198,6 +199,44 @@ export async function adminRoutes(fastify: FastifyInstance) {
     })
 
     return { success: true }
+  })
+
+  // Toggle product visibility (enable/disable)
+  fastify.patch('/admin/products/:id/toggle', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as any
+      const { isEnabled } = request.body as { isEnabled: boolean }
+
+      const before = await getProductById(id, reqTenantId(request))
+      if (!before) {
+        reply.code(404)
+        return { success: false, error: 'Product not found' }
+      }
+
+      const updated = await updateProduct(id, { isEnabled }, reqTenantId(request))
+
+      const index = fastify.products.findIndex(p => p._id === id)
+      if (index !== -1) fastify.products[index] = updated
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'product',
+        entityId: id,
+        changes: {
+          before: { isEnabled: before.isEnabled },
+          after: { isEnabled }
+        },
+        metadata: { action: isEnabled ? 'enabled' : 'disabled' }
+      })
+
+      return { success: true, product: updated }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
   })
 
   // ============================================
@@ -1969,6 +2008,230 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const { getDeliveryLogs } = await import('../webhooks')
       const logs = await getDeliveryLogs(id, Number(limit))
       return { success: true, logs }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // SHOP SETTINGS
+  // ============================================
+
+  // Get shop settings (payment methods, branding, etc.)
+  fastify.get('/admin/settings', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const tenant = request.tenant
+      if (!tenant) {
+        reply.code(400)
+        return { success: false, error: 'Tenant not found' }
+      }
+
+      return {
+        success: true,
+        settings: {
+          branding: tenant.branding,
+          settings: tenant.settings,
+          paymentConfig: {
+            enabledMethods: tenant.paymentConfig?.enabledMethods || ['cryptobot']
+          }
+        }
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Update payment methods settings
+  fastify.patch('/admin/settings/payment-methods', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { enabledMethods } = request.body as { enabledMethods: string[] }
+      const tenantId = reqTenantId(request)
+
+      if (!enabledMethods || !Array.isArray(enabledMethods)) {
+        reply.code(400)
+        return { success: false, error: 'enabledMethods array is required' }
+      }
+
+      // Validate payment methods
+      const validMethods = ['cryptobot', 'xrocket', 'telegram-stars', 'cactuspay-sbp', 'cactuspay-card']
+      const filteredMethods = enabledMethods.filter(m => validMethods.includes(m))
+
+      const { getTenantsCollection } = await import('../database')
+      await getTenantsCollection().updateOne(
+        { id: tenantId },
+        { $set: { 'paymentConfig.enabledMethods': filteredMethods } }
+      )
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'settings',
+        entityId: 'payment_methods',
+        changes: { after: { enabledMethods: filteredMethods } }
+      })
+
+      return { success: true, enabledMethods: filteredMethods }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Update shop branding
+  fastify.patch('/admin/settings/branding', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const branding = request.body as any
+      const tenantId = reqTenantId(request)
+
+      const { getTenantsCollection } = await import('../database')
+      await getTenantsCollection().updateOne(
+        { id: tenantId },
+        { $set: { branding } }
+      )
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'settings',
+        entityId: 'branding',
+        changes: { after: branding }
+      })
+
+      return { success: true, branding }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // MY SHOP (SELLER DASHBOARD)
+  // ============================================
+
+  // Get seller's own products
+  fastify.get('/admin/my-shop/products', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const tenantId = reqTenantId(request)
+      const products = await loadProducts(tenantId)
+
+      // Filter products by seller ID
+      const sellerProducts = products.filter(p => p.seller?.id === sellerId)
+
+      return { success: true, products: sellerProducts }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get seller's own orders
+  fastify.get('/admin/my-shop/orders', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const tenantId = reqTenantId(request)
+
+      // Get seller's products first
+      const products = await loadProducts(tenantId)
+      const sellerProductIds = products
+        .filter(p => p.seller?.id === sellerId)
+        .map(p => p._id?.toString())
+
+      // Get orders for seller's products
+      const ordersCollection = getOrdersCollection()
+      const orders = await ordersCollection
+        .find({
+          tenantId,
+          productId: { $in: sellerProductIds }
+        })
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .toArray()
+
+      return { success: true, orders }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get seller's stats
+  fastify.get('/admin/my-shop/stats', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const tenantId = reqTenantId(request)
+
+      // Get seller's products
+      const products = await loadProducts(tenantId)
+      const sellerProducts = products.filter(p => p.seller?.id === sellerId)
+      const sellerProductIds = sellerProducts.map(p => p._id?.toString())
+
+      // Count orders
+      const ordersCollection = getOrdersCollection()
+      const [totalOrders, deliveredOrders, revenue] = await Promise.all([
+        ordersCollection.countDocuments({
+          tenantId,
+          productId: { $in: sellerProductIds }
+        }),
+        ordersCollection.countDocuments({
+          tenantId,
+          productId: { $in: sellerProductIds },
+          status: 'delivered'
+        }),
+        ordersCollection.aggregate([
+          {
+            $match: {
+              tenantId,
+              productId: { $in: sellerProductIds },
+              status: 'delivered'
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$amount' }
+            }
+          }
+        ]).toArray()
+      ])
+
+      return {
+        success: true,
+        stats: {
+          productsCount: sellerProducts.length,
+          activeProducts: sellerProducts.filter(p => p.isEnabled !== false).length,
+          totalOrders,
+          deliveredOrders,
+          revenue: revenue[0]?.total || 0
+        }
+      }
     } catch (error: any) {
       reply.code(500)
       return { success: false, error: error.message }

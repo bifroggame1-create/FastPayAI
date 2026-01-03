@@ -262,6 +262,7 @@ export interface Product extends TenantScoped {
   category: string
   description?: string
   inStock: boolean
+  isEnabled?: boolean  // Если false - товар скрыт с главной, но виден продавцу
   rating?: number
   createdAt?: string
   variants?: ProductVariant[]

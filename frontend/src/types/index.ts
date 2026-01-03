@@ -22,6 +22,7 @@ export interface Product {
   createdAt: string
   description?: string
   inStock: boolean
+  isEnabled?: boolean // если false - товар скрыт с главной
   variants?: ProductVariant[] // варианты услуги
   badges?: ('sale' | 'hit' | 'new')[] // бейджи товара
   tags?: string[] // теги товара (массив ID тегов)
