@@ -2156,6 +2156,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const sellerProductIds = products
         .filter(p => p.seller?.id === sellerId)
         .map(p => p._id?.toString())
+        .filter((id): id is string => !!id)
 
       // Get orders for seller's products
       const ordersCollection = getOrdersCollection()
@@ -2191,7 +2192,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
       // Get seller's products
       const products = await loadProducts(tenantId)
       const sellerProducts = products.filter(p => p.seller?.id === sellerId)
-      const sellerProductIds = sellerProducts.map(p => p._id?.toString())
+      const sellerProductIds = sellerProducts
+        .map(p => p._id?.toString())
+        .filter((id): id is string => !!id)
 
       // Count orders
       const ordersCollection = getOrdersCollection()

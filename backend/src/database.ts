@@ -560,7 +560,7 @@ export type AuditEntityType =
   | 'product' | 'order' | 'user' | 'seller'
   | 'admin' | 'promo_code' | 'review' | 'file' | 'backup'
   | 'dispute' | 'escrow' | 'key_replacement'
-  | 'tenant' | 'billing'
+  | 'tenant' | 'billing' | 'settings'
 
 export interface AuditLog extends TenantScoped {
   _id?: string | ObjectId
