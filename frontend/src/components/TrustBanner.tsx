@@ -11,11 +11,7 @@ const content = {
       { icon: 'shield', text: 'Escrow защита' },
       { icon: 'refund', text: 'Возврат денег' },
       { icon: 'store', text: 'Открой свой магазин' }
-    ],
-    stats: {
-      orders: '10K+ покупок',
-      protection: 'Защита покупателя'
-    }
+    ]
   },
   en: {
     headline: 'Digital goods with guarantee',
@@ -24,19 +20,15 @@ const content = {
       { icon: 'shield', text: 'Escrow protection' },
       { icon: 'refund', text: 'Money back' },
       { icon: 'store', text: 'Open your store' }
-    ],
-    stats: {
-      orders: '10K+ orders',
-      protection: 'Buyer protection'
-    }
+    ]
   }
 }
 
 const icons = {
-  lightning: <LightningFast className="w-5 h-5" />,
-  shield: <ShieldCheck className="w-5 h-5" />,
-  refund: <RefundMoney className="w-5 h-5" />,
-  store: <StoreFront className="w-5 h-5" />
+  lightning: <LightningFast className="w-4 h-4" />,
+  shield: <ShieldCheck className="w-4 h-4" />,
+  refund: <RefundMoney className="w-4 h-4" />,
+  store: <StoreFront className="w-4 h-4" />
 }
 
 export default function TrustBanner() {
@@ -44,18 +36,15 @@ export default function TrustBanner() {
   const t = content[language]
 
   return (
-    <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-blue/10 dark:from-accent-cyan/20 dark:to-accent-blue/20 border-b border-light-border dark:border-dark-border">
+    <div className="bg-tg-button/10 border-b border-tg-separator">
       <div className="px-4 py-3">
-        {/* Headline */}
-        <h1 className="text-base font-bold text-light-text dark:text-dark-text mb-2 text-center">
+        <h1 className="text-[14px] font-semibold text-tg-text mb-2 text-center">
           {t.headline}
         </h1>
-
-        {/* Features grid */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs max-w-xs mx-auto">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px] max-w-xs mx-auto">
           {t.features.map((feature, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-light-text-secondary dark:text-dark-text-secondary">
-              <span className="flex-shrink-0">
+            <div key={i} className="flex items-center gap-1.5 text-tg-hint">
+              <span className="text-tg-button flex-shrink-0">
                 {icons[feature.icon as keyof typeof icons]}
               </span>
               <span>{feature.text}</span>
@@ -67,7 +56,7 @@ export default function TrustBanner() {
   )
 }
 
-// Compact inline trust badges for use in other components
+// Trust badge component
 export function TrustBadge({ type, size = 'sm' }: { type: 'escrow' | 'instant' | 'guarantee'; size?: 'sm' | 'md' }) {
   const { language } = useAppStore()
 
@@ -80,30 +69,30 @@ export function TrustBadge({ type, size = 'sm' }: { type: 'escrow' | 'instant' |
   const badges = {
     escrow: {
       text: { ru: 'Escrow', en: 'Escrow' },
-      color: 'bg-green-50 dark:bg-green-900/30'
+      color: 'bg-app-success/10 text-app-success'
     },
     instant: {
       text: { ru: 'Мгновенно', en: 'Instant' },
-      color: 'bg-yellow-50 dark:bg-yellow-900/30'
+      color: 'bg-amber-500/10 text-amber-500'
     },
     guarantee: {
       text: { ru: 'Гарантия', en: 'Guarantee' },
-      color: 'bg-blue-50 dark:bg-blue-900/30'
+      color: 'bg-tg-button/10 text-tg-button'
     }
   }
 
   const badge = badges[type]
-  const sizeClasses = size === 'sm' ? 'px-1.5 py-0.5 text-xs gap-1' : 'px-2 py-1 text-sm gap-1.5'
+  const sizeClasses = size === 'sm' ? 'px-1.5 py-0.5 text-[11px] gap-1' : 'px-2 py-1 text-[12px] gap-1.5'
 
   return (
-    <span className={`inline-flex items-center rounded-full font-medium text-light-text dark:text-dark-text ${badge.color} ${sizeClasses}`}>
+    <span className={`inline-flex items-center rounded-full font-medium ${badge.color} ${sizeClasses}`}>
       {badgeIcons[type]}
       <span>{badge.text[language]}</span>
     </span>
   )
 }
 
-// Escrow explanation block for product/checkout pages
+// Escrow explanation block
 export function EscrowExplainer({ variant = 'full' }: { variant?: 'full' | 'compact' }) {
   const { language } = useAppStore()
 
@@ -132,27 +121,27 @@ export function EscrowExplainer({ variant = 'full' }: { variant?: 'full' | 'comp
 
   if (variant === 'compact') {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-        <svg className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex items-center gap-2 px-3 py-2 bg-app-success/10 rounded-xl border border-app-success/20">
+        <svg className="w-5 h-5 text-app-success flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
-        <span className="text-sm text-green-700 dark:text-green-300">{t.compact}</span>
+        <span className="text-[13px] text-app-success">{t.compact}</span>
       </div>
     )
   }
 
   return (
-    <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border">
-      <h3 className="font-bold text-light-text dark:text-dark-text mb-3 flex items-center gap-2">
-        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="bg-tg-secondary-bg rounded-xl p-4 border border-tg-separator">
+      <h3 className="font-semibold text-tg-text mb-3 flex items-center gap-2 text-[14px]">
+        <svg className="w-5 h-5 text-app-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
         {t.title}
       </h3>
       <ul className="space-y-2">
         {t.items.map((item, i) => (
-          <li key={i} className="flex items-start gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-            <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <li key={i} className="flex items-start gap-2 text-[13px] text-tg-hint">
+            <svg className="w-4 h-4 text-app-success mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
             <span>{item}</span>

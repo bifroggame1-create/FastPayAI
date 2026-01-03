@@ -293,13 +293,13 @@ export default function ProductDetailPage() {
           <div className="flex gap-2">
             <button
               onClick={() => router.push(`/seller/${product.seller.id}`)}
-              className="flex-1 bg-tg-bg text-tg-text py-2.5 rounded-tg-sm text-[14px] font-medium active:opacity-80"
+              className="flex-1 bg-tg-bg text-tg-text py-2.5 rounded-tg-sm text-[14px] font-medium active:opacity-80 border border-tg-separator"
             >
               {language === 'ru' ? 'Профиль' : 'Profile'}
             </button>
             <button
               onClick={handleContactSeller}
-              className="flex-1 bg-tg-accent/10 text-tg-accent py-2.5 rounded-tg-sm text-[14px] font-medium active:opacity-80"
+              className="flex-1 bg-tg-button text-white py-2.5 rounded-tg-sm text-[14px] font-medium active:opacity-80"
             >
               {language === 'ru' ? 'Написать' : 'Message'}
             </button>
