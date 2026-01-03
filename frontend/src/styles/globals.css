@@ -4,7 +4,37 @@
 
 /* Telegram Mini Apps CSS Variables */
 :root {
-  /* TMA Dark Theme Colors */
+  /* TMA Light Theme Colors (Default) */
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-secondary-bg-color: #f1f1f1;
+  --tg-theme-text-color: #000000;
+  --tg-theme-hint-color: #999999;
+  --tg-theme-link-color: #2481cc;
+  --tg-theme-button-color: #2481cc;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-header-bg-color: #ffffff;
+  --tg-theme-accent-text-color: #2481cc;
+  --tg-theme-section-bg-color: #ffffff;
+  --tg-theme-section-header-text-color: #6d6d72;
+  --tg-theme-subtitle-text-color: #999999;
+  --tg-theme-destructive-text-color: #ff3b30;
+  --tg-theme-section-separator-color: #c8c7cc;
+
+  /* Custom app colors */
+  --app-bg: var(--tg-theme-bg-color);
+  --app-card: var(--tg-theme-secondary-bg-color);
+  --app-text: var(--tg-theme-text-color);
+  --app-text-secondary: var(--tg-theme-hint-color);
+  --app-accent: var(--tg-theme-link-color);
+  --app-button: var(--tg-theme-button-color);
+  --app-button-text: var(--tg-theme-button-text-color);
+  --app-border: var(--tg-theme-section-separator-color);
+  --app-destructive: var(--tg-theme-destructive-text-color);
+  --app-success: #31b545;
+}
+
+/* Dark Theme */
+.dark {
   --tg-theme-bg-color: #17212b;
   --tg-theme-secondary-bg-color: #232e3c;
   --tg-theme-text-color: #f5f5f5;
@@ -18,21 +48,7 @@
   --tg-theme-section-header-text-color: #6ab3f3;
   --tg-theme-subtitle-text-color: #708499;
   --tg-theme-destructive-text-color: #ec3942;
-
-  /* Section separator */
   --tg-theme-section-separator-color: #293a4c;
-
-  /* Custom app colors */
-  --app-bg: var(--tg-theme-bg-color);
-  --app-card: var(--tg-theme-secondary-bg-color);
-  --app-text: var(--tg-theme-text-color);
-  --app-text-secondary: var(--tg-theme-hint-color);
-  --app-accent: var(--tg-theme-link-color);
-  --app-button: var(--tg-theme-button-color);
-  --app-button-text: var(--tg-theme-button-text-color);
-  --app-border: var(--tg-theme-section-separator-color);
-  --app-destructive: var(--tg-theme-destructive-text-color);
-  --app-success: #31b545;
 }
 
 * {
