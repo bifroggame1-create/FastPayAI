@@ -119,8 +119,14 @@ export const useAppStore = create<AppState>()(
       toggleTheme: () => set((state) => {
         const newTheme = state.theme === 'dark' ? 'light' : 'dark'
         if (typeof window !== 'undefined') {
-          document.documentElement.classList.toggle('dark', newTheme === 'dark')
-          localStorage.setItem('theme', newTheme)
+          const html = document.documentElement
+          if (newTheme === 'dark') {
+            html.classList.add('dark')
+            html.classList.remove('light')
+          } else {
+            html.classList.add('light')
+            html.classList.remove('dark')
+          }
         }
         return { theme: newTheme }
       }),
