@@ -183,12 +183,16 @@ function CheckoutContent() {
         setProcessing(false)
       }
     } else if (paymentMethod === 'xrocket') {
-      // XRocket payment
+      // XRocket payment - amount needs to be in crypto, not RUB
       try {
         setProcessing(true)
 
+        // Convert RUB to crypto amount for xRocket
+        const cryptoAmount = parseFloat(formatCryptoAmount(finalPrice, selectedCrypto).split(' ')[0])
+
         const invoiceParams = {
-          amount: finalPrice,
+          amount: cryptoAmount,
+          amountRub: finalPrice, // Send RUB amount for backend reference
           currency: selectedCrypto === 'TON' ? 'TONCOIN' : 'USDT',
           description: getDescription(),
           productId: checkoutItems[0].productId,

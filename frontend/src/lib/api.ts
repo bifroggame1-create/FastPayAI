@@ -279,10 +279,12 @@ export const paymentApi = {
   // XRocket payments
   createXRocketInvoice: async (params: {
     amount: number
+    amountRub?: number // Original RUB amount for backend reference
     currency?: string
     description?: string
     productId: string
     variantId?: string
+    items?: any[]
   }) => {
     const { data } = await api.post('/payment/xrocket/create-invoice', params)
     return data
