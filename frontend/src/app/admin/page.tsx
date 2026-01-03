@@ -235,6 +235,15 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserProfile[]>([])
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
 
+  // Settings state
+  const [paymentMethods, setPaymentMethods] = useState<string[]>(['cryptobot'])
+  const [shopBranding, setShopBranding] = useState<any>({})
+
+  // My Shop state
+  const [myShopStats, setMyShopStats] = useState<any>(null)
+  const [myShopProducts, setMyShopProducts] = useState<Product[]>([])
+  const [myShopOrders, setMyShopOrders] = useState<any[]>([])
+
   useEffect(() => {
     const checkAccessAndLoad = async () => {
       const authUser = await initAuth()
@@ -1078,12 +1087,13 @@ export default function AdminPage() {
                         <th className="px-4 py-3 font-medium">Категория</th>
                         <th className="px-4 py-3 font-medium">Цена</th>
                         <th className="px-4 py-3 font-medium">Варианты</th>
+                        <th className="px-4 py-3 font-medium">Статус</th>
                         <th className="px-4 py-3 font-medium">Действия</th>
                       </tr>
                     </thead>
                     <tbody>
                       {products.map(product => (
-                        <tr key={product._id} className="border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028]">
+                        <tr key={product._id} className={`border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028] ${product.isEnabled === false ? 'opacity-50' : ''}`}>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover" />
@@ -1098,6 +1108,20 @@ export default function AdminPage() {
                           </td>
                           <td className="px-4 py-3">
                             <span className="text-xs text-gray-400">{product.variants?.length || 0}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={async () => {
+                                const newState = product.isEnabled === false ? true : false
+                                const result = await adminApi.toggleProduct(product._id, newState)
+                                if (result.success) {
+                                  setProducts(products.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
+                                }
+                              }}
+                              className={`relative w-10 h-5 rounded-full transition-colors ${product.isEnabled !== false ? 'bg-emerald-500' : 'bg-gray-600'}`}
+                            >
+                              <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${product.isEnabled !== false ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                            </button>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex gap-2">
@@ -1490,6 +1514,260 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6">
+              <h1 className="text-xl font-semibold text-white">Настройки</h1>
+
+              {/* Payment Methods */}
+              <div className="bg-[#1a1d27] rounded-lg p-5 border border-[#2a2d37]">
+                <h2 className="text-lg font-medium text-white mb-4">Методы оплаты</h2>
+                <p className="text-sm text-gray-400 mb-4">Выберите доступные методы оплаты для покупателей</p>
+
+                <div className="space-y-3">
+                  {[
+                    { id: 'cryptobot', name: 'CryptoBot', desc: 'Оплата криптовалютой через Telegram' },
+                    { id: 'xrocket', name: 'xRocket', desc: 'Оплата через TON кошелёк' },
+                    { id: 'telegram-stars', name: 'Telegram Stars', desc: 'Оплата звёздами Telegram' },
+                    { id: 'cactuspay-sbp', name: 'СБП (CactusPay)', desc: 'Система быстрых платежей' },
+                    { id: 'cactuspay-card', name: 'Карта (CactusPay)', desc: 'Оплата банковской картой' },
+                  ].map(method => (
+                    <label key={method.id} className="flex items-center justify-between p-3 bg-[#0f1117] rounded-lg cursor-pointer hover:bg-[#151820] transition-colors">
+                      <div>
+                        <span className="text-white text-sm font-medium">{method.name}</span>
+                        <p className="text-xs text-gray-500">{method.desc}</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const newMethods = paymentMethods.includes(method.id)
+                            ? paymentMethods.filter(m => m !== method.id)
+                            : [...paymentMethods, method.id]
+                          try {
+                            await adminApi.updatePaymentMethods(newMethods)
+                            setPaymentMethods(newMethods)
+                          } catch (e) {
+                            console.error('Failed to update payment methods:', e)
+                          }
+                        }}
+                        className={`relative w-10 h-5 rounded-full transition-colors ${paymentMethods.includes(method.id) ? 'bg-emerald-500' : 'bg-gray-600'}`}
+                      >
+                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${paymentMethods.includes(method.id) ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      </button>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Shop Branding */}
+              <div className="bg-[#1a1d27] rounded-lg p-5 border border-[#2a2d37]">
+                <h2 className="text-lg font-medium text-white mb-4">Брендинг магазина</h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Название магазина</label>
+                    <input
+                      type="text"
+                      value={shopBranding.shopName || ''}
+                      onChange={e => setShopBranding({ ...shopBranding, shopName: e.target.value })}
+                      placeholder="Мой магазин"
+                      className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Описание</label>
+                    <textarea
+                      value={shopBranding.description || ''}
+                      onChange={e => setShopBranding({ ...shopBranding, description: e.target.value })}
+                      placeholder="Краткое описание магазина"
+                      rows={3}
+                      className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Telegram контакт</label>
+                    <input
+                      type="text"
+                      value={shopBranding.contactTelegram || ''}
+                      onChange={e => setShopBranding({ ...shopBranding, contactTelegram: e.target.value })}
+                      placeholder="@username"
+                      className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                    />
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        await adminApi.updateBranding(shopBranding)
+                        alert('Настройки сохранены!')
+                      } catch (e) {
+                        console.error('Failed to update branding:', e)
+                        alert('Ошибка сохранения')
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    Сохранить
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* My Shop Tab */}
+          {activeTab === 'myshop' && (
+            <div className="space-y-6">
+              <h1 className="text-xl font-semibold text-white">Мой магазин</h1>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
+                  <p className="text-xs text-gray-400 mb-1">Всего товаров</p>
+                  <p className="text-2xl font-semibold text-white">{myShopStats?.totalProducts || products.length}</p>
+                </div>
+                <div className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
+                  <p className="text-xs text-gray-400 mb-1">Активных</p>
+                  <p className="text-2xl font-semibold text-emerald-400">{myShopStats?.activeProducts || products.filter(p => p.isEnabled !== false).length}</p>
+                </div>
+                <div className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
+                  <p className="text-xs text-gray-400 mb-1">Всего заказов</p>
+                  <p className="text-2xl font-semibold text-white">{myShopStats?.totalOrders || orders.length}</p>
+                </div>
+                <div className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
+                  <p className="text-xs text-gray-400 mb-1">Выручка</p>
+                  <p className="text-2xl font-semibold text-blue-400">{myShopStats?.totalRevenue?.toLocaleString() || orders.filter(o => o.status === 'delivered').reduce((acc, o) => acc + o.amount, 0).toLocaleString()} ₽</p>
+                </div>
+              </div>
+
+              {/* My Products */}
+              <div className="bg-[#1a1d27] rounded-lg border border-[#2a2d37]">
+                <div className="px-4 py-3 border-b border-[#2a2d37] flex justify-between items-center">
+                  <h2 className="font-medium text-white">Мои товары</h2>
+                  <button
+                    onClick={() => {
+                      setEditingProduct({
+                        _id: '',
+                        name: '',
+                        price: 0,
+                        images: ['/products/placeholder.png'],
+                        condition: 'new',
+                        category: 'ai-subscriptions',
+                        seller: sellers[0] || { id: '1', name: 'Продавец', rating: 5 },
+                        rating: 5,
+                        createdAt: new Date().toISOString(),
+                        inStock: true,
+                        isEnabled: true
+                      })
+                      setIsAddingNew(true)
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors"
+                  >
+                    + Добавить товар
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-xs text-gray-500 border-b border-[#2a2d37]">
+                        <th className="px-4 py-3 font-medium">Товар</th>
+                        <th className="px-4 py-3 font-medium">Цена</th>
+                        <th className="px-4 py-3 font-medium">Продаж</th>
+                        <th className="px-4 py-3 font-medium">Статус</th>
+                        <th className="px-4 py-3 font-medium">Действия</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {products.map(product => (
+                        <tr key={product._id} className={`border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028] ${product.isEnabled === false ? 'opacity-50' : ''}`}>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover" />
+                              <span className="text-sm text-white">{product.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-white">{product.price.toLocaleString()} ₽</td>
+                          <td className="px-4 py-3 text-sm text-gray-400">{product.salesCount || 0}</td>
+                          <td className="px-4 py-3">
+                            <span className={`text-xs px-2 py-1 rounded ${product.isEnabled !== false ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-500/10 text-gray-500'}`}>
+                              {product.isEnabled !== false ? 'Активен' : 'Скрыт'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setEditingProduct(product)}
+                                className="text-xs px-2 py-1 bg-blue-500/10 text-blue-500 rounded hover:bg-blue-500/20 transition-colors"
+                              >
+                                Изменить
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  const newState = product.isEnabled === false ? true : false
+                                  const result = await adminApi.toggleProduct(product._id, newState)
+                                  if (result.success) {
+                                    setProducts(products.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
+                                  }
+                                }}
+                                className={`text-xs px-2 py-1 rounded transition-colors ${product.isEnabled !== false ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`}
+                              >
+                                {product.isEnabled !== false ? 'Скрыть' : 'Показать'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Recent Orders */}
+              <div className="bg-[#1a1d27] rounded-lg border border-[#2a2d37]">
+                <div className="px-4 py-3 border-b border-[#2a2d37]">
+                  <h2 className="font-medium text-white">Последние заказы</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-xs text-gray-500 border-b border-[#2a2d37]">
+                        <th className="px-4 py-3 font-medium">Заказ</th>
+                        <th className="px-4 py-3 font-medium">Товар</th>
+                        <th className="px-4 py-3 font-medium">Сумма</th>
+                        <th className="px-4 py-3 font-medium">Статус</th>
+                        <th className="px-4 py-3 font-medium">Дата</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.slice(0, 10).map(order => (
+                        <tr key={order.id} className="border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028]">
+                          <td className="px-4 py-3 text-xs text-gray-400 font-mono">{order.oderId?.slice(0, 8) || order.id.slice(0, 8)}</td>
+                          <td className="px-4 py-3 text-sm text-white">{order.productName}</td>
+                          <td className="px-4 py-3 text-sm text-white">{order.amount?.toLocaleString()} ₽</td>
+                          <td className="px-4 py-3">
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              order.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500' :
+                              order.status === 'paid' ? 'bg-blue-500/10 text-blue-500' :
+                              order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
+                              'bg-gray-500/10 text-gray-500'
+                            }`}>
+                              {order.status === 'delivered' ? 'Доставлен' :
+                               order.status === 'paid' ? 'Оплачен' :
+                               order.status === 'pending' ? 'Ожидает' :
+                               order.status === 'cancelled' ? 'Отменён' :
+                               order.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('ru-RU')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
