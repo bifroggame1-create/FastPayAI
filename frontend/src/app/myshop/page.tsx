@@ -116,9 +116,15 @@ export default function MyShopPage() {
   })
 
   // Forms
-  const [newPromo, setNewPromo] = useState({
+  const [newPromo, setNewPromo] = useState<{
+    code: string
+    discountType: 'percentage' | 'fixed'
+    discountValue: number
+    minOrderAmount: number
+    maxUses: number
+  }>({
     code: '',
-    discountType: 'percentage' as const,
+    discountType: 'percentage',
     discountValue: 10,
     minOrderAmount: 0,
     maxUses: 100
