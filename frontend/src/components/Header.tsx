@@ -12,6 +12,7 @@ interface HeaderProps {
   onBack?: () => void
   rightAction?: React.ReactNode
   showNavButtons?: boolean
+  showCart?: boolean
 }
 
 export default function Header({ title, showBack, onBack, rightAction, showNavButtons = true }: HeaderProps) {
