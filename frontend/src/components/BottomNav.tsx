@@ -9,7 +9,7 @@ import { hapticImpact } from '@/lib/telegram'
 
 export default function BottomNav() {
   const pathname = usePathname()
-  const { isAdmin: storeIsAdmin, setIsAdmin, cartItems } = useAppStore()
+  const { isAdmin: storeIsAdmin, setIsAdmin, cart, getCartItemCount } = useAppStore()
   const [localIsAdmin, setLocalIsAdmin] = useState(false)
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function BottomNav() {
   }, [setIsAdmin])
 
   const isAdmin = localIsAdmin || storeIsAdmin
-  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
+  const cartCount = getCartItemCount()
 
   const navItems = [
     {
