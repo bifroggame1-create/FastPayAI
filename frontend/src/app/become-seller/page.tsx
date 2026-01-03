@@ -195,7 +195,7 @@ export default function BecomeSellerPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+      <div className="min-h-screen bg-tg-bg pb-20">
         <Header
           title={t.title}
           showBack
@@ -208,10 +208,10 @@ export default function BecomeSellerPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-light-text dark:text-dark-text mb-3">
+          <h2 className="text-2xl font-bold text-tg-text mb-3">
             {t.success.title}
           </h2>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary mb-8">
+          <p className="text-tg-hint mb-8">
             {t.success.desc}
           </p>
           <button
@@ -228,7 +228,7 @@ export default function BecomeSellerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+    <div className="min-h-screen bg-tg-bg pb-20">
       <Header
         title={t.title}
         showBack
@@ -243,10 +243,10 @@ export default function BecomeSellerPage() {
               <div className="w-10 h-10 mx-auto mb-2 bg-accent-cyan text-white rounded-full flex items-center justify-center font-bold">
                 {step.num}
               </div>
-              <h3 className="text-sm font-medium text-light-text dark:text-dark-text mb-1">
+              <h3 className="text-sm font-medium text-tg-text mb-1">
                 {step.title}
               </h3>
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+              <p className="text-xs text-tg-hint">
                 {step.desc}
               </p>
             </div>
@@ -257,7 +257,7 @@ export default function BecomeSellerPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Shop Name */}
           <div>
-            <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
+            <label className="block text-sm font-medium text-tg-text mb-2">
               {t.form.shopName}
             </label>
             <input
@@ -265,8 +265,8 @@ export default function BecomeSellerPage() {
               value={formData.shopName}
               onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
               placeholder={t.form.shopNamePlaceholder}
-              className={`w-full px-4 py-3 bg-light-card dark:bg-dark-card border rounded-xl text-light-text dark:text-dark-text placeholder:text-light-text-secondary dark:placeholder:text-dark-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-cyan ${
-                errors.shopName ? 'border-red-500' : 'border-light-border dark:border-dark-border'
+              className={`w-full px-4 py-3 bg-tg-secondary-bg border rounded-xl text-tg-text placeholder:text-tg-hint dark:placeholder:text-tg-hint focus:outline-none focus:ring-2 focus:ring-accent-cyan ${
+                errors.shopName ? 'border-red-500' : 'border-tg-separator'
               }`}
             />
             {errors.shopName && (
@@ -276,14 +276,14 @@ export default function BecomeSellerPage() {
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
+            <label className="block text-sm font-medium text-tg-text mb-2">
               {t.form.category}
             </label>
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className={`w-full px-4 py-3 bg-light-card dark:bg-dark-card border rounded-xl text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-accent-cyan ${
-                errors.category ? 'border-red-500' : 'border-light-border dark:border-dark-border'
+              className={`w-full px-4 py-3 bg-tg-secondary-bg border rounded-xl text-tg-text focus:outline-none focus:ring-2 focus:ring-accent-cyan ${
+                errors.category ? 'border-red-500' : 'border-tg-separator'
               }`}
             >
               <option value="">--</option>
@@ -298,7 +298,7 @@ export default function BecomeSellerPage() {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
+            <label className="block text-sm font-medium text-tg-text mb-2">
               {t.form.description}
             </label>
             <textarea
@@ -306,8 +306,8 @@ export default function BecomeSellerPage() {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder={t.form.descriptionPlaceholder}
               rows={4}
-              className={`w-full px-4 py-3 bg-light-card dark:bg-dark-card border rounded-xl text-light-text dark:text-dark-text placeholder:text-light-text-secondary dark:placeholder:text-dark-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-cyan resize-none ${
-                errors.description ? 'border-red-500' : 'border-light-border dark:border-dark-border'
+              className={`w-full px-4 py-3 bg-tg-secondary-bg border rounded-xl text-tg-text placeholder:text-tg-hint dark:placeholder:text-tg-hint focus:outline-none focus:ring-2 focus:ring-accent-cyan resize-none ${
+                errors.description ? 'border-red-500' : 'border-tg-separator'
               }`}
             />
             {errors.description && (
@@ -317,7 +317,7 @@ export default function BecomeSellerPage() {
 
           {/* Telegram */}
           <div>
-            <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
+            <label className="block text-sm font-medium text-tg-text mb-2">
               {t.form.telegram}
             </label>
             <input
@@ -325,8 +325,8 @@ export default function BecomeSellerPage() {
               value={formData.telegram}
               onChange={(e) => setFormData({ ...formData, telegram: e.target.value })}
               placeholder={t.form.telegramPlaceholder}
-              className={`w-full px-4 py-3 bg-light-card dark:bg-dark-card border rounded-xl text-light-text dark:text-dark-text placeholder:text-light-text-secondary dark:placeholder:text-dark-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-cyan ${
-                errors.telegram ? 'border-red-500' : 'border-light-border dark:border-dark-border'
+              className={`w-full px-4 py-3 bg-tg-secondary-bg border rounded-xl text-tg-text placeholder:text-tg-hint dark:placeholder:text-tg-hint focus:outline-none focus:ring-2 focus:ring-accent-cyan ${
+                errors.telegram ? 'border-red-500' : 'border-tg-separator'
               }`}
             />
             {errors.telegram && (
@@ -341,9 +341,9 @@ export default function BecomeSellerPage() {
               id="agreement"
               checked={formData.agreed}
               onChange={(e) => setFormData({ ...formData, agreed: e.target.checked })}
-              className="w-5 h-5 mt-0.5 rounded border-light-border dark:border-dark-border text-accent-cyan focus:ring-accent-cyan"
+              className="w-5 h-5 mt-0.5 rounded border-tg-separator text-accent-cyan focus:ring-accent-cyan"
             />
-            <label htmlFor="agreement" className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+            <label htmlFor="agreement" className="text-sm text-tg-hint">
               {t.form.agreement}{' '}
               <a href="/seller-rules" className="text-accent-cyan hover:underline">
                 {t.form.rules}
@@ -370,15 +370,15 @@ export default function BecomeSellerPage() {
         </form>
 
         {/* Benefits */}
-        <div className="mt-8 bg-light-card dark:bg-dark-card rounded-xl p-5 border border-light-border dark:border-dark-border">
-          <h3 className="font-bold text-light-text dark:text-dark-text mb-4">
+        <div className="mt-8 bg-tg-secondary-bg rounded-xl p-5 border border-tg-separator">
+          <h3 className="font-bold text-tg-text mb-4">
             {t.benefits.title}
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {t.benefits.items.map((item, i) => (
               <div key={i} className="flex items-center gap-2">
                 <span className="text-xl">{item.icon}</span>
-                <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                <span className="text-sm text-tg-hint">
                   {item.text}
                 </span>
               </div>

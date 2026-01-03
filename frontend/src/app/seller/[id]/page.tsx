@@ -39,9 +39,10 @@ export default function SellerProfilePage() {
       const productsData = await productsApi.getAll()
       const sellerProducts = productsData.filter(p => p.seller.id === params.id)
       setProducts(sellerProducts)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading seller data:', err)
-      setError(err.response?.data?.error || (language === 'ru' ? 'Продавец не найден' : 'Seller not found'))
+      const axiosError = err as { response?: { data?: { error?: string } } }
+      setError(axiosError.response?.data?.error || (language === 'ru' ? 'Продавец не найден' : 'Seller not found'))
     } finally {
       setLoading(false)
     }
@@ -78,7 +79,7 @@ export default function SellerProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
+      <div className="min-h-screen bg-tg-bg flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-cyan"></div>
       </div>
     )
@@ -86,17 +87,17 @@ export default function SellerProfilePage() {
 
   if (error || !seller) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+      <div className="min-h-screen bg-tg-bg pb-20">
         <Header
           title={language === 'ru' ? 'Профиль продавца' : 'Seller Profile'}
           showBack
           onBack={() => router.back()}
         />
         <div className="flex flex-col items-center justify-center px-4 py-20">
-          <svg className="w-16 h-16 text-light-text-secondary dark:text-dark-text-secondary mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-16 h-16 text-tg-hint mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary text-center">
+          <p className="text-tg-hint text-center">
             {error || (language === 'ru' ? 'Продавец не найден' : 'Seller not found')}
           </p>
           <button
@@ -117,7 +118,7 @@ export default function SellerProfilePage() {
     : 100
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+    <div className="min-h-screen bg-tg-bg pb-20">
       <Header
         title={language === 'ru' ? 'Профиль продавца' : 'Seller Profile'}
         showBack
@@ -126,7 +127,7 @@ export default function SellerProfilePage() {
 
       <div className="px-4 py-6">
         {/* Seller Info Card */}
-        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-5 border border-light-border dark:border-dark-border mb-4">
+        <div className="bg-tg-secondary-bg rounded-2xl p-5 border border-tg-separator mb-4">
           <div className="flex items-start gap-4">
             <img
               src={seller.avatar || '/default-avatar.png'}
@@ -135,7 +136,7 @@ export default function SellerProfilePage() {
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-xl font-bold text-light-text dark:text-dark-text truncate">
+                <h2 className="text-xl font-bold text-tg-text truncate">
                   {seller.name}
                 </h2>
                 {seller.isVerified && (
@@ -146,7 +147,7 @@ export default function SellerProfilePage() {
               </div>
 
               {/* Member since */}
-              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-2">
+              <p className="text-sm text-tg-hint mb-2">
                 {language === 'ru' ? 'На FastPay с ' : 'On FastPay since '}
                 {format(new Date(seller.memberSince), 'd MMMM yyyy', { locale: language === 'ru' ? ru : enUS })}
               </p>
@@ -164,26 +165,26 @@ export default function SellerProfilePage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           {/* Rating Card */}
-          <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border">
+          <div className="bg-tg-secondary-bg rounded-xl p-4 border border-tg-separator">
             <div className="flex flex-col items-center text-center">
               <SellerRating rating={seller.rating} size="lg" />
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+              <p className="text-xs text-tg-hint mt-1">
                 {seller.ratingCount} {language === 'ru' ? 'оценок' : 'ratings'}
               </p>
             </div>
           </div>
 
           {/* Success Rate Card */}
-          <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border text-center">
+          <div className="bg-tg-secondary-bg rounded-xl p-4 border border-tg-separator text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-2xl font-bold text-light-text dark:text-dark-text">
+              <span className="text-2xl font-bold text-tg-text">
                 {successRate}%
               </span>
             </div>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+            <p className="text-xs text-tg-hint">
               {language === 'ru' ? 'успешных сделок' : 'successful deals'}
             </p>
           </div>
@@ -191,30 +192,30 @@ export default function SellerProfilePage() {
 
         {/* Additional Stats */}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border text-center">
+          <div className="bg-tg-secondary-bg rounded-xl p-4 border border-tg-separator text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <svg className="w-5 h-5 text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
-              <span className="text-2xl font-bold text-light-text dark:text-dark-text">
+              <span className="text-2xl font-bold text-tg-text">
                 {products.length}
               </span>
             </div>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+            <p className="text-xs text-tg-hint">
               {language === 'ru' ? 'товаров' : 'products'}
             </p>
           </div>
 
-          <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border text-center">
+          <div className="bg-tg-secondary-bg rounded-xl p-4 border border-tg-separator text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-              <span className="text-2xl font-bold text-light-text dark:text-dark-text">
+              <span className="text-2xl font-bold text-tg-text">
                 {seller.stats.totalOrders}
               </span>
             </div>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+            <p className="text-xs text-tg-hint">
               {language === 'ru' ? 'всего продаж' : 'total sales'}
             </p>
           </div>
@@ -232,9 +233,9 @@ export default function SellerProfilePage() {
             {language === 'ru' ? 'Написать сообщение' : 'Send Message'}
           </button>
           <button
-            className="p-3 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-xl transition-all active:scale-[0.98]"
+            className="p-3 bg-tg-secondary-bg border border-tg-separator rounded-xl transition-all active:scale-[0.98]"
           >
-            <svg className="w-5 h-5 text-light-text-secondary dark:text-dark-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-tg-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
             </svg>
           </button>
@@ -242,7 +243,7 @@ export default function SellerProfilePage() {
 
         {/* Seller's Products */}
         <div>
-          <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4">
+          <h3 className="text-lg font-bold text-tg-text mb-4">
             {language === 'ru' ? 'Товары продавца' : "Seller's Products"}
           </h3>
 
@@ -253,11 +254,11 @@ export default function SellerProfilePage() {
               ))}
             </div>
           ) : (
-            <div className="bg-light-card dark:bg-dark-card rounded-xl p-8 border border-light-border dark:border-dark-border text-center">
-              <svg className="w-12 h-12 mx-auto mb-3 text-light-text-secondary dark:text-dark-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-tg-secondary-bg rounded-xl p-8 border border-tg-separator text-center">
+              <svg className="w-12 h-12 mx-auto mb-3 text-tg-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
-              <p className="text-light-text-secondary dark:text-dark-text-secondary">
+              <p className="text-tg-hint">
                 {language === 'ru' ? 'У этого продавца пока нет товаров' : 'This seller has no products yet'}
               </p>
             </div>

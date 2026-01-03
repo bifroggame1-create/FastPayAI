@@ -77,6 +77,8 @@ export default function SearchBar() {
           {/* Catalog Button */}
           <button
             onClick={() => setIsCatalogOpen(!isCatalogOpen)}
+            aria-label={language === 'ru' ? 'Открыть каталог' : 'Open catalog'}
+            aria-expanded={isCatalogOpen}
             className="flex items-center justify-center h-11 w-11 bg-tg-button text-white rounded-tg-sm active:opacity-80 transition-opacity flex-shrink-0"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -93,6 +95,9 @@ export default function SearchBar() {
               onKeyDown={handleKeyDown}
               onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
               placeholder={t('searchPlaceholder', language)}
+              aria-label={language === 'ru' ? 'Поиск товаров' : 'Search products'}
+              aria-autocomplete="list"
+              aria-expanded={showSuggestions && suggestions.length > 0}
               className="w-full bg-tg-secondary-bg text-tg-text px-4 py-3 pr-10 rounded-tg-sm border-none focus:outline-none focus:ring-2 focus:ring-tg-button/50 placeholder:text-tg-hint text-[15px]"
             />
             <svg

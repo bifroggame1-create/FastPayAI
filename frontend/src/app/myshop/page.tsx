@@ -226,8 +226,7 @@ export default function MyShopPage() {
     try {
       const result = await adminApi.createPromoCode({
         ...newPromo,
-        isActive: true,
-        usedCount: 0
+        isActive: true
       })
       if (result.success) {
         setPromoCodes([result.promoCode, ...promoCodes])

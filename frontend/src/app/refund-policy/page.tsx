@@ -148,7 +148,7 @@ export default function RefundPolicyPage() {
   const t = content[language]
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+    <div className="min-h-screen bg-tg-bg pb-20">
       <Header
         title={t.title}
         showBack
@@ -156,27 +156,27 @@ export default function RefundPolicyPage() {
       />
 
       <div className="px-4 py-6">
-        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-2">
+        <p className="text-sm text-tg-hint mb-2">
           {t.lastUpdated}
         </p>
-        <p className="text-light-text dark:text-dark-text mb-6">
+        <p className="text-tg-text mb-6">
           {t.intro}
         </p>
 
         {/* Escrow explanation */}
         <div className="bg-gradient-to-r from-accent-cyan/20 to-accent-blue/20 rounded-xl p-5 mb-4">
-          <h2 className="font-bold text-light-text dark:text-dark-text mb-4">
+          <h2 className="font-bold text-tg-text mb-4">
             {t.escrow.title}
           </h2>
           <div className="grid grid-cols-2 gap-3 mb-3">
             {t.escrow.steps.map((step, i) => (
-              <div key={i} className="bg-light-card dark:bg-dark-card rounded-lg p-3 text-center">
+              <div key={i} className="bg-tg-secondary-bg rounded-lg p-3 text-center">
                 <span className="text-2xl mb-1 block">{step.icon}</span>
-                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{step.text}</span>
+                <span className="text-xs text-tg-hint">{step.text}</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary text-center">
+          <p className="text-xs text-tg-hint text-center">
             {t.escrow.period}
           </p>
         </div>
@@ -206,8 +206,8 @@ export default function RefundPolicyPage() {
         </div>
 
         {/* How to open dispute */}
-        <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border mb-4">
-          <h2 className="font-bold text-light-text dark:text-dark-text mb-3">
+        <div className="bg-tg-secondary-bg rounded-xl p-4 border border-tg-separator mb-4">
+          <h2 className="font-bold text-tg-text mb-3">
             {t.dispute.title}
           </h2>
           <div className="space-y-2 mb-3">
@@ -216,7 +216,7 @@ export default function RefundPolicyPage() {
                 <span className="w-6 h-6 bg-accent-cyan text-white rounded-full flex items-center justify-center text-xs font-bold">
                   {i + 1}
                 </span>
-                <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{step}</span>
+                <span className="text-sm text-tg-hint">{step}</span>
               </div>
             ))}
           </div>
@@ -226,16 +226,16 @@ export default function RefundPolicyPage() {
         </div>
 
         {/* Possible resolutions */}
-        <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border mb-4">
-          <h2 className="font-bold text-light-text dark:text-dark-text mb-3">
+        <div className="bg-tg-secondary-bg rounded-xl p-4 border border-tg-separator mb-4">
+          <h2 className="font-bold text-tg-text mb-3">
             {t.resolution.title}
           </h2>
           <div className="grid grid-cols-2 gap-2">
             {t.resolution.items.map((item, i) => (
-              <div key={i} className="bg-light-bg dark:bg-dark-bg rounded-lg p-3 text-center">
+              <div key={i} className="bg-tg-bg rounded-lg p-3 text-center">
                 <span className="text-xl mb-1 block">{item.icon}</span>
-                <span className="text-xs font-medium text-light-text dark:text-dark-text block">{item.name}</span>
-                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.desc}</span>
+                <span className="text-xs font-medium text-tg-text block">{item.name}</span>
+                <span className="text-xs text-tg-hint">{item.desc}</span>
               </div>
             ))}
           </div>
@@ -254,7 +254,7 @@ export default function RefundPolicyPage() {
         </div>
 
         <div className="p-4 bg-accent-cyan/10 dark:bg-accent-cyan/20 rounded-xl">
-          <p className="text-sm text-light-text dark:text-dark-text text-center">
+          <p className="text-sm text-tg-text text-center">
             {t.footer}
           </p>
         </div>

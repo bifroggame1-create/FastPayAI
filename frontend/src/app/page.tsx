@@ -35,7 +35,7 @@ export default function MarketPage() {
   const loadProducts = async () => {
     try {
       setLoading(true)
-      const params: any = { sort: sortBy }
+      const params: Record<string, string | undefined> = { sort: sortBy }
       if (selectedCategory !== 'all') params.category = selectedCategory
       if (searchQuery) params.search = searchQuery
 

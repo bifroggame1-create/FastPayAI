@@ -81,18 +81,25 @@ export default function BecomeSellerModal({ isOpen, onClose }: BecomeSellerModal
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Modal */}
-      <div className="relative bg-light-card dark:bg-dark-card w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl animate-slide-up">
+      <div
+        className="relative bg-tg-secondary-bg w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl animate-slide-up"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="seller-modal-title"
+      >
         {/* Header */}
-        <div className="sticky top-0 bg-light-card dark:bg-dark-card p-4 border-b border-light-border dark:border-dark-border flex items-center justify-between">
-          <h2 className="text-xl font-bold text-light-text dark:text-dark-text">{t.title}</h2>
+        <div className="sticky top-0 bg-tg-secondary-bg p-4 border-b border-tg-separator flex items-center justify-between">
+          <h2 id="seller-modal-title" className="text-xl font-bold text-tg-text">{t.title}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-light-bg dark:hover:bg-dark-bg rounded-full transition-colors"
+            className="p-2 hover:bg-tg-bg rounded-full transition-colors"
+            aria-label={t.close}
           >
-            <svg className="w-5 h-5 text-light-text-secondary dark:text-dark-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-tg-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -101,12 +108,12 @@ export default function BecomeSellerModal({ isOpen, onClose }: BecomeSellerModal
         <div className="p-5">
           {/* Hero Section */}
           <div className="text-center mb-6">
-            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-accent-cyan to-accent-blue rounded-2xl flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-tg-button to-tg-accent rounded-2xl flex items-center justify-center" aria-hidden="true">
               <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary">
+            <p className="text-tg-hint">
               {t.subtitle}
             </p>
           </div>
@@ -116,10 +123,10 @@ export default function BecomeSellerModal({ isOpen, onClose }: BecomeSellerModal
             {t.benefits.map((benefit, index) => (
               <div
                 key={index}
-                className="flex items-center gap-3 p-3 bg-light-bg dark:bg-dark-bg rounded-xl"
+                className="flex items-center gap-3 p-3 bg-tg-bg rounded-xl"
               >
-                <span className="text-2xl">{benefit.icon}</span>
-                <span className="text-light-text dark:text-dark-text font-medium">
+                <span className="text-2xl" aria-hidden="true">{benefit.icon}</span>
+                <span className="text-tg-text font-medium">
                   {benefit.text}
                 </span>
               </div>
@@ -129,7 +136,7 @@ export default function BecomeSellerModal({ isOpen, onClose }: BecomeSellerModal
           {/* Requirements */}
           <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 mb-6">
             <h3 className="font-semibold text-amber-800 dark:text-amber-400 mb-2 flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {t.requirements.title}
@@ -137,7 +144,7 @@ export default function BecomeSellerModal({ isOpen, onClose }: BecomeSellerModal
             <ul className="space-y-1.5">
               {t.requirements.items.map((item, index) => (
                 <li key={index} className="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-2">
-                  <span className="mt-1">•</span>
+                  <span className="mt-1" aria-hidden="true">•</span>
                   <span>{item}</span>
                 </li>
               ))}
@@ -148,9 +155,9 @@ export default function BecomeSellerModal({ isOpen, onClose }: BecomeSellerModal
           <div className="space-y-3">
             <button
               onClick={handleApply}
-              className="w-full py-4 bg-gradient-to-r from-accent-cyan to-accent-blue text-white font-bold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              className="w-full py-4 bg-gradient-to-r from-tg-button to-tg-accent text-white font-bold rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               {t.cta}
@@ -158,7 +165,7 @@ export default function BecomeSellerModal({ isOpen, onClose }: BecomeSellerModal
 
             <button
               onClick={handleLearnMore}
-              className="w-full py-3 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text font-medium rounded-xl border border-light-border dark:border-dark-border transition-all active:scale-[0.98]"
+              className="w-full py-3 bg-tg-bg text-tg-text font-medium rounded-xl border border-tg-separator transition-all active:scale-[0.98]"
             >
               {t.learnMore}
             </button>

@@ -7,14 +7,15 @@ interface SkeletonProps {
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse bg-light-border dark:bg-dark-border rounded ${className}`}
+      className={`animate-pulse bg-tg-separator rounded ${className}`}
+      aria-hidden="true"
     />
   )
 }
 
 export function ProductCardSkeleton() {
   return (
-    <div className="bg-light-card dark:bg-dark-card rounded-2xl overflow-hidden border border-light-border dark:border-dark-border">
+    <div className="bg-tg-secondary-bg rounded-2xl overflow-hidden border border-tg-separator" aria-busy="true" aria-label="Loading product">
       <Skeleton className="aspect-square w-full" />
       <div className="p-4">
         <Skeleton className="h-5 w-3/4 mb-2" />
@@ -35,7 +36,7 @@ export function ProductCardSkeleton() {
 
 export function ProductGridSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-3" aria-busy="true" aria-label="Loading products">
       {Array.from({ length: count }).map((_, i) => (
         <ProductCardSkeleton key={i} />
       ))}
@@ -45,7 +46,7 @@ export function ProductGridSkeleton({ count = 4 }: { count?: number }) {
 
 export function OrderCardSkeleton() {
   return (
-    <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border">
+    <div className="bg-tg-secondary-bg rounded-xl p-4 border border-tg-separator" aria-busy="true" aria-label="Loading order">
       <div className="flex items-center justify-between mb-2">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-6 w-24 rounded-full" />
@@ -63,7 +64,7 @@ export function OrderCardSkeleton() {
 
 export function ChatItemSkeleton() {
   return (
-    <div className="flex items-center gap-3 p-4 bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border">
+    <div className="flex items-center gap-3 p-4 bg-tg-secondary-bg rounded-xl border border-tg-separator" aria-busy="true" aria-label="Loading chat">
       <Skeleton className="w-12 h-12 rounded-full" />
       <div className="flex-1">
         <div className="flex items-center justify-between mb-1">
@@ -78,7 +79,7 @@ export function ChatItemSkeleton() {
 
 export function ProfileSkeleton() {
   return (
-    <div className="px-4 py-6">
+    <div className="px-4 py-6" aria-busy="true" aria-label="Loading profile">
       <div className="flex items-center gap-4 mb-6">
         <Skeleton className="w-16 h-16 rounded-full" />
         <div>
@@ -103,7 +104,7 @@ export function ProfileSkeleton() {
 
 export function ProductDetailSkeleton() {
   return (
-    <div>
+    <div aria-busy="true" aria-label="Loading product details">
       <Skeleton className="aspect-square w-full mb-4" />
       <div className="px-4">
         <Skeleton className="h-8 w-32 mb-2" />

@@ -36,7 +36,7 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+    <div className="min-h-screen bg-tg-bg pb-20">
       <Header
         title="Избранное"
         showBack
@@ -44,13 +44,13 @@ export default function FavoritesPage() {
       />
 
       <div className="px-4 py-4">
-        <h2 className="text-lg font-semibold mb-4 text-light-text dark:text-dark-text">
-          Избранные товары <span className="text-light-text-secondary dark:text-dark-text-secondary text-base">{products.length}</span>
+        <h2 className="text-lg font-semibold mb-4 text-tg-text">
+          Избранные товары <span className="text-tg-hint text-base">{products.length}</span>
         </h2>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-cyan"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tg-button" aria-label="Loading"></div>
           </div>
         ) : (
           <>
@@ -63,10 +63,11 @@ export default function FavoritesPage() {
             ) : (
               <div className="flex flex-col items-center justify-center py-20">
                 <svg
-                  className="w-20 h-20 text-light-text-secondary dark:text-dark-text-secondary mb-4"
+                  className="w-20 h-20 text-tg-hint mb-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -75,7 +76,7 @@ export default function FavoritesPage() {
                     d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                   />
                 </svg>
-                <p className="text-light-text-secondary dark:text-dark-text-secondary text-center">
+                <p className="text-tg-hint text-center">
                   Вы еще не добавили товары в избранное
                 </p>
               </div>

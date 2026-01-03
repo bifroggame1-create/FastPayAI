@@ -28,8 +28,9 @@ export default function Header({ title, showBack, onBack, rightAction, showNavBu
             <button
               onClick={onBack}
               className="flex items-center justify-center w-8 h-8 -ml-2 text-tg-accent active:opacity-70"
+              aria-label={language === 'ru' ? 'Назад' : 'Go back'}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
@@ -53,13 +54,14 @@ export default function Header({ title, showBack, onBack, rightAction, showNavBu
               <button
                 onClick={toggleTheme}
                 className="flex items-center justify-center w-10 h-10 text-tg-hint active:opacity-70"
+                aria-label={theme === 'dark' ? (language === 'ru' ? 'Включить светлую тему' : 'Enable light theme') : (language === 'ru' ? 'Включить тёмную тему' : 'Enable dark theme')}
               >
                 {theme === 'dark' ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                 ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                   </svg>
                 )}
@@ -67,20 +69,22 @@ export default function Header({ title, showBack, onBack, rightAction, showNavBu
               <Link
                 href="/support"
                 className="flex items-center justify-center w-10 h-10 text-tg-hint active:opacity-70"
+                aria-label={language === 'ru' ? 'Поддержка' : 'Support'}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               </Link>
               <Link
                 href="/chats"
                 className="relative flex items-center justify-center w-10 h-10 text-tg-hint active:opacity-70"
+                aria-label={language === 'ru' ? `Чаты${unreadChats > 0 ? `, ${unreadChats} непрочитанных` : ''}` : `Chats${unreadChats > 0 ? `, ${unreadChats} unread` : ''}`}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 {unreadChats > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-tg-destructive text-white text-[10px] font-medium rounded-full flex items-center justify-center">
+                  <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-tg-destructive text-white text-[10px] font-medium rounded-full flex items-center justify-center" aria-hidden="true">
                     {unreadChats > 9 ? '9+' : unreadChats}
                   </span>
                 )}
@@ -88,9 +92,10 @@ export default function Header({ title, showBack, onBack, rightAction, showNavBu
               <button
                 onClick={() => setIsSettingsOpen(true)}
                 className="flex items-center gap-1 px-2 h-8 rounded-lg bg-tg-secondary-bg text-tg-text text-[13px] font-medium active:opacity-70"
+                aria-label={language === 'ru' ? 'Настройки языка и валюты' : 'Language and currency settings'}
               >
-                <span>{language === 'ru' ? '🇷🇺' : '🇺🇸'}</span>
-                <span>{currency === 'RUB' ? '₽' : currency === 'USD' ? '$' : '€'}</span>
+                <span aria-hidden="true">{language === 'ru' ? '🇷🇺' : '🇺🇸'}</span>
+                <span aria-hidden="true">{currency === 'RUB' ? '₽' : currency === 'USD' ? '$' : '€'}</span>
               </button>
             </>
           )}

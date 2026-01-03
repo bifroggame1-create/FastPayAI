@@ -7,7 +7,7 @@ export default function DeliveryPage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-8">
+    <div className="min-h-screen bg-tg-bg pb-8">
       <Header
         title="Условия доставки"
         showBack
@@ -15,15 +15,15 @@ export default function DeliveryPage() {
       />
 
       <div className="px-4 py-6 max-w-3xl mx-auto">
-        <div className="prose prose-sm dark:prose-invert max-w-none text-light-text dark:text-dark-text">
-          <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm mb-6">
+        <div className="prose prose-sm dark:prose-invert max-w-none text-tg-text">
+          <p className="text-tg-hint text-sm mb-6">
             Дата публикации: 01.01.2025 | Версия: 1.0
           </p>
 
           {/* Key Info */}
           <div className="bg-accent-cyan/10 border border-accent-cyan/30 rounded-xl p-4 mb-6">
             <p className="text-sm font-medium text-accent-cyan mb-2">Только цифровая доставка</p>
-            <p className="text-sm text-light-text dark:text-dark-text">
+            <p className="text-sm text-tg-text">
               Платформа FastPay осуществляет доставку исключительно цифровых товаров. Физическая доставка не предусмотрена. Все товары доставляются в электронном виде через Telegram.
             </p>
           </div>
@@ -44,10 +44,10 @@ export default function DeliveryPage() {
             2.1. На Платформе используются два способа доставки цифровых товаров:
           </p>
 
-          <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 mb-4 border border-light-border dark:border-dark-border">
+          <div className="bg-tg-secondary-bg rounded-xl p-4 mb-4 border border-tg-separator">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xl">⚡</span>
-              <span className="font-bold text-light-text dark:text-dark-text">Автоматическая доставка</span>
+              <span className="font-bold text-tg-text">Автоматическая доставка</span>
             </div>
             <ul className="list-disc pl-6 text-sm space-y-1">
               <li>Товар доставляется мгновенно после подтверждения оплаты</li>
@@ -57,10 +57,10 @@ export default function DeliveryPage() {
             </ul>
           </div>
 
-          <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 mb-4 border border-light-border dark:border-dark-border">
+          <div className="bg-tg-secondary-bg rounded-xl p-4 mb-4 border border-tg-separator">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xl">⏳</span>
-              <span className="font-bold text-light-text dark:text-dark-text">Ручная доставка</span>
+              <span className="font-bold text-tg-text">Ручная доставка</span>
             </div>
             <ul className="list-disc pl-6 text-sm space-y-1">
               <li>Товар доставляется продавцом вручную</li>
@@ -94,17 +94,17 @@ export default function DeliveryPage() {
 
           <table className="w-full text-sm mb-4 border-collapse">
             <thead>
-              <tr className="border-b border-light-border dark:border-dark-border">
+              <tr className="border-b border-tg-separator">
                 <th className="text-left py-2 font-medium">Тип доставки</th>
                 <th className="text-left py-2 font-medium">Срок</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-light-border dark:border-dark-border">
+              <tr className="border-b border-tg-separator">
                 <td className="py-2">Автоматическая</td>
                 <td className="py-2">Мгновенно (до 1 минуты)</td>
               </tr>
-              <tr className="border-b border-light-border dark:border-dark-border">
+              <tr className="border-b border-tg-separator">
                 <td className="py-2">Ручная</td>
                 <td className="py-2">До 30 минут</td>
               </tr>
@@ -182,8 +182,8 @@ export default function DeliveryPage() {
             <li>Email: FastPayAI@yandex.ru</li>
           </ul>
 
-          <div className="mt-8 pt-4 border-t border-light-border dark:border-dark-border">
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+          <div className="mt-8 pt-4 border-t border-tg-separator">
+            <p className="text-xs text-tg-hint">
               Совершая покупку на Платформе, вы подтверждаете, что ознакомились и согласны с условиями доставки цифровых товаров.
             </p>
           </div>

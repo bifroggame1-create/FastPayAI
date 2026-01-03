@@ -138,7 +138,7 @@ export default function SellerRulesPage() {
   const t = content[language]
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+    <div className="min-h-screen bg-tg-bg pb-20">
       <Header
         title={t.title}
         showBack
@@ -146,10 +146,10 @@ export default function SellerRulesPage() {
       />
 
       <div className="px-4 py-6">
-        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-2">
+        <p className="text-sm text-tg-hint mb-2">
           {t.lastUpdated}
         </p>
-        <p className="text-light-text dark:text-dark-text mb-6">
+        <p className="text-tg-text mb-6">
           {t.intro}
         </p>
 
@@ -158,15 +158,15 @@ export default function SellerRulesPage() {
           {t.sections.map((section, index) => (
             <div
               key={index}
-              className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border"
+              className="bg-tg-secondary-bg rounded-xl p-4 border border-tg-separator"
             >
-              <h2 className="font-bold text-light-text dark:text-dark-text mb-3">
+              <h2 className="font-bold text-tg-text mb-3">
                 {section.title}
               </h2>
               <ul className="space-y-2">
                 {section.items.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    <span className="text-accent-cyan mt-0.5">•</span>
+                  <li key={i} className="flex items-start gap-2 text-sm text-tg-hint">
+                    <span className="text-tg-button mt-0.5" aria-hidden="true">•</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -176,17 +176,17 @@ export default function SellerRulesPage() {
         </div>
 
         {/* Badges section */}
-        <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border mb-4">
-          <h2 className="font-bold text-light-text dark:text-dark-text mb-3">
+        <div className="bg-tg-secondary-bg rounded-xl p-4 border border-tg-separator mb-4">
+          <h2 className="font-bold text-tg-text mb-3">
             {t.badges.title}
           </h2>
           <div className="space-y-3">
             {t.badges.items.map((badge, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${badge.color}`}></div>
+                <div className={`w-3 h-3 rounded-full ${badge.color}`} aria-hidden="true"></div>
                 <div>
-                  <span className="font-medium text-light-text dark:text-dark-text">{badge.name}</span>
-                  <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary"> — {badge.desc}</span>
+                  <span className="font-medium text-tg-text">{badge.name}</span>
+                  <span className="text-sm text-tg-hint"> — {badge.desc}</span>
                 </div>
               </div>
             ))}
@@ -194,22 +194,22 @@ export default function SellerRulesPage() {
         </div>
 
         {/* Violations section */}
-        <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800 mb-6">
-          <h2 className="font-bold text-red-800 dark:text-red-400 mb-3">
+        <div className="bg-[var(--app-destructive)]/10 rounded-xl p-4 border border-[var(--app-destructive)]/30 mb-6">
+          <h2 className="font-bold text-[var(--app-destructive)] mb-3">
             {t.violations.title}
           </h2>
           <ul className="space-y-2">
             {t.violations.items.map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-red-700 dark:text-red-300">
-                <span className="mt-0.5">⚠️</span>
+              <li key={i} className="flex items-start gap-2 text-sm text-[var(--app-destructive)]">
+                <span className="mt-0.5" aria-hidden="true">⚠️</span>
                 <span>{item}</span>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="p-4 bg-accent-cyan/10 dark:bg-accent-cyan/20 rounded-xl">
-          <p className="text-sm text-light-text dark:text-dark-text text-center">
+        <div className="p-4 bg-tg-button/10 rounded-xl">
+          <p className="text-sm text-tg-text text-center">
             {t.footer}
           </p>
         </div>

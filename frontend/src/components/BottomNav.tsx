@@ -91,7 +91,7 @@ export default function BottomNav() {
   ]
 
   // Check if developer (ID: 1301598469)
-  const telegramUser = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp?.initDataUnsafe?.user : null
+  const telegramUser = typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user : null
   const isDeveloper = telegramUser?.id === 1301598469 || String(telegramUser?.id) === '1301598469'
 
   // Show "Мой магазин" for sellers/admins
@@ -136,7 +136,7 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-tg-secondary-bg border-t border-tg-separator z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-tg-secondary-bg border-t border-tg-separator z-50" aria-label="Основная навигация">
       <div className="flex justify-around items-center h-14 pb-safe max-w-lg mx-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.path
@@ -145,6 +145,8 @@ export default function BottomNav() {
               key={item.path}
               href={item.path}
               onClick={handleNavClick}
+              aria-label={item.name}
+              aria-current={isActive ? 'page' : undefined}
               className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-colors active:opacity-70 ${
                 isActive ? 'text-tg-accent' : 'text-tg-hint'
               }`}

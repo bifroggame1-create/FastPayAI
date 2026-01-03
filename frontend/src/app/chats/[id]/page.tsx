@@ -219,22 +219,22 @@ export default function ChatDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-cyan"></div>
+      <div className="min-h-screen bg-tg-bg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tg-button" aria-label="Loading"></div>
       </div>
     )
   }
 
   if (error || !chat) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
+      <div className="min-h-screen bg-tg-bg flex items-center justify-center">
         <div className="text-center">
-          <p className="text-light-text-secondary dark:text-dark-text-secondary mb-4">
+          <p className="text-tg-hint mb-4">
             {error || 'Чат не найден'}
           </p>
           <button
             onClick={() => router.push('/chats')}
-            className="px-6 py-2 bg-accent-cyan text-white rounded-xl"
+            className="px-6 py-2 bg-tg-button text-tg-button-text rounded-xl"
           >
             К списку чатов
           </button>
@@ -244,7 +244,7 @@ export default function ChatDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex flex-col">
+    <div className="min-h-screen bg-tg-bg flex flex-col">
       <Header
         title={chat.productName || 'Чат'}
         showBack
@@ -256,10 +256,10 @@ export default function ChatDetailPage() {
       <div className="flex-1 px-4 py-4 overflow-y-auto pb-36">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
-            <svg className="w-16 h-16 text-light-text-secondary dark:text-dark-text-secondary mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-16 h-16 text-tg-hint mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary">
+            <p className="text-tg-hint">
               Начните диалог с продавцом
             </p>
           </div>
@@ -273,8 +273,8 @@ export default function ChatDetailPage() {
                 <div
                   className={`max-w-[80%] px-4 py-2 rounded-2xl ${
                     isMyMessage(message.senderId)
-                      ? 'bg-accent-cyan text-white rounded-br-md'
-                      : 'bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text rounded-bl-md border border-light-border dark:border-dark-border'
+                      ? 'bg-tg-button text-tg-button-text rounded-br-md'
+                      : 'bg-tg-secondary-bg text-tg-text rounded-bl-md border border-tg-separator'
                   }`}
                 >
                   {!isMyMessage(message.senderId) && message.senderName && (
@@ -301,10 +301,10 @@ export default function ChatDetailPage() {
                       className={`flex items-center gap-2 p-2 rounded-lg mb-2 ${
                         isMyMessage(message.senderId)
                           ? 'bg-white/20'
-                          : 'bg-light-bg dark:bg-dark-bg'
+                          : 'bg-tg-bg'
                       }`}
                     >
-                      <svg className="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
                       <div className="min-w-0">
@@ -319,7 +319,7 @@ export default function ChatDetailPage() {
                     <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                   )}
 
-                  <p className={`text-xs mt-1 ${isMyMessage(message.senderId) ? 'opacity-70' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                  <p className={`text-xs mt-1 ${isMyMessage(message.senderId) ? 'opacity-70' : 'text-tg-hint'}`}>
                     {formatTime(message.createdAt)}
                   </p>
                 </div>
@@ -332,18 +332,19 @@ export default function ChatDetailPage() {
       </div>
 
       {/* Message input */}
-      <div className="fixed bottom-16 left-0 right-0 p-4 bg-light-bg dark:bg-dark-bg border-t border-light-border dark:border-dark-border">
+      <div className="fixed bottom-16 left-0 right-0 p-4 bg-tg-bg border-t border-tg-separator">
         <div className="flex gap-2 items-end">
           {/* File upload button */}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="p-3 rounded-xl bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text-secondary dark:text-dark-text-secondary hover:text-accent-cyan disabled:opacity-50 transition-colors"
+            className="p-3 rounded-xl bg-tg-secondary-bg border border-tg-separator text-tg-hint hover:text-tg-button disabled:opacity-50 transition-colors"
+            aria-label="Attach file"
           >
             {uploading ? (
-              <div className="w-5 h-5 animate-spin rounded-full border-2 border-accent-cyan border-t-transparent"></div>
+              <div className="w-5 h-5 animate-spin rounded-full border-2 border-tg-button border-t-transparent"></div>
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
             )}
@@ -363,19 +364,20 @@ export default function ChatDetailPage() {
             onChange={(e) => setMessageText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
             placeholder="Введите сообщение..."
-            className="flex-1 px-4 py-3 rounded-xl bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text focus:outline-none focus:border-accent-cyan"
+            className="flex-1 px-4 py-3 rounded-xl bg-tg-secondary-bg border border-tg-separator text-tg-text placeholder:text-tg-hint focus:outline-none focus:border-tg-button"
           />
 
           {/* Send button */}
           <button
             onClick={handleSendMessage}
             disabled={!messageText.trim() || sending}
-            className="px-4 py-3 bg-accent-cyan text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+            className="px-4 py-3 bg-tg-button text-tg-button-text rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+            aria-label="Send message"
           >
             {sending ? (
               <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             )}

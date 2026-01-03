@@ -19,8 +19,8 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
   const toast = useToast()
   const favorite = isFavorite(product._id)
 
-  const hasAutoDelivery = (product as any).deliveryType === 'auto'
-  const salesCount = (product as any).salesCount || 0
+  const hasAutoDelivery = product.deliveryType === 'auto'
+  const salesCount = product.salesCount || 0
   const sellerRating = product.seller.rating
   const displayRating = sellerRating > 5 ? sellerRating : Math.round(sellerRating * 20)
 
@@ -76,6 +76,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         {/* Favorite */}
         <button
           onClick={handleFavoriteClick}
+          aria-label={favorite ? (language === 'ru' ? 'Убрать из избранного' : 'Remove from favorites') : (language === 'ru' ? 'Добавить в избранное' : 'Add to favorites')}
           className="absolute top-2 right-2 w-8 h-8 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center active:scale-90 transition-transform"
         >
           <svg
@@ -157,6 +158,7 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
         <div className="flex gap-2">
           <button
             onClick={handleAddToCart}
+            aria-label={language === 'ru' ? 'Добавить в корзину' : 'Add to cart'}
             className="w-10 h-10 flex items-center justify-center bg-tg-bg rounded-tg-sm active:scale-95 transition-transform"
           >
             <svg className="w-5 h-5 text-tg-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -7,7 +7,7 @@ export default function PrivacyPage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-8">
+    <div className="min-h-screen bg-tg-bg pb-8">
       <Header
         title="Политика конфиденциальности"
         showBack
@@ -15,8 +15,8 @@ export default function PrivacyPage() {
       />
 
       <div className="px-4 py-6 max-w-3xl mx-auto">
-        <div className="prose prose-sm dark:prose-invert max-w-none text-light-text dark:text-dark-text">
-          <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm mb-6">
+        <div className="prose prose-sm dark:prose-invert max-w-none text-tg-text">
+          <p className="text-tg-hint text-sm mb-6">
             Дата публикации: 01.01.2025 | Версия: 1.0
           </p>
 
@@ -156,8 +156,8 @@ export default function PrivacyPage() {
             <li>Email: FastPayAI@yandex.ru</li>
           </ul>
 
-          <div className="mt-8 pt-4 border-t border-light-border dark:border-dark-border">
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+          <div className="mt-8 pt-4 border-t border-tg-separator">
+            <p className="text-xs text-tg-hint">
               Продолжая использовать Платформу, вы подтверждаете, что ознакомились и согласны с настоящей Политикой конфиденциальности.
             </p>
           </div>

@@ -104,7 +104,7 @@ export default function ProductDetailPage() {
     )
   }
 
-  const hasAutoDelivery = (product as any).deliveryType === 'auto'
+  const hasAutoDelivery = product.deliveryType === 'auto'
   const currentPrice = selectedVariant?.price || product.price
   const sellerRating = product.seller.rating
   const displayRating = sellerRating > 5 ? sellerRating : Math.round(sellerRating * 20)
@@ -143,6 +143,7 @@ export default function ProductDetailPage() {
             hapticImpact('light')
             toggleFavorite(product._id)
           }}
+          aria-label={isFavorite(product._id) ? (language === 'ru' ? 'Убрать из избранного' : 'Remove from favorites') : (language === 'ru' ? 'Добавить в избранное' : 'Add to favorites')}
           className="absolute top-4 right-4 w-10 h-10 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center active:scale-90 transition-transform"
         >
           <svg
@@ -351,6 +352,7 @@ export default function ProductDetailPage() {
               })
               toast.show(language === 'ru' ? 'Добавлено в корзину' : 'Added to cart', 'success')
             }}
+            aria-label={language === 'ru' ? 'Добавить в корзину' : 'Add to cart'}
             className="w-12 h-12 flex items-center justify-center bg-tg-secondary-bg rounded-tg-sm active:scale-95 transition-transform"
           >
             <svg className="w-6 h-6 text-tg-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24">

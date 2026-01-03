@@ -74,7 +74,7 @@ export default function AboutPage() {
   const t = content[language]
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+    <div className="min-h-screen bg-tg-bg pb-20">
       <Header
         title={t.title}
         showBack
@@ -87,16 +87,16 @@ export default function AboutPage() {
           <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-accent-cyan to-accent-blue rounded-2xl flex items-center justify-center">
             <span className="text-4xl">⚡</span>
           </div>
-          <h1 className="text-2xl font-bold text-light-text dark:text-dark-text mb-2">
+          <h1 className="text-2xl font-bold text-tg-text mb-2">
             FastPay
           </h1>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary">
+          <p className="text-tg-hint">
             {t.tagline}
           </p>
         </div>
 
         {/* Description */}
-        <p className="text-light-text dark:text-dark-text text-center mb-8 leading-relaxed">
+        <p className="text-tg-text text-center mb-8 leading-relaxed">
           {t.description}
         </p>
 
@@ -105,13 +105,13 @@ export default function AboutPage() {
           {t.features.map((feature, i) => (
             <div
               key={i}
-              className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-light-border dark:border-dark-border text-center"
+              className="bg-tg-secondary-bg rounded-xl p-4 border border-tg-separator text-center"
             >
               <span className="text-3xl mb-2 block">{feature.icon}</span>
-              <h3 className="font-bold text-light-text dark:text-dark-text text-sm mb-1">
+              <h3 className="font-bold text-tg-text text-sm mb-1">
                 {feature.title}
               </h3>
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+              <p className="text-xs text-tg-hint">
                 {feature.desc}
               </p>
             </div>
@@ -131,18 +131,18 @@ export default function AboutPage() {
         </div>
 
         {/* Team */}
-        <div className="bg-light-card dark:bg-dark-card rounded-xl p-5 border border-light-border dark:border-dark-border mb-6">
-          <h2 className="font-bold text-light-text dark:text-dark-text mb-2">
+        <div className="bg-tg-secondary-bg rounded-xl p-5 border border-tg-separator mb-6">
+          <h2 className="font-bold text-tg-text mb-2">
             {t.team.title}
           </h2>
-          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+          <p className="text-sm text-tg-hint">
             {t.team.description}
           </p>
         </div>
 
         {/* Contact */}
-        <div className="bg-light-card dark:bg-dark-card rounded-xl p-5 border border-light-border dark:border-dark-border mb-6">
-          <h2 className="font-bold text-light-text dark:text-dark-text mb-4">
+        <div className="bg-tg-secondary-bg rounded-xl p-5 border border-tg-separator mb-6">
+          <h2 className="font-bold text-tg-text mb-4">
             {t.contact.title}
           </h2>
           <div className="space-y-3">
@@ -152,11 +152,11 @@ export default function AboutPage() {
                 href={`https://t.me/${item.value.replace('@', '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 bg-light-bg dark:bg-dark-bg rounded-lg hover:bg-accent-cyan/10 transition-colors"
+                className="flex items-center gap-3 p-3 bg-tg-bg rounded-lg hover:bg-accent-cyan/10 transition-colors"
               >
                 <span className="text-xl">{item.icon}</span>
                 <div className="flex-1">
-                  <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  <span className="text-sm text-tg-hint">
                     {item.label}
                   </span>
                 </div>
@@ -169,7 +169,7 @@ export default function AboutPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-light-text-secondary dark:text-dark-text-secondary">
+        <p className="text-center text-sm text-tg-hint">
           {t.footer}
         </p>
       </div>

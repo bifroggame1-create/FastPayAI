@@ -136,8 +136,8 @@ function CheckoutContent() {
     }
 
     const openPaymentUrl = (url: string) => {
-      if (window.Telegram?.WebApp && (window.Telegram.WebApp as any).openLink) {
-        (window.Telegram.WebApp as any).openLink(url)
+      if (window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(url)
       } else {
         window.open(url, '_blank')
       }
@@ -170,7 +170,7 @@ function CheckoutContent() {
           const details = response.details ? `\n\nДетали: ${JSON.stringify(response.details)}` : ''
           alert('Ошибка создания платежа:\n' + errorMsg + details)
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Checkout error:', error)
         // Task 7: Improved payment error copy
         const errorTitle = language === 'ru' ? 'Оплата не прошла' : 'Payment failed'
@@ -208,7 +208,7 @@ function CheckoutContent() {
           const errorMsg = response.error || 'Неизвестная ошибка'
           alert('Ошибка создания платежа:\n' + errorMsg)
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('XRocket checkout error:', error)
         const errorTitle = language === 'ru' ? 'Оплата не прошла' : 'Payment failed'
         const errorHelp = language === 'ru'
@@ -240,7 +240,7 @@ function CheckoutContent() {
           const errorMsg = response.error || 'Неизвестная ошибка'
           alert('Ошибка создания платежа:\n' + errorMsg)
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Telegram Stars checkout error:', error)
         const errorTitle = language === 'ru' ? 'Оплата не прошла' : 'Payment failed'
         const errorHelp = language === 'ru'
@@ -275,7 +275,7 @@ function CheckoutContent() {
           const errorMsg = response.error || 'Неизвестная ошибка'
           alert('Ошибка создания платежа:\n' + errorMsg)
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('CactusPay checkout error:', error)
         // Task 7: Improved payment error copy
         const errorTitle = language === 'ru' ? 'Оплата не прошла' : 'Payment failed'
@@ -292,16 +292,16 @@ function CheckoutContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-cyan"></div>
+      <div className="min-h-screen bg-tg-bg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tg-button"></div>
       </div>
     )
   }
 
   if (checkoutItems.length === 0 && !loading) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
-        <p className="text-light-text-secondary dark:text-dark-text-secondary">Товары не найдены</p>
+      <div className="min-h-screen bg-tg-bg flex items-center justify-center">
+        <p className="text-tg-hint">Товары не найдены</p>
       </div>
     )
   }
@@ -322,7 +322,7 @@ function CheckoutContent() {
   const bonusToUse = Math.min(user?.bonusBalance || 0, finalPrice * 0.3) // Можно использовать до 30% от суммы
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-32">
+    <div className="min-h-screen bg-tg-bg pb-32">
       <Header
         title={t('checkout', language)}
         showBack
@@ -331,8 +331,8 @@ function CheckoutContent() {
 
       <div className="px-4 py-6 space-y-4">
         {/* Order Summary */}
-        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 border border-light-border dark:border-dark-border">
-          <h2 className="text-lg font-semibold mb-4 text-light-text dark:text-dark-text">
+        <div className="bg-tg-secondary-bg rounded-2xl p-4 border border-tg-separator">
+          <h2 className="text-lg font-semibold mb-4 text-tg-text">
             {t('yourOrder', language)} {checkoutItems.length > 1 && `(${totalQuantity} шт.)`}
           </h2>
 
@@ -345,11 +345,11 @@ function CheckoutContent() {
                   className="w-16 h-16 object-cover rounded-xl"
                 />
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-light-text dark:text-dark-text truncate">
+                  <h3 className="font-semibold text-tg-text truncate">
                     {item.productName}
                   </h3>
                   {item.variantName && (
-                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                    <p className="text-sm text-tg-hint">
                       {item.variantName}
                     </p>
                   )}
@@ -358,13 +358,13 @@ function CheckoutContent() {
                       {formatPrice(item.price, currency)}
                     </p>
                     {item.quantity > 1 && (
-                      <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                      <span className="text-sm text-tg-hint">
                         × {item.quantity}
                       </span>
                     )}
                   </div>
                   {isCryptoPayment && (
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                    <p className="text-xs text-tg-hint">
                       ≈ {formatCryptoAmount(item.price * item.quantity, selectedCrypto)}
                     </p>
                   )}
@@ -375,7 +375,7 @@ function CheckoutContent() {
         </div>
 
         {/* Promo Code - Collapsible */}
-        <div className="bg-light-card dark:bg-dark-card rounded-2xl border border-light-border dark:border-dark-border overflow-hidden">
+        <div className="bg-tg-secondary-bg rounded-2xl border border-tg-separator overflow-hidden">
           <button
             onClick={() => setShowPromo(!showPromo)}
             className="w-full p-4 flex items-center justify-between text-left"
@@ -384,17 +384,17 @@ function CheckoutContent() {
               <svg className="w-5 h-5 text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
-              <span className="font-medium text-light-text dark:text-dark-text">
+              <span className="font-medium text-tg-text">
                 {discount > 0 ? `Промокод применён (-${discount.toLocaleString('ru-RU')} ₽)` : 'Есть промокод?'}
               </span>
             </div>
-            <svg className={`w-5 h-5 text-light-text-secondary transition-transform ${showPromo ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-5 h-5 text-tg-hint transition-transform ${showPromo ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
 
           {showPromo && (
-            <div className="px-4 pb-4 border-t border-light-border dark:border-dark-border pt-3">
+            <div className="px-4 pb-4 border-t border-tg-separator pt-3">
               <div className="flex gap-2 items-stretch">
                 <input
                   type="text"
@@ -404,7 +404,7 @@ function CheckoutContent() {
                     setPromoError('')
                   }}
                   placeholder="Введите промокод"
-                  className="flex-1 px-4 py-3 rounded-xl bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-light-text dark:text-dark-text focus:outline-none focus:border-accent-cyan"
+                  className="flex-1 px-4 py-3 rounded-xl bg-tg-bg border border-tg-separator text-tg-text focus:outline-none focus:border-tg-button"
                 />
                 <button
                   onClick={handleApplyPromo}
@@ -435,14 +435,14 @@ function CheckoutContent() {
 
         {/* Payment Method - Grouped */}
         <div className="space-y-3">
-          <h3 className="text-base font-semibold text-light-text dark:text-dark-text px-1">
+          <h3 className="text-base font-semibold text-tg-text px-1">
             Способ оплаты
           </h3>
 
           {/* Crypto Section */}
-          <div className="bg-light-card dark:bg-dark-card rounded-2xl border border-light-border dark:border-dark-border overflow-hidden">
-            <div className="px-4 py-2 bg-light-bg dark:bg-dark-bg border-b border-light-border dark:border-dark-border">
-              <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Криптовалюта</span>
+          <div className="bg-tg-secondary-bg rounded-2xl border border-tg-separator overflow-hidden">
+            <div className="px-4 py-2 bg-tg-bg border-b border-tg-separator">
+              <span className="text-xs font-medium text-tg-hint uppercase tracking-wider">Криптовалюта</span>
             </div>
             <button
               onClick={() => setPaymentMethod('cryptobot')}
@@ -461,26 +461,26 @@ function CheckoutContent() {
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-light-text dark:text-dark-text">CryptoBot</p>
-                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  <p className="font-medium text-tg-text">CryptoBot</p>
+                  <p className="text-sm text-tg-hint">
                     Мгновенная оплата через Telegram
                   </p>
                 </div>
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cryptobot' ? 'border-accent-cyan bg-accent-cyan' : 'border-light-border dark:border-dark-border'}`}>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cryptobot' ? 'border-tg-button bg-accent-cyan' : 'border-tg-separator'}`}>
                   {paymentMethod === 'cryptobot' && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                 </div>
               </div>
             </button>
 
             {paymentMethod === 'cryptobot' && (
-              <div className="px-4 pb-4 pt-2 border-t border-light-border dark:border-dark-border">
+              <div className="px-4 pb-4 pt-2 border-t border-tg-separator">
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSelectedCrypto('TON')}
                     className={`flex-1 px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 ${
                       selectedCrypto === 'TON'
                         ? 'bg-accent-cyan text-white font-semibold'
-                        : 'bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text'
+                        : 'bg-tg-bg text-tg-text'
                     }`}
                   >
                     <img src="/payment-icons/ton.svg" alt="TON" className="w-5 h-5" />
@@ -491,7 +491,7 @@ function CheckoutContent() {
                     className={`flex-1 px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 ${
                       selectedCrypto === 'USDT'
                         ? 'bg-accent-cyan text-white font-semibold'
-                        : 'bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text'
+                        : 'bg-tg-bg text-tg-text'
                     }`}
                   >
                     <img src="/payment-icons/usdt.svg" alt="USDT" className="w-5 h-5" />
@@ -504,7 +504,7 @@ function CheckoutContent() {
             {/* XRocket */}
             <button
               onClick={() => setPaymentMethod('xrocket')}
-              className={`w-full p-4 transition-all text-left border-t border-light-border dark:border-dark-border ${
+              className={`w-full p-4 transition-all text-left border-t border-tg-separator ${
                 paymentMethod === 'xrocket'
                   ? 'bg-accent-cyan/10'
                   : ''
@@ -519,14 +519,14 @@ function CheckoutContent() {
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-light-text dark:text-dark-text">xRocket</p>
-                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  <p className="font-medium text-tg-text">xRocket</p>
+                  <p className="text-sm text-tg-hint">
                     Криптокошелек в Telegram
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-600 dark:text-green-400 rounded-full">+2%</span>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'xrocket' ? 'border-accent-cyan bg-accent-cyan' : 'border-light-border dark:border-dark-border'}`}>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'xrocket' ? 'border-tg-button bg-accent-cyan' : 'border-tg-separator'}`}>
                     {paymentMethod === 'xrocket' && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                   </div>
                 </div>
@@ -534,14 +534,14 @@ function CheckoutContent() {
             </button>
 
             {paymentMethod === 'xrocket' && (
-              <div className="px-4 pb-4 pt-2 border-t border-light-border dark:border-dark-border">
+              <div className="px-4 pb-4 pt-2 border-t border-tg-separator">
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSelectedCrypto('TON')}
                     className={`flex-1 px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 ${
                       selectedCrypto === 'TON'
                         ? 'bg-accent-cyan text-white font-semibold'
-                        : 'bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text'
+                        : 'bg-tg-bg text-tg-text'
                     }`}
                   >
                     <img src="/payment-icons/ton.svg" alt="TON" className="w-5 h-5" />
@@ -552,7 +552,7 @@ function CheckoutContent() {
                     className={`flex-1 px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 ${
                       selectedCrypto === 'USDT'
                         ? 'bg-accent-cyan text-white font-semibold'
-                        : 'bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text'
+                        : 'bg-tg-bg text-tg-text'
                     }`}
                   >
                     <img src="/payment-icons/usdt.svg" alt="USDT" className="w-5 h-5" />
@@ -565,7 +565,7 @@ function CheckoutContent() {
             {/* Telegram Stars */}
             <button
               onClick={() => setPaymentMethod('telegram-stars')}
-              className={`w-full p-4 transition-all text-left border-t border-light-border dark:border-dark-border ${
+              className={`w-full p-4 transition-all text-left border-t border-tg-separator ${
                 paymentMethod === 'telegram-stars'
                   ? 'bg-accent-cyan/10'
                   : ''
@@ -580,14 +580,14 @@ function CheckoutContent() {
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-light-text dark:text-dark-text">Telegram Stars</p>
-                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  <p className="font-medium text-tg-text">Telegram Stars</p>
+                  <p className="text-sm text-tg-hint">
                     ≈ {rubToStars(finalPrice)} ⭐ • Встроенная оплата
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-full">Быстро</span>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'telegram-stars' ? 'border-accent-cyan bg-accent-cyan' : 'border-light-border dark:border-dark-border'}`}>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'telegram-stars' ? 'border-tg-button bg-accent-cyan' : 'border-tg-separator'}`}>
                     {paymentMethod === 'telegram-stars' && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                   </div>
                 </div>
@@ -596,15 +596,15 @@ function CheckoutContent() {
           </div>
 
           {/* Fiat Section */}
-          <div className="bg-light-card dark:bg-dark-card rounded-2xl border border-light-border dark:border-dark-border overflow-hidden">
-            <div className="px-4 py-2 bg-light-bg dark:bg-dark-bg border-b border-light-border dark:border-dark-border flex items-center justify-between">
-              <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Рубли ₽</span>
+          <div className="bg-tg-secondary-bg rounded-2xl border border-tg-separator overflow-hidden">
+            <div className="px-4 py-2 bg-tg-bg border-b border-tg-separator flex items-center justify-between">
+              <span className="text-xs font-medium text-tg-hint uppercase tracking-wider">Рубли ₽</span>
               <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-600 dark:text-green-400 rounded-full">Без комиссии</span>
             </div>
 
             <button
               onClick={() => setPaymentMethod('cactuspay-sbp')}
-              className={`w-full p-4 transition-all text-left border-b border-light-border dark:border-dark-border ${
+              className={`w-full p-4 transition-all text-left border-b border-tg-separator ${
                 paymentMethod === 'cactuspay-sbp'
                   ? 'bg-accent-cyan/10'
                   : ''
@@ -619,12 +619,12 @@ function CheckoutContent() {
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-light-text dark:text-dark-text">СБП</p>
-                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  <p className="font-medium text-tg-text">СБП</p>
+                  <p className="text-sm text-tg-hint">
                     QR-код или по номеру телефона
                   </p>
                 </div>
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cactuspay-sbp' ? 'border-accent-cyan bg-accent-cyan' : 'border-light-border dark:border-dark-border'}`}>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cactuspay-sbp' ? 'border-tg-button bg-accent-cyan' : 'border-tg-separator'}`}>
                   {paymentMethod === 'cactuspay-sbp' && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                 </div>
               </div>
@@ -645,12 +645,12 @@ function CheckoutContent() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-light-text dark:text-dark-text">Банковская карта</p>
-                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  <p className="font-medium text-tg-text">Банковская карта</p>
+                  <p className="text-sm text-tg-hint">
                     Visa, Mastercard, МИР
                   </p>
                 </div>
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cactuspay-card' ? 'border-accent-cyan bg-accent-cyan' : 'border-light-border dark:border-dark-border'}`}>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cactuspay-card' ? 'border-tg-button bg-accent-cyan' : 'border-tg-separator'}`}>
                   {paymentMethod === 'cactuspay-card' && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                 </div>
               </div>
@@ -659,9 +659,9 @@ function CheckoutContent() {
         </div>
 
         {/* Price Breakdown - Compact */}
-        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 border border-light-border dark:border-dark-border">
+        <div className="bg-tg-secondary-bg rounded-2xl p-4 border border-tg-separator">
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-light-text-secondary dark:text-dark-text-secondary">
+            <div className="flex justify-between text-tg-hint">
               <span>{checkoutItems.length > 1 ? `${totalQuantity} товаров` : 'Товар'}</span>
               <span>{formatPrice(itemsTotal, currency)}</span>
             </div>
@@ -690,36 +690,36 @@ function CheckoutContent() {
         <EscrowExplainer variant="compact" />
 
         {/* Purchase Flow Steps - Task 1 */}
-        <div className="bg-light-card dark:bg-dark-card rounded-2xl p-4 border border-light-border dark:border-dark-border">
+        <div className="bg-tg-secondary-bg rounded-2xl p-4 border border-tg-separator">
           <div className="flex items-center justify-between text-xs">
             <div className="flex flex-col items-center flex-1">
               <div className="w-8 h-8 rounded-full bg-accent-cyan/20 flex items-center justify-center mb-1">
                 <span className="text-accent-cyan">1</span>
               </div>
-              <span className="text-light-text-secondary dark:text-dark-text-secondary text-center">
+              <span className="text-tg-hint text-center">
                 {language === 'ru' ? 'Оплата' : 'Payment'}
               </span>
             </div>
-            <div className="w-8 h-px bg-light-border dark:bg-dark-border" />
+            <div className="w-8 h-px bg-tg-separator" />
             <div className="flex flex-col items-center flex-1">
-              <div className="w-8 h-8 rounded-full bg-light-bg dark:bg-dark-bg flex items-center justify-center mb-1">
-                <span className="text-light-text-secondary dark:text-dark-text-secondary">2</span>
+              <div className="w-8 h-8 rounded-full bg-tg-bg flex items-center justify-center mb-1">
+                <span className="text-tg-hint">2</span>
               </div>
-              <span className="text-light-text-secondary dark:text-dark-text-secondary text-center">
+              <span className="text-tg-hint text-center">
                 {language === 'ru' ? 'Проверка' : 'Verify'}
               </span>
             </div>
-            <div className="w-8 h-px bg-light-border dark:bg-dark-border" />
+            <div className="w-8 h-px bg-tg-separator" />
             <div className="flex flex-col items-center flex-1">
-              <div className="w-8 h-8 rounded-full bg-light-bg dark:bg-dark-bg flex items-center justify-center mb-1">
-                <span className="text-light-text-secondary dark:text-dark-text-secondary">3</span>
+              <div className="w-8 h-8 rounded-full bg-tg-bg flex items-center justify-center mb-1">
+                <span className="text-tg-hint">3</span>
               </div>
-              <span className="text-light-text-secondary dark:text-dark-text-secondary text-center">
+              <span className="text-tg-hint text-center">
                 {language === 'ru' ? 'В чат' : 'To chat'}
               </span>
             </div>
           </div>
-          <p className="text-[10px] text-center text-light-text-secondary dark:text-dark-text-secondary mt-3 opacity-70">
+          <p className="text-[10px] text-center text-tg-hint mt-3 opacity-70">
             {language === 'ru'
               ? 'Товар придёт в этот чат (~30 сек)'
               : 'Product delivered to this chat (~30 sec)'
@@ -728,7 +728,7 @@ function CheckoutContent() {
         </div>
 
         {/* Legal Agreement Notice */}
-        <div className="text-center text-[10px] text-light-text-secondary dark:text-dark-text-secondary mb-4">
+        <div className="text-center text-[10px] text-tg-hint mb-4">
           <p>
             {language === 'ru'
               ? 'Нажимая «Оплатить», вы соглашаетесь с '
@@ -749,22 +749,22 @@ function CheckoutContent() {
       </div>
 
       {/* Sticky Checkout Footer */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-light-bg/95 dark:bg-dark-bg/95 backdrop-blur-sm border-t border-light-border dark:border-dark-border safe-area-bottom">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-tg-bg/95 backdrop-blur-sm border-t border-tg-separator safe-area-bottom">
         <div className="flex items-center gap-3">
           {/* Price summary */}
           <div className="flex-1">
-            <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+            <div className="text-sm text-tg-hint">
               {language === 'ru' ? 'Итого' : 'Total'}
             </div>
             <div className="text-xl font-bold text-accent-cyan">
               {formatPrice(finalPrice, currency)}
               {isCryptoPayment && (
-                <span className="text-sm font-normal text-light-text-secondary dark:text-dark-text-secondary ml-1">
+                <span className="text-sm font-normal text-tg-hint ml-1">
                   ≈ {formatCryptoAmount(finalPrice, selectedCrypto)}
                 </span>
               )}
               {isStarsPayment && (
-                <span className="text-sm font-normal text-light-text-secondary dark:text-dark-text-secondary ml-1">
+                <span className="text-sm font-normal text-tg-hint ml-1">
                   ≈ {rubToStars(finalPrice)} ⭐
                 </span>
               )}
@@ -800,8 +800,8 @@ function CheckoutContent() {
 export default function CheckoutPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-cyan"></div>
+      <div className="min-h-screen bg-tg-bg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tg-button"></div>
       </div>
     }>
       <CheckoutContent />

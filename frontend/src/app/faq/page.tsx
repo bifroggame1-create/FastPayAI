@@ -185,25 +185,27 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="border-b border-light-border dark:border-dark-border last:border-0">
+    <div className="border-b border-tg-separator last:border-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full py-4 flex items-center justify-between text-left"
+        aria-expanded={isOpen}
       >
-        <span className="font-medium text-light-text dark:text-dark-text pr-4">
+        <span className="font-medium text-tg-text pr-4">
           {question}
         </span>
         <svg
-          className={`w-5 h-5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 text-tg-hint flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
       {isOpen && (
-        <p className="pb-4 text-sm text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
+        <p className="pb-4 text-sm text-tg-hint leading-relaxed">
           {answer}
         </p>
       )}
@@ -222,7 +224,7 @@ export default function FAQPage() {
   }
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+    <div className="min-h-screen bg-tg-bg pb-20">
       <Header
         title={t.title}
         showBack
@@ -231,41 +233,43 @@ export default function FAQPage() {
 
       <div className="px-4 py-6">
         {/* Category tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide" role="tablist">
           {t.categories.map((cat, i) => (
             <button
               key={i}
               onClick={() => setActiveCategory(i)}
+              role="tab"
+              aria-selected={activeCategory === i}
               className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
                 activeCategory === i
-                  ? 'bg-accent-cyan text-white'
-                  : 'bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text border border-light-border dark:border-dark-border'
+                  ? 'bg-tg-button text-white'
+                  : 'bg-tg-secondary-bg text-tg-text border border-tg-separator'
               }`}
             >
-              <span>{cat.icon}</span>
+              <span aria-hidden="true">{cat.icon}</span>
               <span className="font-medium text-sm">{cat.name}</span>
             </button>
           ))}
         </div>
 
         {/* Questions */}
-        <div className="bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border px-4 mb-6">
+        <div className="bg-tg-secondary-bg rounded-xl border border-tg-separator px-4 mb-6" role="tabpanel">
           {t.categories[activeCategory].questions.map((item, i) => (
             <FAQItem key={i} question={item.q} answer={item.a} />
           ))}
         </div>
 
         {/* Not found */}
-        <div className="bg-gradient-to-r from-accent-cyan/20 to-accent-blue/20 rounded-xl p-5 text-center">
-          <h3 className="font-bold text-light-text dark:text-dark-text mb-2">
+        <div className="bg-gradient-to-r from-tg-button/20 to-tg-accent/20 rounded-xl p-5 text-center">
+          <h3 className="font-bold text-tg-text mb-2">
             {t.notFound.title}
           </h3>
-          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">
+          <p className="text-sm text-tg-hint mb-4">
             {t.notFound.text}
           </p>
           <button
             onClick={openSupport}
-            className="px-6 py-2.5 bg-accent-cyan text-white rounded-lg font-medium transition-all active:scale-[0.98]"
+            className="px-6 py-2.5 bg-tg-button text-white rounded-lg font-medium transition-all active:scale-[0.98]"
           >
             {t.notFound.button}
           </button>

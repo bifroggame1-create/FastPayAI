@@ -262,7 +262,7 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData, applicationsData, usersData] = await Promise.all([
+      const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData, applicationsData, usersData, myShopProductsData, myShopOrdersData, myShopStatsData] = await Promise.all([
         productsApi.getAll({}),
         adminApi.getPromoCodes().catch(() => []),
         adminApi.getOrders().catch(() => ({ orders: [], total: 0 })),
@@ -272,7 +272,11 @@ export default function AdminPage() {
         adminApi.getFiles().catch(() => ({ files: [] })),
         adminApi.getReviews().catch(() => ({ reviews: [] })),
         sellerApplicationsApi.getAll().catch(() => ({ applications: [] })),
-        adminApi.getUsers().catch(() => ({ users: [] }))
+        adminApi.getUsers().catch(() => ({ users: [] })),
+        // My Shop specific data (seller-specific)
+        adminApi.getMyShopProducts().catch(() => ({ products: [] })),
+        adminApi.getMyShopOrders().catch(() => ({ orders: [] })),
+        adminApi.getMyShopStats().catch(() => ({ stats: null }))
       ])
       setProducts(productsData)
       setPromoCodes(promoData?.promoCodes || promoData || [])
@@ -284,6 +288,10 @@ export default function AdminPage() {
       setReviews(reviewsData?.reviews || [])
       setApplications(applicationsData?.applications || [])
       setUsers(usersData?.users || [])
+      // Set My Shop data
+      setMyShopProducts(myShopProductsData?.products || [])
+      setMyShopOrders(myShopOrdersData?.orders || [])
+      setMyShopStats(myShopStatsData?.stats || null)
     } catch (error) {
       // Error loading data
     } finally {
@@ -309,7 +317,8 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error('Error saving product:', error)
-      alert('Ошибка сохранения товара: ' + (error as any).message)
+      const errMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
+      alert('Ошибка сохранения товара: ' + errMessage)
     }
     setEditingProduct(null)
     setIsAddingNew(false)
@@ -347,18 +356,29 @@ export default function AdminPage() {
       setEditingSeller(null)
       const productsData = await productsApi.getAll({})
       setProducts(productsData)
-    } catch (error: any) {
-      alert('Ошибка: ' + (error.response?.data?.error || error.message))
+    } catch (error) {
+      const axiosError = error as { response?: { data?: { error?: string } }; message?: string }
+      alert('Ошибка: ' + (axiosError.response?.data?.error || axiosError.message || 'Неизвестная ошибка'))
     }
   }
 
   const handleSaveUser = async (user: UserProfile) => {
     try {
-      await adminApi.updateUser(user.id, user)
+      // Extract only the fields that can be updated
+      const updateData = {
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isBlocked: user.isBlocked,
+        blockReason: user.blockReason,
+        isPremium: user.isPremium,
+      }
+      await adminApi.updateUser(user.id, updateData)
       setUsers(users.map(u => u.id === user.id ? user : u))
       setEditingUser(null)
-    } catch (error: any) {
-      alert(error.response?.data?.error || error.message)
+    } catch (error) {
+      const axiosError = error as { response?: { data?: { error?: string } }; message?: string }
+      alert(axiosError.response?.data?.error || axiosError.message || 'Ошибка сохранения')
     }
   }
 
@@ -374,7 +394,10 @@ export default function AdminPage() {
 
   const handleAddAdmin = async () => {
     const input = newAdminInput.trim()
-    if (!input) return
+    if (!input) {
+      alert('Введите ID пользователя или @username')
+      return
+    }
 
     try {
       const isUsername = input.startsWith('@')
@@ -388,9 +411,13 @@ export default function AdminPage() {
         setAdmins([...admins, result.admin])
         setNewAdminInput('')
         setNewAdminName('')
+        alert(`Администратор добавлен!\n\nПользователю нужно перезапустить приложение (закрыть и открыть заново), чтобы увидеть админ-панель.`)
+      } else {
+        alert('Ошибка: ' + (result.error || 'Не удалось добавить администратора'))
       }
-    } catch (error: any) {
-      alert('Ошибка: ' + (error.response?.data?.error || error.message))
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } }; message?: string }
+      alert('Ошибка: ' + (err.response?.data?.error || err.message || 'Неизвестная ошибка'))
     }
   }
 
@@ -448,15 +475,26 @@ export default function AdminPage() {
     try {
       const existingPromo = promoCodes.find(p => p.code === promo.code)
       if (existingPromo) {
-        await adminApi.updatePromoCode(promo.code, promo)
-        setPromoCodes(promoCodes.map(p => p.code === promo.code ? promo : p))
+        const result = await adminApi.updatePromoCode(promo.code, promo)
+        if (result.success) {
+          setPromoCodes(promoCodes.map(p => p.code === promo.code ? promo : p))
+          setEditingPromo(null)
+        } else {
+          throw new Error(result.error || 'Ошибка обновления')
+        }
       } else {
-        await adminApi.createPromoCode(promo)
-        setPromoCodes([...promoCodes, promo])
+        const result = await adminApi.createPromoCode(promo)
+        if (result.success) {
+          setPromoCodes([...promoCodes, result.promoCode || promo])
+          setEditingPromo(null)
+        } else {
+          throw new Error(result.error || 'Ошибка создания')
+        }
       }
-      setEditingPromo(null)
-    } catch (error) {
-      console.error('Error saving promo:', error)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Неизвестная ошибка'
+      alert('Ошибка сохранения промокода: ' + message)
+      throw error // Re-throw so PromoEditor can handle it
     }
   }
 
@@ -1624,30 +1662,30 @@ export default function AdminPage() {
             <div className="space-y-6">
               <h1 className="text-xl font-semibold text-white">Мой магазин</h1>
 
-              {/* Stats Cards */}
+              {/* Stats Cards - using seller-specific data */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
                   <p className="text-xs text-gray-400 mb-1">Всего товаров</p>
-                  <p className="text-2xl font-semibold text-white">{myShopStats?.totalProducts || products.length}</p>
+                  <p className="text-2xl font-semibold text-white">{myShopStats?.totalProducts ?? myShopProducts.length}</p>
                 </div>
                 <div className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
                   <p className="text-xs text-gray-400 mb-1">Активных</p>
-                  <p className="text-2xl font-semibold text-emerald-400">{myShopStats?.activeProducts || products.filter(p => p.isEnabled !== false).length}</p>
+                  <p className="text-2xl font-semibold text-emerald-400">{myShopStats?.activeProducts ?? myShopProducts.filter(p => p.isEnabled !== false).length}</p>
                 </div>
                 <div className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
                   <p className="text-xs text-gray-400 mb-1">Всего заказов</p>
-                  <p className="text-2xl font-semibold text-white">{myShopStats?.totalOrders || orders.length}</p>
+                  <p className="text-2xl font-semibold text-white">{myShopStats?.totalOrders ?? myShopOrders.length}</p>
                 </div>
                 <div className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
                   <p className="text-xs text-gray-400 mb-1">Выручка</p>
-                  <p className="text-2xl font-semibold text-blue-400">{myShopStats?.totalRevenue?.toLocaleString() || orders.filter(o => o.status === 'delivered').reduce((acc, o) => acc + o.amount, 0).toLocaleString()} ₽</p>
+                  <p className="text-2xl font-semibold text-blue-400">{(myShopStats?.totalRevenue ?? myShopOrders.filter((o: Order) => o.status === 'delivered').reduce((acc: number, o: Order) => acc + o.amount, 0)).toLocaleString()} ₽</p>
                 </div>
               </div>
 
-              {/* My Products */}
+              {/* My Products - using seller-specific data */}
               <div className="bg-[#1a1d27] rounded-lg border border-[#2a2d37]">
                 <div className="px-4 py-3 border-b border-[#2a2d37] flex justify-between items-center">
-                  <h2 className="font-medium text-white">Мои товары</h2>
+                  <h2 className="font-medium text-white">Мои товары ({myShopProducts.length})</h2>
                   <button
                     onClick={() => {
                       setEditingProduct({
@@ -1670,6 +1708,12 @@ export default function AdminPage() {
                     + Добавить товар
                   </button>
                 </div>
+                {myShopProducts.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400">
+                    <p>У вас пока нет товаров</p>
+                    <p className="text-sm mt-1">Нажмите "+ Добавить товар" чтобы создать первый товар</p>
+                  </div>
+                ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
@@ -1682,7 +1726,7 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {products.map(product => (
+                      {myShopProducts.map(product => (
                         <tr key={product._id} className={`border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028] ${product.isEnabled === false ? 'opacity-50' : ''}`}>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
@@ -1710,7 +1754,9 @@ export default function AdminPage() {
                                   const newState = product.isEnabled === false ? true : false
                                   const result = await adminApi.toggleProduct(product._id, newState)
                                   if (result.success) {
+                                    // Update both general products and myShopProducts
                                     setProducts(products.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
+                                    setMyShopProducts(myShopProducts.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
                                   }
                                 }}
                                 className={`text-xs px-2 py-1 rounded transition-colors ${product.isEnabled !== false ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`}
@@ -1724,13 +1770,20 @@ export default function AdminPage() {
                     </tbody>
                   </table>
                 </div>
+                )}
               </div>
 
-              {/* Recent Orders */}
+              {/* Recent Orders - using seller-specific data */}
               <div className="bg-[#1a1d27] rounded-lg border border-[#2a2d37]">
                 <div className="px-4 py-3 border-b border-[#2a2d37]">
-                  <h2 className="font-medium text-white">Последние заказы</h2>
+                  <h2 className="font-medium text-white">Последние заказы ({myShopOrders.length})</h2>
                 </div>
+                {myShopOrders.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400">
+                    <p>Пока нет заказов</p>
+                    <p className="text-sm mt-1">Заказы появятся здесь после первых покупок</p>
+                  </div>
+                ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
@@ -1743,7 +1796,7 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {orders.slice(0, 10).map(order => (
+                      {myShopOrders.slice(0, 10).map((order: Order) => (
                         <tr key={order.id} className="border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028]">
                           <td className="px-4 py-3 text-xs text-gray-400 font-mono">{order.oderId?.slice(0, 8) || order.id.slice(0, 8)}</td>
                           <td className="px-4 py-3 text-sm text-white">{order.productName}</td>
@@ -1768,6 +1821,7 @@ export default function AdminPage() {
                     </tbody>
                   </table>
                 </div>
+                )}
               </div>
             </div>
           )}
@@ -1882,12 +1936,12 @@ function ProductEditor({
     setVariants([...variants, { id: `var-${Date.now()}`, name: '', price: 0, period: '', features: [] }])
   }
 
-  const handleUpdateVariant = (index: number, field: string, value: any) => {
+  const handleUpdateVariant = (index: number, field: string, value: string | number) => {
     const updated = [...variants]
     if (field === 'features') {
-      updated[index] = { ...updated[index], features: value.split(',').map((f: string) => f.trim()).filter(Boolean) }
+      updated[index] = { ...updated[index], features: String(value).split(',').map((f: string) => f.trim()).filter(Boolean) }
     } else if (field === 'price') {
-      updated[index] = { ...updated[index], price: parseInt(value) || 0 }
+      updated[index] = { ...updated[index], price: typeof value === 'number' ? value : parseInt(value) || 0 }
     } else {
       updated[index] = { ...updated[index], [field]: value }
     }
@@ -2427,6 +2481,41 @@ function PromoEditor({
   onClose: () => void
 }) {
   const [form, setForm] = useState(promo)
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    // Validation
+    if (!form.code.trim()) {
+      setError('Введите код промокода')
+      return
+    }
+    if (form.code.length < 3) {
+      setError('Код должен быть минимум 3 символа')
+      return
+    }
+    if (form.discountValue <= 0) {
+      setError('Скидка должна быть больше 0')
+      return
+    }
+    if (form.discountType === 'percentage' && form.discountValue > 100) {
+      setError('Процент скидки не может быть больше 100')
+      return
+    }
+    if (form.maxUses <= 0) {
+      setError('Максимум использований должен быть больше 0')
+      return
+    }
+
+    setError('')
+    setSaving(true)
+    try {
+      await onSave(form)
+    } catch (e) {
+      setError('Ошибка сохранения промокода')
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-end md:items-center justify-center md:p-4">
@@ -2437,12 +2526,19 @@ function PromoEditor({
         </div>
 
         <div className="p-6 space-y-4">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-2 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Код</label>
+            <label className="block text-sm text-gray-400 mb-1">Код *</label>
             <input
               type="text"
               value={form.code}
-              onChange={e => setForm({...form, code: e.target.value.toUpperCase()})}
+              onChange={e => setForm({...form, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')})}
+              placeholder="PROMO10"
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white font-mono"
             />
           </div>
@@ -2460,9 +2556,10 @@ function PromoEditor({
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Скидка</label>
+              <label className="block text-sm text-gray-400 mb-1">Скидка *</label>
               <input
                 type="number"
+                min="1"
                 value={form.discountValue}
                 onChange={e => setForm({...form, discountValue: parseInt(e.target.value) || 0})}
                 className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
@@ -2475,15 +2572,17 @@ function PromoEditor({
               <label className="block text-sm text-gray-400 mb-1">Мин. сумма</label>
               <input
                 type="number"
+                min="0"
                 value={form.minOrderAmount}
                 onChange={e => setForm({...form, minOrderAmount: parseInt(e.target.value) || 0})}
                 className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Макс. использований</label>
+              <label className="block text-sm text-gray-400 mb-1">Макс. использований *</label>
               <input
                 type="number"
+                min="1"
                 value={form.maxUses}
                 onChange={e => setForm({...form, maxUses: parseInt(e.target.value) || 0})}
                 className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
@@ -2502,8 +2601,14 @@ function PromoEditor({
           </label>
 
           <div className="flex gap-3 pt-4">
-            <button onClick={onClose} className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">Отмена</button>
-            <button onClick={() => onSave(form)} className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">Сохранить</button>
+            <button onClick={onClose} className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors" disabled={saving}>Отмена</button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+            >
+              {saving ? 'Сохранение...' : 'Сохранить'}
+            </button>
           </div>
         </div>
       </div>

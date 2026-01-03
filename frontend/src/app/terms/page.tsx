@@ -146,7 +146,7 @@ export default function TermsPage() {
   const t = content[language]
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+    <div className="min-h-screen bg-tg-bg pb-20">
       <Header
         title={t.title}
         showBack
@@ -154,7 +154,7 @@ export default function TermsPage() {
       />
 
       <div className="px-4 py-6">
-        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-6">
+        <p className="text-sm text-tg-hint mb-6">
           {t.lastUpdated}
         </p>
 
@@ -162,12 +162,12 @@ export default function TermsPage() {
           {t.sections.map((section, index) => (
             <div
               key={index}
-              className="bg-light-card dark:bg-dark-card rounded-xl p-5 border border-light-border dark:border-dark-border"
+              className="bg-tg-secondary-bg rounded-xl p-5 border border-tg-separator"
             >
-              <h2 className="text-lg font-bold text-light-text dark:text-dark-text mb-3">
+              <h2 className="text-lg font-bold text-tg-text mb-3">
                 {section.title}
               </h2>
-              <p className="text-light-text-secondary dark:text-dark-text-secondary whitespace-pre-line text-sm leading-relaxed">
+              <p className="text-tg-hint whitespace-pre-line text-sm leading-relaxed">
                 {section.content}
               </p>
             </div>
@@ -175,7 +175,7 @@ export default function TermsPage() {
         </div>
 
         <div className="mt-6 p-4 bg-accent-cyan/10 dark:bg-accent-cyan/20 rounded-xl">
-          <p className="text-sm text-light-text dark:text-dark-text text-center">
+          <p className="text-sm text-tg-text text-center">
             {t.contact}
           </p>
         </div>

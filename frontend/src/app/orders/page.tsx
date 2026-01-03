@@ -68,14 +68,14 @@ export default function OrdersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-cyan"></div>
+      <div className="min-h-screen bg-tg-bg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tg-button" aria-label="Loading"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-20">
+    <div className="min-h-screen bg-tg-bg pb-20">
       <Header
         title="Мои заказы"
         showBack
@@ -85,18 +85,18 @@ export default function OrdersPage() {
       <div className="px-4 py-4">
         {orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
-            <svg className="w-20 h-20 text-light-text-secondary dark:text-dark-text-secondary mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-20 h-20 text-tg-hint mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
-            <h2 className="text-xl font-bold text-light-text dark:text-dark-text mb-2">
+            <h2 className="text-xl font-bold text-tg-text mb-2">
               Заказов пока нет
             </h2>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary text-center mb-6">
+            <p className="text-tg-hint text-center mb-6">
               Ваши заказы появятся здесь после оформления
             </p>
             <button
               onClick={() => router.push('/')}
-              className="px-6 py-3 bg-accent-cyan text-white rounded-xl font-semibold"
+              className="px-6 py-3 bg-tg-button text-tg-button-text rounded-xl font-semibold"
             >
               Перейти к товарам
             </button>
@@ -110,7 +110,7 @@ export default function OrdersPage() {
               return (
                 <div
                   key={order._id}
-                  className="bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border overflow-hidden"
+                  className="bg-tg-secondary-bg rounded-xl border border-tg-separator overflow-hidden"
                 >
                   {/* Order Header */}
                   <button
@@ -118,7 +118,7 @@ export default function OrdersPage() {
                     className="w-full p-4 text-left"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                      <span className="text-sm text-tg-hint">
                         Заказ #{order._id.slice(-6).toUpperCase()}
                       </span>
                       <span className={`text-xs px-2 py-1 rounded-full ${status.color}`}>
@@ -128,22 +128,23 @@ export default function OrdersPage() {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-light-text dark:text-dark-text">
+                        <p className="font-semibold text-tg-text">
                           {order.products.length} {order.products.length === 1 ? 'товар' : 'товара'}
                         </p>
-                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                        <p className="text-sm text-tg-hint">
                           {format(new Date(order.createdAt), 'd MMMM yyyy, HH:mm', { locale: ru })}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-accent-cyan">
+                        <p className="text-lg font-bold text-tg-button">
                           {order.totalPrice.toLocaleString('ru-RU')} ₽
                         </p>
                         <svg
-                          className={`w-5 h-5 text-light-text-secondary dark:text-dark-text-secondary ml-auto transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                          className={`w-5 h-5 text-tg-hint ml-auto transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          aria-hidden="true"
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
@@ -153,7 +154,7 @@ export default function OrdersPage() {
 
                   {/* Expanded Content */}
                   {isExpanded && (
-                    <div className="px-4 pb-4 border-t border-light-border dark:border-dark-border pt-3">
+                    <div className="px-4 pb-4 border-t border-tg-separator pt-3">
                       {/* Products List */}
                       <div className="space-y-3 mb-4">
                         {order.products.map((product, idx) => (
@@ -165,28 +166,28 @@ export default function OrdersPage() {
                                 className="w-12 h-12 rounded-lg object-cover"
                               />
                             ) : (
-                              <div className="w-12 h-12 rounded-lg bg-light-bg dark:bg-dark-bg flex items-center justify-center">
-                                <svg className="w-6 h-6 text-light-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <div className="w-12 h-12 rounded-lg bg-tg-bg flex items-center justify-center">
+                                <svg className="w-6 h-6 text-tg-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                 </svg>
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-light-text dark:text-dark-text truncate">
+                              <p className="font-medium text-tg-text truncate">
                                 {product.productName || `Товар #${product.productId.slice(-6)}`}
                               </p>
                               {product.variantName && (
-                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                                <p className="text-sm text-tg-hint">
                                   {product.variantName}
                                 </p>
                               )}
                             </div>
                             <div className="text-right">
-                              <p className="font-semibold text-light-text dark:text-dark-text">
+                              <p className="font-semibold text-tg-text">
                                 {product.price.toLocaleString('ru-RU')} ₽
                               </p>
                               {product.quantity > 1 && (
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                <p className="text-xs text-tg-hint">
                                   × {product.quantity}
                                 </p>
                               )}
@@ -197,11 +198,11 @@ export default function OrdersPage() {
 
                       {/* Discount Info */}
                       {(order.discountAmount || order.promoCode) && (
-                        <div className="flex items-center justify-between py-2 border-t border-light-border dark:border-dark-border">
-                          <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                        <div className="flex items-center justify-between py-2 border-t border-tg-separator">
+                          <span className="text-sm text-tg-hint">
                             Скидка {order.promoCode && `(${order.promoCode})`}
                           </span>
-                          <span className="text-green-500 font-medium">
+                          <span className="text-[var(--app-success)] font-medium">
                             -{order.discountAmount?.toLocaleString('ru-RU')} ₽
                           </span>
                         </div>
@@ -209,13 +210,13 @@ export default function OrdersPage() {
 
                       {/* Delivery Data */}
                       {order.status === 'delivered' && order.deliveryData && (
-                        <div className="mt-3 p-3 bg-green-500/10 rounded-lg">
-                          <p className="text-sm font-medium text-green-500 mb-1">Данные доставки:</p>
-                          <p className="text-sm text-light-text dark:text-dark-text font-mono break-all">
+                        <div className="mt-3 p-3 bg-[var(--app-success)]/10 rounded-lg">
+                          <p className="text-sm font-medium text-[var(--app-success)] mb-1">Данные доставки:</p>
+                          <p className="text-sm text-tg-text font-mono break-all">
                             {order.deliveryData}
                           </p>
                           {order.deliveryNote && (
-                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2">
+                            <p className="text-xs text-tg-hint mt-2">
                               {order.deliveryNote}
                             </p>
                           )}
@@ -225,10 +226,10 @@ export default function OrdersPage() {
                       {/* Payment Info */}
                       {order.paymentMethod && (
                         <div className="flex items-center justify-between py-2 text-sm">
-                          <span className="text-light-text-secondary dark:text-dark-text-secondary">
+                          <span className="text-tg-hint">
                             Способ оплаты:
                           </span>
-                          <span className="text-light-text dark:text-dark-text">
+                          <span className="text-tg-text">
                             {order.paymentMethod === 'cryptobot' ? 'CryptoBot' :
                              order.paymentMethod === 'cactuspay-sbp' ? 'СБП' : 'Карта'}
                           </span>
@@ -241,7 +242,7 @@ export default function OrdersPage() {
                         {order.status === 'delivered' && order.products.length === 1 && (
                           <button
                             onClick={() => router.push(`/checkout?productId=${order.products[0].productId}`)}
-                            className="flex-1 py-2.5 bg-accent-cyan text-white text-sm font-bold rounded-lg hover:bg-accent-cyan/90 transition-colors"
+                            className="flex-1 py-2.5 bg-tg-button text-tg-button-text text-sm font-bold rounded-lg hover:opacity-90 transition-colors"
                           >
                             Купить снова
                           </button>
@@ -250,7 +251,7 @@ export default function OrdersPage() {
                         {/* Support Button - secondary */}
                         <button
                           onClick={() => router.push('/support')}
-                          className={`py-2 text-accent-cyan text-sm font-medium border border-accent-cyan/30 rounded-lg hover:bg-accent-cyan/10 transition-colors ${
+                          className={`py-2 text-tg-button text-sm font-medium border border-tg-button/30 rounded-lg hover:bg-tg-button/10 transition-colors ${
                             order.status === 'delivered' && order.products.length === 1 ? 'flex-1' : 'w-full'
                           }`}
                         >

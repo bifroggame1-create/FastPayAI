@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.32.1",
     "@telegram-apps/telegram-ui": "^2.1.13",
     "axios": "^1.6.2",
     "date-fns": "^3.0.6",

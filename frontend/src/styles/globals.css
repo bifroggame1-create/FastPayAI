@@ -33,6 +33,25 @@
   --app-success: #31b545;
 }
 
+/* Light Theme (explicit class) */
+.light,
+:root:not(.dark) {
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-secondary-bg-color: #f1f1f1;
+  --tg-theme-text-color: #000000;
+  --tg-theme-hint-color: #999999;
+  --tg-theme-link-color: #2481cc;
+  --tg-theme-button-color: #2481cc;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-header-bg-color: #ffffff;
+  --tg-theme-accent-text-color: #2481cc;
+  --tg-theme-section-bg-color: #ffffff;
+  --tg-theme-section-header-text-color: #6d6d72;
+  --tg-theme-subtitle-text-color: #999999;
+  --tg-theme-destructive-text-color: #ff3b30;
+  --tg-theme-section-separator-color: #c8c7cc;
+}
+
 /* Dark Theme */
 .dark {
   --tg-theme-bg-color: #17212b;

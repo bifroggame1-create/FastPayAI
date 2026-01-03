@@ -22,10 +22,12 @@ export default function PopularServices() {
   const handleServiceClick = (categoryId: string) => {
     hapticImpact('light')
     setSelectedCategory(categoryId)
-    // Scroll to products section
-    const productsSection = document.getElementById('products-section')
-    if (productsSection) {
-      productsSection.scrollIntoView({ behavior: 'smooth' })
+    // Scroll to products section (with SSR guard)
+    if (typeof document !== 'undefined') {
+      const productsSection = document.getElementById('products-section')
+      if (productsSection) {
+        productsSection.scrollIntoView({ behavior: 'smooth' })
+      }
     }
   }
 

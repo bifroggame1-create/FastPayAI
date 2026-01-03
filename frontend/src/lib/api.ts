@@ -1,10 +1,42 @@
 import axios from 'axios'
-import { Product, User, Order, Review, ProductFilters, SellerProfile } from '@/types'
+import { Product, User, Order, Review, ProductFilters, SellerProfile, CreateProductInput, UpdateProductInput, CreateSellerInput, UpdateSellerInput, UpdateUserInput, CreatePromoInput, UpdatePromoInput, BrandingSettings } from '@/types'
 import { getToken } from './auth'
 import { getTelegramUser } from './telegram'
 
 // Use backend URL from environment variable, fallback to production Render URL
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
+
+// ============================================
+// IDEMPOTENCY KEY GENERATION
+// ============================================
+
+/**
+ * Generate unique idempotency key for payment operations
+ * Format: {userId}_{timestamp}_{random}
+ * This prevents duplicate payments from network retries
+ */
+export function generateIdempotencyKey(): string {
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).substring(2, 15)
+  const userId = getTelegramUser()?.id || 'anonymous'
+  return `${userId}_${timestamp}_${random}`
+}
+
+/**
+ * Store idempotency key to prevent reuse in same session
+ */
+const usedIdempotencyKeys = new Set<string>()
+
+// Checkout item type for multi-item orders
+interface CheckoutItem {
+  productId: string
+  productName: string
+  productImage: string
+  variantId?: string
+  variantName?: string
+  price: number
+  quantity: number
+}
 
 // ============================================
 // MULTI-TENANT SUPPORT
@@ -90,21 +122,29 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Admin API instance - uses JWT token for authentication (secure)
+// Auth mode from environment (matches auth.ts)
+const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE === 'cookie' ? 'cookie' : 'localStorage'
+
+// Admin API instance - uses JWT token or httpOnly cookies for authentication
 const adminApiInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false,
+  // Use credentials for cookie mode
+  withCredentials: AUTH_MODE === 'cookie',
 })
 
-// Admin API uses JWT token and tenant ID
+// Admin API uses JWT token (localStorage mode) or cookies (cookie mode)
 adminApiInstance.interceptors.request.use((config) => {
-  const token = getToken()
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  // In localStorage mode, add Authorization header
+  if (AUTH_MODE === 'localStorage') {
+    const token = getToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
   }
+  // In cookie mode, credentials are sent automatically via withCredentials: true
 
   // Add tenant ID header
   config.headers['X-Tenant-ID'] = getTenantId()
@@ -238,8 +278,12 @@ export const paymentApi = {
     productId: string
     variantId?: string
     asset?: string
+    items?: CheckoutItem[]
   }) => {
-    const { data } = await api.post('/payment/create-invoice', params)
+    const idempotencyKey = generateIdempotencyKey()
+    const { data } = await api.post('/payment/create-invoice', params, {
+      headers: { 'X-Idempotency-Key': idempotencyKey }
+    })
     return data
   },
 
@@ -261,8 +305,12 @@ export const paymentApi = {
     variantId?: string
     method?: 'card' | 'sbp' | 'yoomoney' | 'crypto' | 'nspk'
     userIp?: string
+    items?: CheckoutItem[]
   }) => {
-    const { data } = await api.post('/payment/cactuspay/create', params)
+    const idempotencyKey = generateIdempotencyKey()
+    const { data } = await api.post('/payment/cactuspay/create', params, {
+      headers: { 'X-Idempotency-Key': idempotencyKey }
+    })
     return data
   },
 
@@ -284,9 +332,12 @@ export const paymentApi = {
     description?: string
     productId: string
     variantId?: string
-    items?: any[]
+    items?: CheckoutItem[]
   }) => {
-    const { data } = await api.post('/payment/xrocket/create-invoice', params)
+    const idempotencyKey = generateIdempotencyKey()
+    const { data } = await api.post('/payment/xrocket/create-invoice', params, {
+      headers: { 'X-Idempotency-Key': idempotencyKey }
+    })
     return data
   },
 
@@ -301,20 +352,24 @@ export const paymentApi = {
     description?: string
     productId: string
     variantId?: string
+    items?: CheckoutItem[]
   }) => {
-    const { data } = await api.post('/payment/stars/create-invoice', params)
+    const idempotencyKey = generateIdempotencyKey()
+    const { data } = await api.post('/payment/stars/create-invoice', params, {
+      headers: { 'X-Idempotency-Key': idempotencyKey }
+    })
     return data
   },
 }
 
 export const adminApi = {
   // Products - using adminApiInstance with X-Admin-Id header
-  createProduct: async (product: any) => {
+  createProduct: async (product: CreateProductInput) => {
     const { data } = await adminApiInstance.post('/admin/products', product)
     return data
   },
 
-  updateProduct: async (id: string, updates: any) => {
+  updateProduct: async (id: string, updates: UpdateProductInput) => {
     const { data } = await adminApiInstance.put(`/admin/products/${id}`, updates)
     return data
   },
@@ -335,12 +390,12 @@ export const adminApi = {
     return data
   },
 
-  createSeller: async (seller: any) => {
+  createSeller: async (seller: CreateSellerInput) => {
     const { data } = await adminApiInstance.post('/admin/sellers', seller)
     return data
   },
 
-  updateSeller: async (id: string, updates: any) => {
+  updateSeller: async (id: string, updates: UpdateSellerInput) => {
     const { data } = await adminApiInstance.put(`/admin/sellers/${id}`, updates)
     return data
   },
@@ -356,7 +411,7 @@ export const adminApi = {
     return data
   },
 
-  updateUser: async (id: string, updates: any) => {
+  updateUser: async (id: string, updates: UpdateUserInput) => {
     const { data } = await adminApiInstance.put(`/admin/users/${id}`, updates)
     return data
   },
@@ -383,12 +438,12 @@ export const adminApi = {
     return data
   },
 
-  createPromoCode: async (promo: any) => {
+  createPromoCode: async (promo: CreatePromoInput) => {
     const { data } = await adminApiInstance.post('/admin/promo', promo)
     return data
   },
 
-  updatePromoCode: async (code: string, updates: any) => {
+  updatePromoCode: async (code: string, updates: UpdatePromoInput) => {
     const { data } = await adminApiInstance.put(`/admin/promo/${code}`, updates)
     return data
   },
@@ -689,7 +744,7 @@ export const adminApi = {
     return data
   },
 
-  updateBranding: async (branding: any) => {
+  updateBranding: async (branding: BrandingSettings) => {
     const { data } = await adminApiInstance.patch('/admin/settings/branding', branding)
     return data
   },

@@ -41,9 +41,9 @@ export default function Toast() {
   if (!isAnimating && !isVisible) return null
 
   const bgColor = {
-    success: 'bg-green-500',
-    error: 'bg-red-500',
-    info: 'bg-accent-cyan'
+    success: 'bg-[var(--app-success)]',
+    error: 'bg-[var(--app-destructive)]',
+    info: 'bg-tg-button'
   }[type]
 
   const icon = {

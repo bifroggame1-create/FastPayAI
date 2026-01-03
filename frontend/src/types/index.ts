@@ -26,6 +26,7 @@ export interface Product {
   variants?: ProductVariant[] // варианты услуги
   badges?: ('sale' | 'hit' | 'new')[] // бейджи товара
   tags?: string[] // теги товара (массив ID тегов)
+  deliveryType?: 'auto' | 'manual' // тип доставки
 }
 
 // Tag for product categorization
@@ -155,4 +156,168 @@ export interface ProductFilters {
   search?: string
   sort?: SortType
   tags?: string[] // filter by tag IDs
+}
+
+// API Request Types
+export interface ProductQueryParams {
+  category?: string
+  tag?: string
+  search?: string
+  sort?: SortType
+  minPrice?: number
+  maxPrice?: number
+  limit?: number
+  offset?: number
+}
+
+export interface CreateProductInput {
+  name: string
+  price: number
+  oldPrice?: number
+  images: string[]
+  condition: 'new' | 'used'
+  category: string
+  description?: string
+  inStock?: boolean
+  isEnabled?: boolean
+  variants?: ProductVariant[]
+  badges?: ('sale' | 'hit' | 'new')[]
+  tags?: string[]
+  deliveryType?: 'auto' | 'manual'
+}
+
+export interface UpdateProductInput extends Partial<CreateProductInput> {
+  _id?: string
+}
+
+export interface CreateSellerInput {
+  id: string
+  name: string
+  avatar?: string
+  rating?: number
+}
+
+export interface UpdateSellerInput extends Partial<CreateSellerInput> {}
+
+export interface UpdateUserInput {
+  name?: string
+  avatar?: string
+  bonusBalance?: number
+  isAdmin?: boolean
+  // Admin panel fields
+  username?: string
+  firstName?: string
+  lastName?: string
+  isBlocked?: boolean
+  blockReason?: string
+  isPremium?: boolean
+}
+
+export interface CreatePromoInput {
+  code: string
+  discountType: 'percentage' | 'fixed'
+  discountValue: number
+  minOrderAmount?: number
+  maxUses?: number
+  expiresAt?: string
+  isActive?: boolean
+}
+
+export interface UpdatePromoInput extends Partial<CreatePromoInput> {}
+
+export interface BrandingSettings {
+  shopName?: string
+  logoUrl?: string
+  primaryColor?: string
+  accentColor?: string
+  welcomeMessage?: string
+}
+
+// Telegram WebApp Types
+export interface TelegramUser {
+  id: number
+  first_name: string
+  last_name?: string
+  username?: string
+  photo_url?: string
+  language_code?: string
+}
+
+export interface TelegramWebApp {
+  initData: string
+  initDataUnsafe: {
+    user?: TelegramUser
+    query_id?: string
+    auth_date?: number
+    hash?: string
+    start_param?: string
+  }
+  version?: string
+  platform?: string
+  colorScheme: 'light' | 'dark'
+  themeParams: {
+    bg_color?: string
+    text_color?: string
+    hint_color?: string
+    link_color?: string
+    button_color?: string
+    button_text_color?: string
+  }
+  isExpanded?: boolean
+  viewportHeight?: number
+  viewportStableHeight?: number
+  headerColor?: string
+  backgroundColor?: string
+  ready: () => void
+  expand: () => void
+  close: () => void
+  openLink?: (url: string) => void
+  openTelegramLink?: (url: string) => void
+  showPopup?: (params: { title?: string; message: string; buttons?: Array<{ type: string; text?: string }> }) => void
+  showAlert?: (message: string) => void
+  showConfirm?: (message: string, callback?: (confirmed: boolean) => void) => void
+  MainButton: {
+    text: string
+    color: string
+    textColor: string
+    isVisible: boolean
+    isActive: boolean
+    isProgressVisible?: boolean
+    setText: (text: string) => void
+    onClick: (callback: () => void) => void
+    offClick: (callback: () => void) => void
+    show: () => void
+    hide: () => void
+    enable: () => void
+    disable: () => void
+    showProgress?: (leaveActive?: boolean) => void
+    hideProgress?: () => void
+  }
+  BackButton: {
+    isVisible: boolean
+    show: () => void
+    hide: () => void
+    onClick: (callback: () => void) => void
+    offClick: (callback: () => void) => void
+  }
+  HapticFeedback: {
+    impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void
+    notificationOccurred: (type: 'error' | 'success' | 'warning') => void
+    selectionChanged: () => void
+  }
+}
+
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp: TelegramWebApp
+    }
+  }
+}
+
+// Error with message
+export interface ApiError {
+  message: string
+  code?: string
+  status?: number
 }

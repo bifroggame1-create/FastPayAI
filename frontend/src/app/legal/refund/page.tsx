@@ -7,7 +7,7 @@ export default function RefundPage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg pb-8">
+    <div className="min-h-screen bg-tg-bg pb-8">
       <Header
         title="Возврат и отмена"
         showBack
@@ -15,15 +15,15 @@ export default function RefundPage() {
       />
 
       <div className="px-4 py-6 max-w-3xl mx-auto">
-        <div className="prose prose-sm dark:prose-invert max-w-none text-light-text dark:text-dark-text">
-          <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm mb-6">
+        <div className="prose prose-sm dark:prose-invert max-w-none text-tg-text">
+          <p className="text-tg-hint text-sm mb-6">
             Дата публикации: 01.01.2025 | Версия: 1.0
           </p>
 
           {/* Important Notice */}
           <div className="bg-accent-cyan/10 border border-accent-cyan/30 rounded-xl p-4 mb-6">
             <p className="text-sm font-medium text-accent-cyan mb-2">Важная информация</p>
-            <p className="text-sm text-light-text dark:text-dark-text">
+            <p className="text-sm text-tg-text">
               Платформа FastPay предоставляет цифровые товары. В соответствии со статьёй 26.1 Закона РФ «О защите прав потребителей», возврат цифровых товаров надлежащего качества не производится. Однако мы предоставляем защиту покупателей через систему эскроу и споров.
             </p>
           </div>
@@ -154,8 +154,8 @@ export default function RefundPage() {
             <li>Email: FastPayAI@yandex.ru</li>
           </ul>
 
-          <div className="mt-8 pt-4 border-t border-light-border dark:border-dark-border">
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+          <div className="mt-8 pt-4 border-t border-tg-separator">
+            <p className="text-xs text-tg-hint">
               Совершая покупку на Платформе, вы подтверждаете, что ознакомились и согласны с условиями возврата.
             </p>
           </div>
