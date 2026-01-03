@@ -10,28 +10,54 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Dark Blue theme colors - sophisticated and modern
-        'dark-bg': '#0a1929',        // Very dark blue background
-        'dark-card': '#1e293b',      // Dark blue card
-        'dark-border': '#334155',    // Blue-gray border
-        'dark-text': '#f1f5f9',      // Soft white with blue tint
-        'dark-text-secondary': '#94a3b8', // Blue-gray secondary text
+        // Telegram Mini Apps Theme Colors
+        'tg-bg': 'var(--tg-theme-bg-color)',
+        'tg-secondary-bg': 'var(--tg-theme-secondary-bg-color)',
+        'tg-text': 'var(--tg-theme-text-color)',
+        'tg-hint': 'var(--tg-theme-hint-color)',
+        'tg-link': 'var(--tg-theme-link-color)',
+        'tg-button': 'var(--tg-theme-button-color)',
+        'tg-button-text': 'var(--tg-theme-button-text-color)',
+        'tg-accent': 'var(--tg-theme-accent-text-color)',
+        'tg-destructive': 'var(--tg-theme-destructive-text-color)',
+        'tg-section-header': 'var(--tg-theme-section-header-text-color)',
+        'tg-separator': 'var(--tg-theme-section-separator-color)',
 
-        // Light theme colors
-        'light-bg': '#f5f5f5',
-        'light-card': '#ffffff',
+        // App semantic colors
+        'app-bg': 'var(--app-bg)',
+        'app-card': 'var(--app-card)',
+        'app-text': 'var(--app-text)',
+        'app-text-secondary': 'var(--app-text-secondary)',
+        'app-accent': 'var(--app-accent)',
+        'app-button': 'var(--app-button)',
+        'app-border': 'var(--app-border)',
+        'app-destructive': 'var(--app-destructive)',
+        'app-success': 'var(--app-success)',
+
+        // Legacy support
+        'dark-bg': '#17212b',
+        'dark-card': '#232e3c',
+        'dark-border': '#293a4c',
+        'dark-text': '#f5f5f5',
+        'dark-text-secondary': '#708499',
+        'light-bg': '#ffffff',
+        'light-card': '#f5f5f5',
         'light-border': '#e5e5e5',
         'light-text': '#1a1a1a',
         'light-text-secondary': '#6b7280',
-
-        // Accent colors (work in both themes) - enhanced for dark blue theme
-        'accent-blue': '#3b82f6',    // Vibrant blue
-        'accent-cyan': '#06b6d4',    // Cyan accent
+        'accent-blue': '#5288c1',
+        'accent-cyan': '#6ab3f3',
+      },
+      borderRadius: {
+        'tg': '12px',
+        'tg-sm': '10px',
+        'tg-lg': '16px',
       },
       animation: {
         'wiggle': 'wiggle 1s ease-in-out infinite',
         'float': 'float 3s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out infinite',
+        'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
       },
       keyframes: {
         wiggle: {
@@ -45,6 +71,10 @@ const config: Config = {
         glow: {
           '0%, 100%': { filter: 'brightness(1)' },
           '50%': { filter: 'brightness(1.2)' },
+        },
+        'pulse-subtle': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.7' },
         },
       },
     },

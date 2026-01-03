@@ -14,7 +14,6 @@ export default function SearchBar() {
   const [activeSuggestion, setActiveSuggestion] = useState(-1)
   const searchRef = useRef<HTMLDivElement>(null)
 
-  // Fetch suggestions
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (searchQuery.length >= 2) {
@@ -37,7 +36,6 @@ export default function SearchBar() {
     return () => clearTimeout(debounce)
   }, [searchQuery])
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -74,12 +72,12 @@ export default function SearchBar() {
 
   return (
     <>
-      <div className="px-4 py-3 sticky top-[57px] bg-light-bg dark:bg-dark-bg z-30">
+      <div className="px-4 py-3 sticky top-14 bg-tg-bg z-30">
         <div className="flex items-center gap-2">
           {/* Catalog Button */}
           <button
             onClick={() => setIsCatalogOpen(!isCatalogOpen)}
-            className="flex items-center justify-center h-[46px] w-[46px] bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg font-medium transition-all flex-shrink-0"
+            className="flex items-center justify-center h-11 w-11 bg-tg-button text-white rounded-tg-sm active:opacity-80 transition-opacity flex-shrink-0"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M4 4h7v7H4V4zm0 9h7v7H4v-7zm9-9h7v7h-7V4zm0 9h7v7h-7v-7z" />
@@ -95,10 +93,10 @@ export default function SearchBar() {
               onKeyDown={handleKeyDown}
               onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
               placeholder={t('searchPlaceholder', language)}
-              className="w-full bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text px-4 py-3 pr-10 rounded-lg border border-light-border dark:border-dark-border focus:outline-none focus:ring-2 focus:ring-accent-cyan"
+              className="w-full bg-tg-secondary-bg text-tg-text px-4 py-3 pr-10 rounded-tg-sm border-none focus:outline-none focus:ring-2 focus:ring-tg-button/50 placeholder:text-tg-hint text-[15px]"
             />
             <svg
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-tg-hint pointer-events-none"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -106,27 +104,27 @@ export default function SearchBar() {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
 
             {/* Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg shadow-lg overflow-hidden z-50">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-tg-secondary-bg rounded-tg shadow-lg overflow-hidden z-50">
                 {suggestions.map((suggestion, index) => (
                   <button
                     key={index}
                     onClick={() => selectSuggestion(suggestion)}
-                    className={`w-full text-left px-4 py-3 hover:bg-light-bg dark:hover:bg-dark-bg transition-colors ${
-                      index === activeSuggestion ? 'bg-light-bg dark:bg-dark-bg' : ''
+                    className={`w-full text-left px-4 py-3 active:bg-white/5 transition-colors ${
+                      index === activeSuggestion ? 'bg-white/5' : ''
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-light-text-secondary dark:text-dark-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    <div className="flex items-center gap-3">
+                      <svg className="w-4 h-4 text-tg-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
-                      <span className="text-light-text dark:text-dark-text">{suggestion}</span>
+                      <span className="text-tg-text text-[15px]">{suggestion}</span>
                     </div>
                   </button>
                 ))}

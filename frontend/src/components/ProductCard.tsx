@@ -24,7 +24,6 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
   const sellerRating = product.seller.rating
   const displayRating = sellerRating > 5 ? sellerRating : Math.round(sellerRating * 20)
 
-  // Calculate savings percentage
   const savingsPercent = product.oldPrice && product.oldPrice > product.price
     ? Math.round((1 - product.price / product.oldPrice) * 100)
     : 0
@@ -64,23 +63,23 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
   return (
     <div
       onClick={handleClick}
-      className="bg-light-card dark:bg-dark-card rounded-2xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity border border-light-border dark:border-dark-border"
+      className="bg-tg-secondary-bg rounded-tg overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
     >
-      {/* Image Section - balanced size */}
-      <div className="relative aspect-square max-h-44">
+      {/* Image Section */}
+      <div className="relative aspect-square">
         <img
           src={product.images[0] || '/placeholder.jpg'}
           alt={product.name}
           className="w-full h-full object-cover"
         />
 
-        {/* Favorite - smaller, less prominent */}
+        {/* Favorite */}
         <button
           onClick={handleFavoriteClick}
-          className="absolute top-2 right-2 w-7 h-7 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center"
+          className="absolute top-2 right-2 w-8 h-8 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center active:scale-90 transition-transform"
         >
           <svg
-            className={`w-4 h-4 ${favorite ? 'fill-pink-500 text-pink-500' : 'fill-none text-white/80'}`}
+            className={`w-4 h-4 ${favorite ? 'fill-red-500 text-red-500' : 'fill-none text-white'}`}
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
@@ -93,114 +92,84 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           </svg>
         </button>
 
-        {/* Primary badges - Delivery & Protection */}
+        {/* Badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {/* Delivery speed - PRIMARY */}
-          <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium ${
-            hasAutoDelivery
-              ? 'bg-accent-cyan text-white'
-              : 'bg-white/90 dark:bg-dark-card/90 text-light-text dark:text-dark-text'
-          }`}>
-            {hasAutoDelivery ? '⚡' : '⏳'}
-            <span>{hasAutoDelivery
-              ? (language === 'ru' ? 'Мгновенно' : 'Instant')
-              : (language === 'ru' ? 'до 30 мин' : '~30 min')
-            }</span>
-          </div>
-
-          {/* Protection badge */}
-          {product.condition === 'new' && (
-            <div className="flex items-center gap-1 bg-white/90 dark:bg-dark-card/90 px-2 py-0.5 rounded text-[10px] text-light-text dark:text-dark-text">
-              🛡 {language === 'ru' ? 'Защита' : 'Protected'}
+          {hasAutoDelivery && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-tg-button rounded-tg-sm text-[11px] font-medium text-white">
+              <span>⚡</span>
+              <span>{language === 'ru' ? 'Мгновенно' : 'Instant'}</span>
+            </div>
+          )}
+          {savingsPercent > 0 && (
+            <div className="px-2 py-1 bg-app-success rounded-tg-sm text-[11px] font-medium text-white">
+              -{savingsPercent}%
             </div>
           )}
         </div>
 
-        {/* Social proof - bottom */}
+        {/* Sales count */}
         {salesCount > 0 && (
-          <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] text-white/90">
-            {salesCount}+ {language === 'ru' ? 'продано' : 'sold'}
+          <div className="absolute bottom-2 left-2 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-tg-sm text-[11px] text-white">
+            {salesCount}+ {language === 'ru' ? 'продаж' : 'sales'}
           </div>
         )}
       </div>
 
-      {/* Content Section */}
+      {/* Content */}
       <div className="p-3">
-        {/* Product name - secondary */}
-        <h3 className="text-xs text-light-text-secondary dark:text-dark-text-secondary line-clamp-2 leading-tight mb-2">
+        {/* Name */}
+        <h3 className="text-[13px] text-tg-text font-medium line-clamp-2 leading-snug mb-2">
           {product.name}
         </h3>
 
-        {/* PRICE - PRIMARY, LARGEST */}
-        <div className="mb-2">
+        {/* Price */}
+        <div className="mb-3">
           <div className="flex items-baseline gap-2">
-            <p className="text-xl font-bold text-light-text dark:text-dark-text">
+            <span className="text-lg font-bold text-tg-text">
               {formatPrice(product.price, currency)}
-            </p>
+            </span>
             {product.oldPrice && product.oldPrice > product.price && (
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary line-through">
+              <span className="text-xs text-tg-hint line-through">
                 {formatPrice(product.oldPrice, currency)}
-              </p>
+              </span>
             )}
           </div>
-          {/* Savings anchor - Task 2 */}
-          {savingsPercent > 0 && (
-            <p className="text-[10px] text-green-500 mt-0.5">
-              {language === 'ru'
-                ? `Экономия ${savingsPercent}%`
-                : `Save ${savingsPercent}%`
-              }
-            </p>
-          )}
         </div>
 
-        {/* Seller info - SECONDARY, reduced */}
-        <div className="flex items-center gap-1.5 mb-3 opacity-70">
+        {/* Seller */}
+        <div className="flex items-center gap-2 mb-3">
           <img
             src={product.seller.avatar || '/default-avatar.png'}
             alt={product.seller.name}
-            className="w-4 h-4 rounded-full"
+            className="w-5 h-5 rounded-full"
           />
-          <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary truncate flex-1">
+          <span className="text-[12px] text-tg-hint truncate flex-1">
             {product.seller.name}
           </span>
-          {/* Seller success % */}
-          <div className={`flex items-center gap-0.5 text-[10px] ${
-            displayRating >= 90 ? 'text-green-500' : displayRating >= 70 ? 'text-yellow-500' : 'text-red-500'
+          <div className={`text-[11px] font-medium ${
+            displayRating >= 90 ? 'text-app-success' : displayRating >= 70 ? 'text-yellow-500' : 'text-tg-destructive'
           }`}>
-            <span>⭐</span>
-            <span>{displayRating}%</span>
+            {displayRating}%
           </div>
         </div>
 
-        {/* CTA Section - Task 3: Dominant Buy button */}
+        {/* Actions */}
         <div className="flex gap-2">
-          {/* Cart - SECONDARY, smaller */}
           <button
             onClick={handleAddToCart}
-            className="w-8 h-9 flex items-center justify-center bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-lg opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+            className="w-10 h-10 flex items-center justify-center bg-tg-bg rounded-tg-sm active:scale-95 transition-transform"
           >
-            <svg className="w-4 h-4 text-light-text dark:text-dark-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            <svg className="w-5 h-5 text-tg-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </button>
-
-          {/* Buy - PRIMARY, dominant */}
           <button
             onClick={handleBuyClick}
-            className="flex-1 bg-accent-cyan hover:bg-accent-cyan/90 text-white font-bold py-2.5 rounded-lg transition-colors text-sm shadow-sm shadow-accent-cyan/20"
+            className="flex-1 bg-tg-button text-tg-button-text font-semibold py-2.5 rounded-tg-sm active:opacity-80 transition-opacity text-[14px]"
           >
             {t('buy', language)}
           </button>
         </div>
-
-        {/* Purchase flow hint - Task 1 */}
-        <p className="text-[9px] text-light-text-secondary dark:text-dark-text-secondary text-center mt-2 opacity-60">
-          {language === 'ru'
-            ? 'Оплата → доставка в чат'
-            : 'Pay → delivery to chat'
-          }
-        </p>
       </div>
     </div>
   )

@@ -2,6 +2,7 @@
 
 import { useAppStore } from '@/lib/store'
 import { t } from '@/lib/i18n'
+import { hapticImpact } from '@/lib/telegram'
 
 const categories = [
   { id: 'all', nameKey: 'all' as const },
@@ -16,21 +17,21 @@ const categories = [
 export default function CategoryFilter() {
   const { selectedCategory, setSelectedCategory, language } = useAppStore()
 
+  const handleSelect = (id: string) => {
+    hapticImpact('light')
+    setSelectedCategory(id)
+  }
+
   return (
-    <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-3">
-      <button className="flex items-center gap-2 px-4 py-2 bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border rounded-full whitespace-nowrap hover:bg-light-border dark:hover:bg-dark-border transition-colors">
-        <svg className="w-4 h-4 text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-        </svg>
-      </button>
+    <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-2">
       {categories.map((category) => (
         <button
           key={category.id}
-          onClick={() => setSelectedCategory(category.id)}
-          className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
+          onClick={() => handleSelect(category.id)}
+          className={`px-4 py-2 rounded-full whitespace-nowrap text-[13px] font-medium transition-colors active:scale-95 ${
             selectedCategory === category.id
-              ? 'bg-accent-cyan text-black dark:text-white'
-              : 'bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border'
+              ? 'bg-tg-button text-white'
+              : 'bg-tg-secondary-bg text-tg-text'
           }`}
         >
           {t(category.nameKey, language)}
