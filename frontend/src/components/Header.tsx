@@ -37,7 +37,7 @@ export default function Header({ title, showBack, onBack, rightAction, showNavBu
             <img
               src="/logofast.png"
               alt="FastPay"
-              className="h-8 w-auto object-contain"
+              className="h-10 w-auto object-contain"
             />
           )}
           {title && (
