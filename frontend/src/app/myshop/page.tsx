@@ -149,36 +149,43 @@ export default function MyShopPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, ordersData, promoData, filesData] = await Promise.all([
-        productsApi.getAll({}),
-        adminApi.getOrders().catch(() => ({ orders: [] })),
+      // Use seller-specific endpoints to get only seller's own data
+      const [productsData, ordersData, statsData, promoData, filesData, settingsData] = await Promise.all([
+        adminApi.getMyShopProducts().catch(() => ({ products: [] })),
+        adminApi.getMyShopOrders().catch(() => ({ orders: [] })),
+        adminApi.getMyShopStats().catch(() => ({ stats: {} })),
         adminApi.getPromoCodes().catch(() => []),
-        adminApi.getFiles().catch(() => ({ files: [] }))
+        adminApi.getFiles().catch(() => ({ files: [] })),
+        adminApi.getSettings().catch(() => ({ settings: {} }))
       ])
 
-      setProducts(productsData)
-      setOrders(ordersData.orders || [])
+      const myProducts = productsData?.products || []
+      const myOrders = ordersData?.orders || []
+      const myStats = statsData?.stats || {}
+
+      setProducts(myProducts)
+      setOrders(myOrders)
       setPromoCodes(promoData?.promoCodes || promoData || [])
       setFiles(filesData?.files || [])
 
-      // Calculate stats
-      const activeProducts = productsData.filter((p: Product) => p.isEnabled !== false).length
-      const deliveredOrders = (ordersData.orders || []).filter((o: Order) => o.status === 'delivered')
-      const revenue = deliveredOrders.reduce((acc: number, o: Order) => acc + (o.amount || 0), 0)
+      // Load payment methods from settings
+      const enabledMethods = settingsData?.settings?.paymentConfig?.enabledMethods || ['cryptobot']
+      setPaymentMethods(enabledMethods)
 
+      // Calculate additional stats from seller-specific data
       const today = new Date().toDateString()
-      const todayOrders = (ordersData.orders || []).filter((o: Order) =>
+      const todayOrders = myOrders.filter((o: Order) =>
         o.status === 'delivered' && new Date(o.paidAt || o.createdAt).toDateString() === today
       )
       const todayRevenue = todayOrders.reduce((acc: number, o: Order) => acc + (o.amount || 0), 0)
 
       setStats({
-        totalProducts: productsData.length,
-        activeProducts,
-        totalOrders: (ordersData.orders || []).length,
-        pendingOrders: (ordersData.orders || []).filter((o: Order) => o.status === 'paid').length,
-        deliveredOrders: deliveredOrders.length,
-        totalRevenue: revenue,
+        totalProducts: myStats.productsCount || myProducts.length,
+        activeProducts: myStats.activeProducts || myProducts.filter((p: Product) => p.isEnabled !== false).length,
+        totalOrders: myStats.totalOrders || myOrders.length,
+        pendingOrders: myOrders.filter((o: Order) => o.status === 'paid').length,
+        deliveredOrders: myStats.deliveredOrders || myOrders.filter((o: Order) => o.status === 'delivered').length,
+        totalRevenue: myStats.revenue || 0,
         todayRevenue
       })
     } catch (error) {
@@ -611,12 +618,17 @@ export default function MyShopPage() {
                   <p className="text-xs text-gray-400">{formatPrice(product.price, currency)}</p>
                 </div>
                 <button
-                  onClick={() => handleToggleProduct(product._id, product.isEnabled !== false)}
-                  className={`relative w-12 h-7 rounded-full transition-colors ${
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleToggleProduct(product._id, product.isEnabled !== false)
+                  }}
+                  className={`relative w-12 h-7 rounded-full transition-colors cursor-pointer ${
                     product.isEnabled !== false ? 'bg-emerald-500' : 'bg-gray-600'
                   }`}
                 >
-                  <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                  <div className={`pointer-events-none absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
                     product.isEnabled !== false ? 'translate-x-6' : 'translate-x-1'
                   }`} />
                 </button>
@@ -745,12 +757,17 @@ export default function MyShopPage() {
                       <p className="text-xs text-gray-500">{method.desc}</p>
                     </div>
                     <button
-                      onClick={() => handleTogglePaymentMethod(method.id)}
-                      className={`relative w-12 h-7 rounded-full transition-colors ${
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleTogglePaymentMethod(method.id)
+                      }}
+                      className={`relative w-12 h-7 rounded-full transition-colors cursor-pointer ${
                         paymentMethods.includes(method.id) ? 'bg-emerald-500' : 'bg-gray-600'
                       }`}
                     >
-                      <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                      <div className={`pointer-events-none absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
                         paymentMethods.includes(method.id) ? 'translate-x-6' : 'translate-x-1'
                       }`} />
                     </button>
