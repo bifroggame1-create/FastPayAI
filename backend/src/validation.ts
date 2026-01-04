@@ -154,7 +154,7 @@ export const createPromoSchema = z.object({
   code: z.string().min(1).max(30).transform(s => s.toUpperCase()),
   discountType: z.enum(['percentage', 'fixed']),
   discountValue: z.number().positive().max(100),
-  minOrderAmount: z.number().positive().optional(),
+  minOrderAmount: z.number().nonnegative().optional(),
   maxUses: z.number().positive().optional(),
   expiresAt: z.string().datetime().optional(),
   isActive: z.boolean().default(true),

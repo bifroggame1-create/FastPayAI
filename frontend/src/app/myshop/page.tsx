@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
-import { Product } from '@/types'
+import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi } from '@/lib/api'
-import { initAuth } from '@/lib/auth'
+import { initAuth, getUser } from '@/lib/auth'
 import { formatPrice } from '@/lib/currency'
 import BottomNav from '@/components/BottomNav'
 
@@ -49,6 +49,55 @@ interface UploadedFile {
   uploadedAt: string
 }
 
+interface Seller {
+  id: string
+  name: string
+  avatar?: string
+  rating: number
+}
+
+// Toggle Switch Component
+const ToggleSwitch = ({
+  enabled,
+  onChange,
+  disabled = false
+}: {
+  enabled: boolean
+  onChange: () => void
+  disabled?: boolean
+}) => {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      disabled={disabled}
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (!disabled) {
+          onChange()
+        }
+      }}
+      className={`
+        relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full
+        border-2 border-transparent transition-colors duration-200 ease-in-out
+        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+        ${enabled ? 'bg-emerald-500' : 'bg-gray-600'}
+      `}
+    >
+      <span
+        className={`
+          pointer-events-none inline-block h-6 w-6 transform rounded-full
+          bg-white shadow ring-0 transition duration-200 ease-in-out
+          ${enabled ? 'translate-x-5' : 'translate-x-0'}
+        `}
+      />
+    </button>
+  )
+}
+
 // Icons
 const Icons = {
   dashboard: (
@@ -82,20 +131,21 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
-  back: (
+  plus: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
     </svg>
   ),
 }
 
 export default function MyShopPage() {
   const router = useRouter()
-  const { currency, theme, toggleTheme, language } = useAppStore()
+  const { currency, theme, toggleTheme } = useAppStore()
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
   const [loading, setLoading] = useState(true)
   const [isSeller, setIsSeller] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentSeller, setCurrentSeller] = useState<Seller | null>(null)
 
   // Data states
   const [products, setProducts] = useState<Product[]>([])
@@ -116,22 +166,29 @@ export default function MyShopPage() {
   })
 
   // Forms
-  const [newPromo, setNewPromo] = useState<{
-    code: string
-    discountType: 'percentage' | 'fixed'
-    discountValue: number
-    minOrderAmount: number
-    maxUses: number
-  }>({
+  const [newPromo, setNewPromo] = useState({
     code: '',
-    discountType: 'percentage',
+    discountType: 'percentage' as 'percentage' | 'fixed',
     discountValue: 10,
-    minOrderAmount: 0,
     maxUses: 100
+  })
+
+  // Product creation state
+  const [showProductForm, setShowProductForm] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [productForm, setProductForm] = useState({
+    name: '',
+    price: 0,
+    description: '',
+    category: 'services',
+    images: ['/products/placeholder.png'],
+    variants: [] as ProductVariant[]
   })
 
   const [deliveringOrderId, setDeliveringOrderId] = useState<string | null>(null)
   const [deliveryInput, setDeliveryInput] = useState('')
+  const [savingPayment, setSavingPayment] = useState(false)
+  const [creatingPromo, setCreatingPromo] = useState(false)
 
   useEffect(() => {
     checkAccessAndLoad()
@@ -141,6 +198,13 @@ export default function MyShopPage() {
     const user = await initAuth()
     if (user) {
       setIsSeller(true)
+      // Get seller info from user
+      setCurrentSeller({
+        id: user.id || String(user.id),
+        name: user.name || user.username || 'Продавец',
+        avatar: user.avatar,
+        rating: 5
+      })
       loadData()
     } else {
       setLoading(false)
@@ -149,7 +213,6 @@ export default function MyShopPage() {
 
   const loadData = async () => {
     try {
-      // Use seller-specific endpoints to get only seller's own data
       const [productsData, ordersData, statsData, promoData, filesData, settingsData] = await Promise.all([
         adminApi.getMyShopProducts().catch(() => ({ products: [] })),
         adminApi.getMyShopOrders().catch(() => ({ orders: [] })),
@@ -172,7 +235,7 @@ export default function MyShopPage() {
       const enabledMethods = settingsData?.settings?.paymentConfig?.enabledMethods || ['cryptobot']
       setPaymentMethods(enabledMethods)
 
-      // Calculate additional stats from seller-specific data
+      // Calculate stats
       const today = new Date().toDateString()
       const todayOrders = myOrders.filter((o: Order) =>
         o.status === 'delivered' && new Date(o.paidAt || o.createdAt).toDateString() === today
@@ -207,6 +270,7 @@ export default function MyShopPage() {
       }
     } catch (error) {
       console.error('Error toggling product:', error)
+      alert('Ошибка при изменении статуса товара')
     }
   }
 
@@ -225,22 +289,38 @@ export default function MyShopPage() {
       }
     } catch (error) {
       console.error('Error delivering order:', error)
+      alert('Ошибка при выдаче заказа')
     }
   }
 
   const handleCreatePromo = async () => {
-    if (!newPromo.code) return
+    if (!newPromo.code.trim()) {
+      alert('Введите код промокода')
+      return
+    }
+
+    setCreatingPromo(true)
     try {
       const result = await adminApi.createPromoCode({
-        ...newPromo,
+        code: newPromo.code.toUpperCase(),
+        discountType: newPromo.discountType,
+        discountValue: newPromo.discountValue,
+        maxUses: newPromo.maxUses,
         isActive: true
       })
-      if (result.success) {
+
+      if (result.success && result.promoCode) {
         setPromoCodes([result.promoCode, ...promoCodes])
-        setNewPromo({ code: '', discountType: 'percentage', discountValue: 10, minOrderAmount: 0, maxUses: 100 })
+        setNewPromo({ code: '', discountType: 'percentage', discountValue: 10, maxUses: 100 })
+        alert('Промокод создан!')
+      } else {
+        alert(result.error || 'Ошибка при создании промокода')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating promo:', error)
+      alert(error?.response?.data?.error || 'Ошибка при создании промокода')
+    } finally {
+      setCreatingPromo(false)
     }
   }
 
@@ -269,20 +349,89 @@ export default function MyShopPage() {
   }
 
   const handleTogglePaymentMethod = async (methodId: string) => {
+    setSavingPayment(true)
     const newMethods = paymentMethods.includes(methodId)
       ? paymentMethods.filter(m => m !== methodId)
       : [...paymentMethods, methodId]
 
+    // Optimistic update
+    setPaymentMethods(newMethods)
+
     try {
-      await adminApi.updatePaymentMethods(newMethods)
-      setPaymentMethods(newMethods)
+      const result = await adminApi.updatePaymentMethods(newMethods)
+      if (!result.success) {
+        // Revert on failure
+        setPaymentMethods(paymentMethods)
+        alert('Ошибка при сохранении настроек')
+      }
     } catch (error) {
       console.error('Error updating payment methods:', error)
+      // Revert on error
+      setPaymentMethods(paymentMethods)
+      alert('Ошибка при сохранении настроек')
+    } finally {
+      setSavingPayment(false)
+    }
+  }
+
+  const handleCreateProduct = async () => {
+    if (!productForm.name.trim()) {
+      alert('Введите название товара')
+      return
+    }
+    if (productForm.price <= 0) {
+      alert('Укажите цену товара')
+      return
+    }
+    if (!currentSeller) {
+      alert('Ошибка: информация о продавце не найдена')
+      return
+    }
+
+    try {
+      const productData = {
+        name: productForm.name,
+        price: productForm.price,
+        description: productForm.description,
+        category: productForm.category,
+        images: productForm.images,
+        condition: 'new' as const,
+        inStock: true,
+        isEnabled: true,
+        variants: productForm.variants,
+        seller: currentSeller
+      }
+
+      const result = await adminApi.createProduct(productData)
+      if (result.success) {
+        setProducts([result.product, ...products])
+        setStats(prev => ({
+          ...prev,
+          totalProducts: prev.totalProducts + 1,
+          activeProducts: prev.activeProducts + 1
+        }))
+        setShowProductForm(false)
+        setProductForm({
+          name: '',
+          price: 0,
+          description: '',
+          category: 'services',
+          images: ['/products/placeholder.png'],
+          variants: []
+        })
+        alert('Товар создан!')
+      } else {
+        alert(result.error || 'Ошибка при создании товара')
+      }
+    } catch (error: any) {
+      console.error('Error creating product:', error)
+      alert(error?.response?.data?.error || 'Ошибка при создании товара')
     }
   }
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
+    alert('Скопировано!')
   }
 
   const getStatusBadge = (status: OrderStatus) => {
@@ -349,7 +498,6 @@ export default function MyShopPage() {
         fixed inset-y-0 left-0 z-50 w-64 bg-[#0f1117] border-r border-[#1e2028] transform transition-transform duration-200
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        {/* Logo */}
         <div className="h-14 flex items-center justify-between px-4 border-b border-[#1e2028]">
           <div className="flex items-center">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -364,7 +512,6 @@ export default function MyShopPage() {
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className="py-4 px-2 space-y-1">
           {navItems.map(item => (
             <button
@@ -386,25 +533,6 @@ export default function MyShopPage() {
             </button>
           ))}
         </nav>
-
-        {/* Theme Toggle */}
-        <div className="absolute bottom-20 left-0 right-0 px-4">
-          <button
-            onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-gray-200 hover:bg-[#1a1d27] transition-colors"
-          >
-            {theme === 'dark' ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-            )}
-            <span>{theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}</span>
-          </button>
-        </div>
       </aside>
 
       {/* Header */}
@@ -446,7 +574,6 @@ export default function MyShopPage() {
         {/* Dashboard */}
         {activeTab === 'dashboard' && (
           <div className="space-y-4">
-            {/* KPI Cards */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
                 <div className="flex items-center gap-2 mb-2">
@@ -601,39 +728,121 @@ export default function MyShopPage() {
         {/* Products */}
         {activeTab === 'products' && (
           <div className="space-y-3">
-            {products.map(product => (
-              <div
-                key={product._id}
-                className={`bg-[#1a1d27] rounded-xl p-3 border border-[#2a2d37] flex items-center gap-3 ${
-                  product.isEnabled === false ? 'opacity-50' : ''
-                }`}
-              >
-                <img
-                  src={product.images[0]}
-                  alt={product.name}
-                  className="w-14 h-14 rounded-lg object-cover"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{product.name}</p>
-                  <p className="text-xs text-gray-400">{formatPrice(product.price, currency)}</p>
+            {/* Add Product Button */}
+            <button
+              onClick={() => setShowProductForm(true)}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              {Icons.plus}
+              Добавить товар
+            </button>
+
+            {/* Product Form Modal */}
+            {showProductForm && (
+              <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+                <div className="bg-[#1a1d27] rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Новый товар</h3>
+                    <button
+                      onClick={() => setShowProductForm(false)}
+                      className="p-1 text-gray-400 hover:text-white"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">Название</label>
+                      <input
+                        type="text"
+                        value={productForm.name}
+                        onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                        placeholder="Название товара"
+                        className="w-full px-3 py-2.5 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">Цена (₽)</label>
+                      <input
+                        type="number"
+                        value={productForm.price || ''}
+                        onChange={(e) => setProductForm({ ...productForm, price: parseInt(e.target.value) || 0 })}
+                        placeholder="0"
+                        className="w-full px-3 py-2.5 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">Категория</label>
+                      <select
+                        value={productForm.category}
+                        onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white focus:outline-none"
+                      >
+                        <option value="services">Услуги</option>
+                        <option value="ai-subscriptions">AI подписки</option>
+                        <option value="software">Софт</option>
+                        <option value="accounts">Аккаунты</option>
+                        <option value="gaming">Игры</option>
+                        <option value="other">Другое</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">Описание</label>
+                      <textarea
+                        value={productForm.description}
+                        onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                        placeholder="Описание товара..."
+                        rows={3}
+                        className="w-full px-3 py-2.5 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 resize-none"
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleCreateProduct}
+                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Создать товар
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    handleToggleProduct(product._id, product.isEnabled !== false)
-                  }}
-                  className={`relative w-12 h-7 rounded-full transition-colors cursor-pointer ${
-                    product.isEnabled !== false ? 'bg-emerald-500' : 'bg-gray-600'
+              </div>
+            )}
+
+            {/* Products List */}
+            {products.length === 0 ? (
+              <div className="bg-[#1a1d27] rounded-xl p-8 text-center border border-[#2a2d37]">
+                <p className="text-gray-400 mb-4">У вас пока нет товаров</p>
+              </div>
+            ) : (
+              products.map(product => (
+                <div
+                  key={product._id}
+                  className={`bg-[#1a1d27] rounded-xl p-3 border border-[#2a2d37] flex items-center gap-3 ${
+                    product.isEnabled === false ? 'opacity-50' : ''
                   }`}
                 >
-                  <div className={`pointer-events-none absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                    product.isEnabled !== false ? 'translate-x-6' : 'translate-x-1'
-                  }`} />
-                </button>
-              </div>
-            ))}
+                  <img
+                    src={product.images[0]}
+                    alt={product.name}
+                    className="w-14 h-14 rounded-lg object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{product.name}</p>
+                    <p className="text-xs text-gray-400">{formatPrice(product.price, currency)}</p>
+                  </div>
+                  <ToggleSwitch
+                    enabled={product.isEnabled !== false}
+                    onChange={() => handleToggleProduct(product._id, product.isEnabled !== false)}
+                  />
+                </div>
+              ))
+            )}
           </div>
         )}
 
@@ -645,7 +854,7 @@ export default function MyShopPage() {
               <div className="space-y-3">
                 <input
                   type="text"
-                  placeholder="Код (SALE20)"
+                  placeholder="Код (например: SALE20)"
                   value={newPromo.code}
                   onChange={(e) => setNewPromo({ ...newPromo, code: e.target.value.toUpperCase() })}
                   className="w-full px-3 py-2.5 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
@@ -667,11 +876,22 @@ export default function MyShopPage() {
                     className="w-24 px-3 py-2.5 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white focus:outline-none"
                   />
                 </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Макс. использований</label>
+                  <input
+                    type="number"
+                    placeholder="100"
+                    value={newPromo.maxUses}
+                    onChange={(e) => setNewPromo({ ...newPromo, maxUses: parseInt(e.target.value) || 100 })}
+                    className="w-full px-3 py-2.5 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white focus:outline-none"
+                  />
+                </div>
                 <button
                   onClick={handleCreatePromo}
-                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  disabled={creatingPromo || !newPromo.code.trim()}
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  Создать
+                  {creatingPromo ? 'Создание...' : 'Создать'}
                 </button>
               </div>
             </div>
@@ -756,21 +976,11 @@ export default function MyShopPage() {
                       <p className="text-sm font-medium text-white">{method.name}</p>
                       <p className="text-xs text-gray-500">{method.desc}</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        handleTogglePaymentMethod(method.id)
-                      }}
-                      className={`relative w-12 h-7 rounded-full transition-colors cursor-pointer ${
-                        paymentMethods.includes(method.id) ? 'bg-emerald-500' : 'bg-gray-600'
-                      }`}
-                    >
-                      <div className={`pointer-events-none absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                        paymentMethods.includes(method.id) ? 'translate-x-6' : 'translate-x-1'
-                      }`} />
-                    </button>
+                    <ToggleSwitch
+                      enabled={paymentMethods.includes(method.id)}
+                      onChange={() => handleTogglePaymentMethod(method.id)}
+                      disabled={savingPayment}
+                    />
                   </div>
                 ))}
               </div>
