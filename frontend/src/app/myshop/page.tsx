@@ -417,15 +417,31 @@ export default function MyShopPage() {
         seller: currentSeller
       }
 
-      const result = await adminApi.createProduct(productData)
+      let result: { success: boolean; product?: Product; error?: string }
+      if (editingProduct) {
+        // Update existing product
+        result = await adminApi.updateProduct(editingProduct._id, productData)
+        if (result.success && result.product) {
+          setProducts(products.map(p => p._id === editingProduct._id ? result.product! : p))
+          alert('Товар обновлён!')
+        }
+      } else {
+        // Create new product
+        result = await adminApi.createProduct(productData)
+        if (result.success && result.product) {
+          setProducts([result.product, ...products])
+          setStats(prev => ({
+            ...prev,
+            totalProducts: prev.totalProducts + 1,
+            activeProducts: prev.activeProducts + 1
+          }))
+          alert('Товар создан!')
+        }
+      }
+
       if (result.success) {
-        setProducts([result.product, ...products])
-        setStats(prev => ({
-          ...prev,
-          totalProducts: prev.totalProducts + 1,
-          activeProducts: prev.activeProducts + 1
-        }))
         setShowProductForm(false)
+        setEditingProduct(null)
         setProductForm({
           name: '',
           price: 0,
@@ -434,13 +450,12 @@ export default function MyShopPage() {
           images: ['/products/placeholder.png'],
           variants: []
         })
-        alert('Товар создан!')
       } else {
-        alert(result.error || 'Ошибка при создании товара')
+        alert(result.error || 'Ошибка при сохранении товара')
       }
     } catch (error: any) {
-      console.error('Error creating product:', error)
-      alert(error?.response?.data?.error || 'Ошибка при создании товара')
+      console.error('Error saving product:', error)
+      alert(error?.response?.data?.error || 'Ошибка при сохранении товара')
     }
   }
 
@@ -826,9 +841,22 @@ export default function MyShopPage() {
               <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
                 <div className="bg-[#1a1d27] rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">Новый товар</h3>
+                    <h3 className="text-lg font-semibold text-white">
+                      {editingProduct ? 'Редактировать товар' : 'Новый товар'}
+                    </h3>
                     <button
-                      onClick={() => setShowProductForm(false)}
+                      onClick={() => {
+                        setShowProductForm(false)
+                        setEditingProduct(null)
+                        setProductForm({
+                          name: '',
+                          price: 0,
+                          description: '',
+                          category: 'services',
+                          images: ['/products/placeholder.png'],
+                          variants: []
+                        })
+                      }}
                       className="p-1 text-gray-400 hover:text-white"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -891,7 +919,7 @@ export default function MyShopPage() {
                       onClick={handleCreateProduct}
                       className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
                     >
-                      Создать товар
+                      {editingProduct ? 'Сохранить изменения' : 'Создать товар'}
                     </button>
                   </div>
                 </div>
@@ -920,10 +948,32 @@ export default function MyShopPage() {
                     <p className="text-sm font-medium text-white truncate">{product.name}</p>
                     <p className="text-xs text-gray-400">{formatPrice(product.price, currency)}</p>
                   </div>
-                  <ToggleSwitch
-                    enabled={product.isEnabled !== false}
-                    onChange={() => handleToggleProduct(product._id, product.isEnabled !== false)}
-                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingProduct(product)
+                        setProductForm({
+                          name: product.name,
+                          price: product.price,
+                          description: product.description || '',
+                          category: product.category,
+                          images: product.images,
+                          variants: product.variants || []
+                        })
+                        setShowProductForm(true)
+                      }}
+                      className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                      title="Редактировать"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <ToggleSwitch
+                      enabled={product.isEnabled !== false}
+                      onChange={() => handleToggleProduct(product._id, product.isEnabled !== false)}
+                    />
+                  </div>
                 </div>
               ))
             )}

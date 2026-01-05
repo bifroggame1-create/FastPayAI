@@ -329,7 +329,7 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData, applicationsData, usersData, myShopProductsData, myShopOrdersData, myShopStatsData] = await Promise.all([
+      const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData, applicationsData, usersData, myShopProductsData, myShopOrdersData, myShopStatsData, settingsData] = await Promise.all([
         productsApi.getAll({}),
         adminApi.getPromoCodes().catch(() => []),
         adminApi.getOrders().catch(() => ({ orders: [], total: 0 })),
@@ -343,7 +343,9 @@ export default function AdminPage() {
         // My Shop specific data (seller-specific)
         adminApi.getMyShopProducts().catch(() => ({ products: [] })),
         adminApi.getMyShopOrders().catch(() => ({ orders: [] })),
-        adminApi.getMyShopStats().catch(() => ({ stats: null }))
+        adminApi.getMyShopStats().catch(() => ({ stats: null })),
+        // Load settings (including payment methods)
+        adminApi.getSettings().catch(() => ({ settings: {} }))
       ])
       setProducts(productsData)
       setPromoCodes(promoData?.promoCodes || promoData || [])
@@ -359,6 +361,17 @@ export default function AdminPage() {
       setMyShopProducts(myShopProductsData?.products || [])
       setMyShopOrders(myShopOrdersData?.orders || [])
       setMyShopStats(myShopStatsData?.stats || null)
+      // Set settings
+      if (settingsData?.settings?.paymentConfig?.enabledMethods) {
+        setPaymentMethods(settingsData.settings.paymentConfig.enabledMethods)
+      } else if (settingsData?.paymentConfig?.enabledMethods) {
+        setPaymentMethods(settingsData.paymentConfig.enabledMethods)
+      }
+      if (settingsData?.settings?.branding) {
+        setShopBranding(settingsData.settings.branding)
+      } else if (settingsData?.branding) {
+        setShopBranding(settingsData.branding)
+      }
     } catch (error) {
       // Error loading data
     } finally {
@@ -1879,28 +1892,31 @@ export default function AdminPage() {
                     { id: 'cactuspay-sbp', name: 'СБП (CactusPay)', desc: 'Система быстрых платежей' },
                     { id: 'cactuspay-card', name: 'Карта (CactusPay)', desc: 'Оплата банковской картой' },
                   ].map(method => (
-                    <label key={method.id} className="flex items-center justify-between p-3 bg-[#0f1117] rounded-lg cursor-pointer hover:bg-[#151820] transition-colors">
+                    <div key={method.id} className="flex items-center justify-between p-3 bg-[#0f1117] rounded-lg hover:bg-[#151820] transition-colors">
                       <div>
                         <span className="text-white text-sm font-medium">{method.name}</span>
                         <p className="text-xs text-gray-500">{method.desc}</p>
                       </div>
-                      <button
-                        onClick={async () => {
+                      <ToggleSwitch
+                        enabled={paymentMethods.includes(method.id)}
+                        onChange={async () => {
                           const newMethods = paymentMethods.includes(method.id)
                             ? paymentMethods.filter(m => m !== method.id)
                             : [...paymentMethods, method.id]
                           try {
-                            await adminApi.updatePaymentMethods(newMethods)
-                            setPaymentMethods(newMethods)
-                          } catch (e) {
+                            const result = await adminApi.updatePaymentMethods(newMethods)
+                            if (result.success) {
+                              setPaymentMethods(newMethods)
+                            } else {
+                              alert('Ошибка сохранения: ' + (result.error || 'Неизвестная ошибка'))
+                            }
+                          } catch (e: any) {
                             console.error('Failed to update payment methods:', e)
+                            alert('Ошибка сохранения настроек')
                           }
                         }}
-                        className={`relative w-10 h-5 rounded-full transition-colors ${paymentMethods.includes(method.id) ? 'bg-emerald-500' : 'bg-gray-600'}`}
-                      >
-                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${paymentMethods.includes(method.id) ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                      </button>
-                    </label>
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
