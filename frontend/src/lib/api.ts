@@ -764,6 +764,28 @@ export const adminApi = {
     const { data } = await adminApiInstance.get('/admin/my-shop/stats')
     return data
   },
+
+  // Seller Wallet
+  getWallet: async () => {
+    const { data } = await adminApiInstance.get('/admin/wallet')
+    return data
+  },
+
+  getWalletTransactions: async (limit = 50, offset = 0) => {
+    const { data } = await adminApiInstance.get('/admin/wallet/transactions', { params: { limit, offset } })
+    return data
+  },
+
+  requestWithdrawal: async (params: { amount: number; method: string; methodDetails: Record<string, string> }) => {
+    const { data } = await adminApiInstance.post('/admin/wallet/withdraw', params)
+    return data
+  },
+
+  // Activity Logs
+  getActivityLogs: async (params?: { action?: string; limit?: number; offset?: number }) => {
+    const { data } = await adminApiInstance.get('/admin/activity-logs', { params })
+    return data
+  },
 }
 
 export const chatApi = {

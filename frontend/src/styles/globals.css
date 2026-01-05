@@ -248,3 +248,120 @@ a {
 .animate-badge-pulse-red {
   animation: badge-pulse-red 1.5s ease-in-out infinite;
 }
+
+/* ============================================ */
+/* Admin Panel Theme Support */
+/* ============================================ */
+
+/* Dark theme (default for admin/myshop) */
+.panel-bg {
+  background-color: #0f1117;
+}
+
+.panel-card {
+  background-color: #1a1d27;
+  border-color: #2a2d37;
+}
+
+.panel-card-dark {
+  background-color: #0f1117;
+  border-color: #2a2d37;
+}
+
+.panel-border {
+  border-color: #2a2d37;
+}
+
+.panel-text {
+  color: #ffffff;
+}
+
+.panel-text-secondary {
+  color: #9ca3af;
+}
+
+.panel-text-muted {
+  color: #6b7280;
+}
+
+/* Light theme overrides for panels */
+.light .panel-bg {
+  background-color: #f3f4f6;
+}
+
+.light .panel-card {
+  background-color: #ffffff;
+  border-color: #e5e7eb;
+}
+
+.light .panel-card-dark {
+  background-color: #f9fafb;
+  border-color: #e5e7eb;
+}
+
+.light .panel-border {
+  border-color: #e5e7eb;
+}
+
+.light .panel-text {
+  color: #111827;
+}
+
+.light .panel-text-secondary {
+  color: #4b5563;
+}
+
+.light .panel-text-muted {
+  color: #6b7280;
+}
+
+/* For elements with hardcoded colors that should respond to theme */
+.light [class*="bg-[#0f1117]"] {
+  background-color: #f3f4f6 !important;
+}
+
+.light [class*="bg-[#1a1d27]"] {
+  background-color: #ffffff !important;
+}
+
+.light [class*="border-[#2a2d37]"] {
+  border-color: #e5e7eb !important;
+}
+
+.light [class*="border-[#1e2028]"] {
+  border-color: #e5e7eb !important;
+}
+
+.light [class*="text-white"] {
+  color: #111827 !important;
+}
+
+.light [class*="text-gray-400"] {
+  color: #6b7280 !important;
+}
+
+.light [class*="text-gray-500"] {
+  color: #6b7280 !important;
+}
+
+/* Input/form fields in light mode */
+.light input[class*="bg-[#0f1117]"],
+.light textarea[class*="bg-[#0f1117]"],
+.light select[class*="bg-[#0f1117]"] {
+  background-color: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Hover states in light mode */
+.light [class*="hover:bg-[#1a1d27]"]:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.light [class*="hover:bg-[#1e2028]"]:hover {
+  background-color: #e5e7eb !important;
+}

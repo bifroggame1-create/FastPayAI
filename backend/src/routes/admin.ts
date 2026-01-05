@@ -2240,5 +2240,139 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return { success: false, error: error.message }
     }
   })
+
+  // ============================================
+  // SELLER WALLET
+  // ============================================
+
+  // Get seller's wallet
+  fastify.get('/admin/wallet', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      // For now, return a simple wallet structure
+      // In production, this would be stored in database
+      return {
+        success: true,
+        wallet: {
+          balance: 0,
+          pendingBalance: 0,
+          sellerId
+        }
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Request withdrawal
+  fastify.post('/admin/wallet/withdraw', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+      const { amount, method, methodDetails } = request.body as any
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      if (!amount || amount <= 0) {
+        reply.code(400)
+        return { success: false, error: 'Invalid amount' }
+      }
+
+      // Create withdrawal request (stub - would be saved to database)
+      const withdrawalId = `wd_${Date.now()}`
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'withdrawal_request',
+        entityType: 'wallet',
+        entityId: withdrawalId,
+        metadata: { amount, method, sellerId }
+      })
+
+      return {
+        success: true,
+        withdrawal: {
+          id: withdrawalId,
+          amount,
+          method,
+          status: 'pending',
+          requestedAt: new Date().toISOString()
+        }
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get wallet transactions
+  fastify.get('/admin/wallet/transactions', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      // Return empty transactions for now
+      return {
+        success: true,
+        transactions: []
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // ACTIVITY LOGS
+  // ============================================
+
+  // Get activity logs (admin only)
+  fastify.get('/admin/activity-logs', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { action, limit = 100, offset = 0 } = request.query as any
+      const tenantId = reqTenantId(request)
+
+      // Get activity logs from database
+      const db = await import('../database')
+      const logsCollection = (await db.getDb()).collection('activity_logs')
+
+      const query: any = { tenantId }
+      if (action) query.action = action
+
+      const logs = await logsCollection
+        .find(query)
+        .sort({ timestamp: -1 })
+        .skip(parseInt(offset))
+        .limit(parseInt(limit))
+        .toArray()
+
+      return {
+        success: true,
+        logs,
+        total: await logsCollection.countDocuments(query)
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
 }
 

@@ -154,6 +154,14 @@ export default function MyShopPage() {
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [paymentMethods, setPaymentMethods] = useState<string[]>(['cryptobot'])
 
+  // Wallet
+  const [wallet, setWallet] = useState({ balance: 0, pendingBalance: 0 })
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false)
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [withdrawMethod, setWithdrawMethod] = useState('bank_card')
+  const [withdrawDetails, setWithdrawDetails] = useState('')
+  const [withdrawing, setWithdrawing] = useState(false)
+
   // Stats
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -213,14 +221,20 @@ export default function MyShopPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, ordersData, statsData, promoData, filesData, settingsData] = await Promise.all([
+      const [productsData, ordersData, statsData, promoData, filesData, settingsData, walletData] = await Promise.all([
         adminApi.getMyShopProducts().catch(() => ({ products: [] })),
         adminApi.getMyShopOrders().catch(() => ({ orders: [] })),
         adminApi.getMyShopStats().catch(() => ({ stats: {} })),
         adminApi.getPromoCodes().catch(() => []),
         adminApi.getFiles().catch(() => ({ files: [] })),
-        adminApi.getSettings().catch(() => ({ settings: {} }))
+        adminApi.getSettings().catch(() => ({ settings: {} })),
+        adminApi.getWallet().catch(() => ({ wallet: { balance: 0, pendingBalance: 0 } }))
       ])
+
+      // Set wallet data
+      if (walletData?.wallet) {
+        setWallet(walletData.wallet)
+      }
 
       const myProducts = productsData?.products || []
       const myOrders = ordersData?.orders || []
@@ -429,6 +443,49 @@ export default function MyShopPage() {
     }
   }
 
+  const handleWithdraw = async () => {
+    const amount = parseFloat(withdrawAmount)
+    if (!amount || amount <= 0) {
+      alert('Введите сумму для вывода')
+      return
+    }
+    if (amount > wallet.balance) {
+      alert('Недостаточно средств')
+      return
+    }
+    if (!withdrawDetails.trim()) {
+      alert('Введите реквизиты для вывода')
+      return
+    }
+
+    setWithdrawing(true)
+    try {
+      const result = await adminApi.requestWithdrawal({
+        amount,
+        method: withdrawMethod,
+        methodDetails: { details: withdrawDetails }
+      })
+      if (result.success) {
+        setWallet(prev => ({
+          ...prev,
+          balance: prev.balance - amount,
+          pendingBalance: prev.pendingBalance + amount
+        }))
+        setShowWithdrawModal(false)
+        setWithdrawAmount('')
+        setWithdrawDetails('')
+        alert('Заявка на вывод создана!')
+      } else {
+        alert(result.error || 'Ошибка при создании заявки')
+      }
+    } catch (error: any) {
+      console.error('Error withdrawing:', error)
+      alert(error?.response?.data?.error || 'Ошибка при выводе средств')
+    } finally {
+      setWithdrawing(false)
+    }
+  }
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     alert('Скопировано!')
@@ -613,6 +670,32 @@ export default function MyShopPage() {
                 <div className="text-3xl font-bold text-white">{formatPrice(stats.totalRevenue, currency)}</div>
                 <div className="text-xs text-emerald-500">+{formatPrice(stats.todayRevenue, currency)} сегодня</div>
               </div>
+            </div>
+
+            {/* Wallet Card */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-4 border border-blue-500/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                  </div>
+                  <span className="text-white/80 text-sm font-medium">Кошелёк</span>
+                </div>
+                <button
+                  onClick={() => setShowWithdrawModal(true)}
+                  className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-medium rounded-lg transition-colors"
+                >
+                  Вывести
+                </button>
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">{formatPrice(wallet.balance, currency)}</div>
+              {wallet.pendingBalance > 0 && (
+                <div className="text-xs text-white/60">
+                  В обработке: {formatPrice(wallet.pendingBalance, currency)}
+                </div>
+              )}
             </div>
 
             {/* Recent Orders */}
@@ -1027,6 +1110,83 @@ export default function MyShopPage() {
           </div>
         )}
       </main>
+
+      {/* Withdraw Modal */}
+      {showWithdrawModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1a1d27] rounded-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Вывод средств</h3>
+              <button
+                onClick={() => setShowWithdrawModal(false)}
+                className="p-1 text-gray-400 hover:text-white"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+              <p className="text-xs text-blue-400 mb-1">Доступно для вывода</p>
+              <p className="text-xl font-bold text-white">{formatPrice(wallet.balance, currency)}</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Сумма вывода</label>
+                <input
+                  type="number"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  placeholder="0"
+                  className="w-full px-3 py-2.5 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Способ вывода</label>
+                <select
+                  value={withdrawMethod}
+                  onChange={(e) => setWithdrawMethod(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white focus:outline-none"
+                >
+                  <option value="bank_card">Банковская карта</option>
+                  <option value="crypto">Криптовалюта</option>
+                  <option value="paypal">PayPal</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">
+                  {withdrawMethod === 'bank_card' ? 'Номер карты' :
+                   withdrawMethod === 'crypto' ? 'Адрес кошелька' : 'Email PayPal'}
+                </label>
+                <input
+                  type="text"
+                  value={withdrawDetails}
+                  onChange={(e) => setWithdrawDetails(e.target.value)}
+                  placeholder={withdrawMethod === 'bank_card' ? '0000 0000 0000 0000' :
+                               withdrawMethod === 'crypto' ? 'wallet address...' : 'email@example.com'}
+                  className="w-full px-3 py-2.5 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                />
+              </div>
+
+              <button
+                onClick={handleWithdraw}
+                disabled={withdrawing || !withdrawAmount || !withdrawDetails}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                {withdrawing ? 'Обработка...' : 'Отправить заявку'}
+              </button>
+
+              <p className="text-xs text-gray-500 text-center">
+                Заявки обрабатываются в течение 24 часов
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>

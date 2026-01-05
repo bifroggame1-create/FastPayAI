@@ -596,6 +596,21 @@ export interface SellerApplication extends TenantScoped {
   reviewNote?: string
 }
 
+// Activity log action types for user activities
+export type ActivityAction = 'add_to_cart' | 'payment_started' | 'add_to_favorite' | 'remove_from_favorite' | 'view_product'
+
+export interface ActivityLog extends TenantScoped {
+  _id?: string | ObjectId
+  id: string
+  timestamp: string
+  userId: string
+  username?: string
+  action: ActivityAction
+  productId?: string
+  productName?: string
+  metadata?: Record<string, any>
+}
+
 // ============================================
 // DATABASE CONNECTION
 // ============================================
