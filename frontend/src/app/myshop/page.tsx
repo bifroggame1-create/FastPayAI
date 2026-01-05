@@ -206,6 +206,7 @@ export default function MyShopPage() {
   const [deliveryInput, setDeliveryInput] = useState('')
   const [savingPayment, setSavingPayment] = useState(false)
   const [creatingPromo, setCreatingPromo] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     checkAccessAndLoad()
@@ -425,6 +426,57 @@ export default function MyShopPage() {
     } finally {
       setSavingCredentials(false)
     }
+  }
+
+  const handleProductImageUpload = async (filesList: FileList | null) => {
+    if (!filesList || filesList.length === 0) return
+
+    setUploadingImage(true)
+    try {
+      const file = filesList[0]
+
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Файл слишком большой. Максимум 5MB')
+        return
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        alert('Можно загружать только изображения')
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string
+        // Add image to the beginning of array, replacing placeholder if it's the only one
+        setProductForm(prev => {
+          const currentImages = prev.images.filter(img => img !== '/products/placeholder.png')
+          return {
+            ...prev,
+            images: [dataUrl, ...currentImages]
+          }
+        })
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      alert('Ошибка при загрузке изображения')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const handleRemoveProductImage = (index: number) => {
+    setProductForm(prev => {
+      const newImages = prev.images.filter((_, i) => i !== index)
+      // If no images left, add placeholder
+      if (newImages.length === 0) {
+        return { ...prev, images: ['/products/placeholder.png'] }
+      }
+      return { ...prev, images: newImages }
+    })
   }
 
   const handleCreateProduct = async () => {
@@ -904,6 +956,53 @@ export default function MyShopPage() {
                   </div>
 
                   <div className="space-y-4">
+                    {/* Image Upload Section */}
+                    <div>
+                      <label className="text-xs text-gray-400 mb-2 block">Изображения товара</label>
+                      <div className="flex gap-2 flex-wrap">
+                        {/* Current images */}
+                        {productForm.images.map((img, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={img}
+                              alt={`Product ${index + 1}`}
+                              className="w-20 h-20 object-cover rounded-lg border border-[#2a2d37]"
+                            />
+                            {img !== '/products/placeholder.png' && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveProductImage(index)}
+                                className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        {/* Upload button */}
+                        <label className="w-20 h-20 border-2 border-dashed border-[#2a2d37] rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/50 transition-colors bg-[#0f1117]">
+                          {uploadingImage ? (
+                            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <svg className="w-6 h-6 text-gray-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                              </svg>
+                              <span className="text-xs text-gray-500">Фото</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleProductImageUpload(e.target.files)}
+                            className="hidden"
+                            disabled={uploadingImage}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">Первое изображение будет обложкой. Макс. 5MB</p>
+                    </div>
+
                     <div>
                       <label className="text-xs text-gray-400 mb-1 block">Название</label>
                       <input
