@@ -221,6 +221,8 @@ export interface CreatePromoInput {
   maxUses?: number
   expiresAt?: string
   isActive?: boolean
+  sellerId?: string // For seller-specific promo codes
+  description?: string
 }
 
 export interface UpdatePromoInput extends Partial<CreatePromoInput> {}

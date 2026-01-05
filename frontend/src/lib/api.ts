@@ -540,7 +540,7 @@ export const adminApi = {
     return data
   },
 
-  updateReview: async (id: string, updates: { userName?: string; rating?: number; text?: string }) => {
+  updateReview: async (id: string, updates: { userName?: string; rating?: number; text?: string; reply?: string; replyDate?: string }) => {
     const { data } = await adminApiInstance.put(`/admin/reviews/${id}`, updates)
     return data
   },

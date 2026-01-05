@@ -7,7 +7,7 @@ import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi, sellerApplicationsApi } from '@/lib/api'
 import { initAuth, isAdmin as checkIsAdmin, getUser } from '@/lib/auth'
 
-type Tab = 'dashboard' | 'orders' | 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'admins' | 'applications' | 'users' | 'settings' | 'myshop'
+type Tab = 'dashboard' | 'orders' | 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'admins' | 'applications' | 'users' | 'settings' | 'myshop' | 'logs'
 
 // Toggle Switch Component
 const ToggleSwitch = ({
@@ -134,6 +134,8 @@ interface Review {
   rating: number
   text: string
   date: string
+  reply?: string
+  replyDate?: string
 }
 
 interface PromoCode {
@@ -155,6 +157,18 @@ interface UploadedFile {
   size: number
   data: string
   uploadedAt: string
+}
+
+interface ActivityLog {
+  id: string
+  userId: string
+  userName?: string
+  userUsername?: string
+  action: 'add_to_cart' | 'checkout' | 'add_to_favorites' | 'remove_from_favorites' | 'view_product' | 'search' | 'payment_started' | 'payment_completed' | 'payment_failed'
+  productId?: string
+  productName?: string
+  metadata?: Record<string, any>
+  createdAt: string
 }
 
 // Icons
@@ -230,6 +244,11 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
     </svg>
   ),
+  logs: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+    </svg>
+  ),
 }
 
 export default function AdminPage() {
@@ -257,6 +276,8 @@ export default function AdminPage() {
   // Reviews state
   const [reviews, setReviews] = useState<Review[]>([])
   const [editingReview, setEditingReview] = useState<Review | null>(null)
+  const [replyingToReview, setReplyingToReview] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
 
   // Promo state
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([])
@@ -285,6 +306,10 @@ export default function AdminPage() {
   const [myShopStats, setMyShopStats] = useState<any>(null)
   const [myShopProducts, setMyShopProducts] = useState<Product[]>([])
   const [myShopOrders, setMyShopOrders] = useState<any[]>([])
+
+  // Activity logs state
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
+  const [logsLoading, setLogsLoading] = useState(false)
 
   useEffect(() => {
     const checkAccessAndLoad = async () => {
@@ -513,6 +538,46 @@ export default function AdminPage() {
     }
   }
 
+  const handleReplyToReview = async (reviewId: string) => {
+    if (!replyText.trim()) {
+      alert('Введите текст ответа')
+      return
+    }
+    try {
+      const result = await adminApi.updateReview(reviewId, {
+        reply: replyText,
+        replyDate: new Date().toISOString()
+      })
+      if (result.success) {
+        setReviews(reviews.map(r => r.id === reviewId ? { ...r, reply: replyText, replyDate: new Date().toISOString() } : r))
+        setReplyingToReview(null)
+        setReplyText('')
+      }
+    } catch (error) {
+      console.error('Error replying to review:', error)
+      alert('Ошибка при отправке ответа')
+    }
+  }
+
+  const loadActivityLogs = async () => {
+    setLogsLoading(true)
+    try {
+      const result = await adminApi.getActivityLogs({ limit: 100 })
+      setActivityLogs(result.logs || [])
+    } catch (error) {
+      console.error('Error loading activity logs:', error)
+    } finally {
+      setLogsLoading(false)
+    }
+  }
+
+  // Load logs when switching to logs tab
+  useEffect(() => {
+    if (activeTab === 'logs' && activityLogs.length === 0 && !logsLoading) {
+      loadActivityLogs()
+    }
+  }, [activeTab])
+
   const handleSavePromo = async (promo: PromoCode) => {
     try {
       const existingPromo = promoCodes.find(p => p.code === promo.code)
@@ -665,6 +730,7 @@ export default function AdminPage() {
     { id: 'promo', label: 'Промокоды', icon: Icons.promo, count: promoCodes.length },
     { id: 'admins', label: 'Админы', icon: Icons.admins, count: admins.length },
     { id: 'files', label: 'Файлы', icon: Icons.files, count: uploadedFiles.length },
+    { id: 'logs', label: 'Логи', icon: Icons.logs },
     { id: 'settings', label: 'Настройки', icon: Icons.settings },
     { id: 'myshop', label: 'Мой магазин', icon: Icons.products },
   ]
@@ -1382,7 +1448,51 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <p className="text-sm text-gray-400 mb-3">{review.text}</p>
+
+                    {/* Seller Reply */}
+                    {review.reply && (
+                      <div className="mb-3 p-3 bg-blue-500/5 border-l-2 border-blue-500 rounded-r-lg">
+                        <div className="text-xs text-blue-400 mb-1">Ответ продавца:</div>
+                        <p className="text-sm text-gray-300">{review.reply}</p>
+                      </div>
+                    )}
+
+                    {/* Reply Form */}
+                    {replyingToReview === review.id && (
+                      <div className="mb-3 space-y-2">
+                        <textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder="Введите ответ на отзыв..."
+                          rows={3}
+                          className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 resize-none"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleReplyToReview(review.id)}
+                            className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                          >
+                            Отправить
+                          </button>
+                          <button
+                            onClick={() => { setReplyingToReview(null); setReplyText('') }}
+                            className="text-xs px-3 py-1.5 bg-[#2a2d37] text-gray-400 rounded hover:bg-[#3a3d47] transition-colors"
+                          >
+                            Отмена
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex gap-2">
+                      {!review.reply && replyingToReview !== review.id && (
+                        <button
+                          onClick={() => { setReplyingToReview(review.id); setReplyText('') }}
+                          className="text-xs px-2 py-1 bg-emerald-500/10 text-emerald-500 rounded hover:bg-emerald-500/20 transition-colors"
+                        >
+                          Ответить
+                        </button>
+                      )}
                       <button
                         onClick={() => setEditingReview(review)}
                         className="text-xs px-2 py-1 bg-blue-500/10 text-blue-500 rounded hover:bg-blue-500/20 transition-colors"
@@ -1594,6 +1704,159 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Logs Tab */}
+          {activeTab === 'logs' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h1 className="text-xl font-semibold text-white">Логи / История</h1>
+                <button
+                  onClick={loadActivityLogs}
+                  disabled={logsLoading}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs rounded-lg transition-colors flex items-center gap-2"
+                >
+                  {logsLoading ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Загрузка...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Обновить
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="bg-[#1a1d27] rounded-lg border border-[#2a2d37]">
+                <div className="px-4 py-3 border-b border-[#2a2d37]">
+                  <h2 className="font-medium text-white">Действия пользователей</h2>
+                  <p className="text-xs text-gray-500 mt-1">Добавления в корзину, оплаты, избранное</p>
+                </div>
+
+                {logsLoading && activityLogs.length === 0 ? (
+                  <div className="p-8 flex justify-center">
+                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : activityLogs.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400">
+                    <svg className="w-12 h-12 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <p>Пока нет записей</p>
+                    <p className="text-sm mt-1">Логи появятся после действий пользователей</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#2a2d37]">
+                    {activityLogs.map(log => (
+                      <div key={log.id} className="px-4 py-3 hover:bg-[#1e2028] transition-colors">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3">
+                            {/* Action Icon */}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              log.action === 'add_to_cart' ? 'bg-blue-500/10 text-blue-400' :
+                              log.action === 'checkout' || log.action === 'payment_started' ? 'bg-amber-500/10 text-amber-400' :
+                              log.action === 'payment_completed' ? 'bg-emerald-500/10 text-emerald-400' :
+                              log.action === 'payment_failed' ? 'bg-red-500/10 text-red-400' :
+                              log.action === 'add_to_favorites' ? 'bg-pink-500/10 text-pink-400' :
+                              log.action === 'remove_from_favorites' ? 'bg-gray-500/10 text-gray-400' :
+                              'bg-purple-500/10 text-purple-400'
+                            }`}>
+                              {log.action === 'add_to_cart' && (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                              )}
+                              {(log.action === 'checkout' || log.action === 'payment_started') && (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                              )}
+                              {log.action === 'payment_completed' && (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              )}
+                              {log.action === 'payment_failed' && (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              )}
+                              {(log.action === 'add_to_favorites' || log.action === 'remove_from_favorites') && (
+                                <svg className="w-4 h-4" fill={log.action === 'add_to_favorites' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                              )}
+                              {(log.action === 'view_product' || log.action === 'search') && (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium text-white">
+                                  {log.userUsername ? `@${log.userUsername}` : log.userName || `ID: ${log.userId}`}
+                                </span>
+                                <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                  log.action === 'add_to_cart' ? 'bg-blue-500/10 text-blue-400' :
+                                  log.action === 'checkout' || log.action === 'payment_started' ? 'bg-amber-500/10 text-amber-400' :
+                                  log.action === 'payment_completed' ? 'bg-emerald-500/10 text-emerald-400' :
+                                  log.action === 'payment_failed' ? 'bg-red-500/10 text-red-400' :
+                                  log.action === 'add_to_favorites' ? 'bg-pink-500/10 text-pink-400' :
+                                  log.action === 'remove_from_favorites' ? 'bg-gray-500/10 text-gray-400' :
+                                  'bg-purple-500/10 text-purple-400'
+                                }`}>
+                                  {log.action === 'add_to_cart' && 'Добавил в корзину'}
+                                  {log.action === 'checkout' && 'Оформил заказ'}
+                                  {log.action === 'payment_started' && 'Перешёл к оплате'}
+                                  {log.action === 'payment_completed' && 'Оплатил'}
+                                  {log.action === 'payment_failed' && 'Ошибка оплаты'}
+                                  {log.action === 'add_to_favorites' && 'Добавил в избранное'}
+                                  {log.action === 'remove_from_favorites' && 'Убрал из избранного'}
+                                  {log.action === 'view_product' && 'Просмотр'}
+                                  {log.action === 'search' && 'Поиск'}
+                                </span>
+                              </div>
+                              {log.productName && (
+                                <p className="text-sm text-gray-400 mt-0.5 truncate">
+                                  {log.productName}
+                                </p>
+                              )}
+                              {log.metadata?.searchQuery && (
+                                <p className="text-sm text-gray-500 mt-0.5">
+                                  Запрос: "{log.metadata.searchQuery}"
+                                </p>
+                              )}
+                              {log.metadata?.amount && (
+                                <p className="text-sm text-emerald-400 mt-0.5">
+                                  Сумма: {log.metadata.amount.toLocaleString()} ₽
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <span className="text-xs text-gray-500 whitespace-nowrap">
+                            {new Date(log.createdAt).toLocaleString('ru-RU', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

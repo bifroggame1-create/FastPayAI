@@ -158,7 +158,8 @@ export const createPromoSchema = z.object({
   maxUses: z.number().positive().optional(),
   expiresAt: z.string().datetime().optional(),
   isActive: z.boolean().default(true),
-  description: z.string().max(200).optional()
+  description: z.string().max(200).optional(),
+  sellerId: z.string().optional() // Seller-specific promo codes
 })
 
 export const updatePromoSchema = createPromoSchema.partial()

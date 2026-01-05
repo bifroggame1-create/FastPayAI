@@ -320,11 +320,12 @@ export default function MyShopPage() {
         discountType: newPromo.discountType,
         discountValue: newPromo.discountValue,
         maxUses: newPromo.maxUses,
-        isActive: true
+        isActive: true,
+        sellerId: currentSeller?.id // Make promo seller-specific
       })
 
-      if (result.success && result.promoCode) {
-        setPromoCodes([result.promoCode, ...promoCodes])
+      if (result.success && result.promo) {
+        setPromoCodes([result.promo, ...promoCodes])
         setNewPromo({ code: '', discountType: 'percentage', discountValue: 10, maxUses: 100 })
         alert('Промокод создан!')
       } else {
