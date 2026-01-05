@@ -555,12 +555,13 @@ export type AuditAction =
   | 'escrow_release' | 'escrow_refund'
   | 'key_replace' | 'seller_block' | 'seller_verify'
   | 'billing_upgrade' | 'billing_downgrade' | 'billing_payment'
+  | 'withdrawal_request' | 'withdrawal_approve' | 'withdrawal_reject'
 
 export type AuditEntityType =
   | 'product' | 'order' | 'user' | 'seller'
   | 'admin' | 'promo_code' | 'review' | 'file' | 'backup'
   | 'dispute' | 'escrow' | 'key_replacement'
-  | 'tenant' | 'billing' | 'settings'
+  | 'tenant' | 'billing' | 'settings' | 'wallet'
 
 export interface AuditLog extends TenantScoped {
   _id?: string | ObjectId

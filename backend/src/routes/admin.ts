@@ -2352,7 +2352,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       // Get activity logs from database
       const db = await import('../database')
-      const logsCollection = (await db.getDb()).collection('activity_logs')
+      const logsCollection = (await db.getDB()).collection('activity_logs')
 
       const query: any = { tenantId }
       if (action) query.action = action
