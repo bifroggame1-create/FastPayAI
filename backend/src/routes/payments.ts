@@ -1,7 +1,8 @@
 import { FastifyInstance, FastifyRequest } from 'fastify'
-import { cryptoBot } from '../cryptobot'
-import { xRocket } from '../xrocket'
+import { cryptoBot, CryptoBotAPI } from '../cryptobot'
+import { xRocket, XRocketAPI } from '../xrocket'
 import { telegramStars, rubToStars } from '../telegram-stars'
+import { getSellerById } from '../dataStore'
 
 // Default tenant ID for fallback
 const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
@@ -99,9 +100,30 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   fastify.post('/payment/create-invoice', async (request, reply) => {
     try {
       const data = validateBody(createCryptoInvoiceSchema, request.body)
-      const tokenInfo = cryptoBot.getTokenInfo()
+      const tenantId = reqTenantId(request)
 
-      console.log('Creating crypto invoice:', { ...data, tokenInfo })
+      // Load product to get seller info
+      const { loadProducts } = await import('../dataStore')
+      const products = await loadProducts(tenantId)
+      const product = products.find(p => p._id === data.productId)
+      const variant = product?.variants?.find((v: any) => v.id === data.variantId)
+
+      // Try to get seller's custom CryptoBot token
+      let cryptoBotInstance = cryptoBot
+      let usingSeller = false
+
+      if (product?.seller?.id) {
+        const seller = await getSellerById(product.seller.id, tenantId)
+        if (seller?.paymentConfig?.cryptobotToken) {
+          cryptoBotInstance = new CryptoBotAPI(seller.paymentConfig.cryptobotToken)
+          usingSeller = true
+          console.log(`Using seller's CryptoBot token for seller: ${product.seller.id}`)
+        }
+      }
+
+      const tokenInfo = cryptoBotInstance.getTokenInfo()
+
+      console.log('Creating crypto invoice:', { ...data, tokenInfo, usingSeller })
 
       if (!tokenInfo.configured) {
         reply.code(500)
@@ -112,13 +134,10 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const product = fastify.products.find(p => p._id === data.productId)
-      const variant = product?.variants?.find((v: any) => v.id === data.variantId)
-
       // Convert RUB to crypto
       const cryptoAmount = await convertRubToCrypto(data.amount, (data.asset || 'USDT') as CryptoAsset)
 
-      const invoice = await cryptoBot.createInvoice({
+      const invoice = await cryptoBotInstance.createInvoice({
         amount: cryptoAmount.toString(),
         asset: data.asset || 'USDT',
         description: data.description || `Payment for ${product?.name || 'Product'}${variant ? ` - ${variant.name}` : ''}`,
@@ -514,9 +533,29 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   fastify.post('/payment/xrocket/create-invoice', async (request, reply) => {
     try {
       const { amount, currency, productId, variantId, userId, userName, userUsername, description, promoCode } = request.body as any
-      const tokenInfo = xRocket.getTokenInfo()
+      const tenantId = reqTenantId(request)
 
-      console.log('Creating XRocket invoice:', { amount, currency, productId, tokenInfo })
+      const { loadProducts } = await import('../dataStore')
+      const products = await loadProducts(tenantId)
+      const product = products.find(p => p._id === productId)
+      const variant = product?.variants?.find((v: any) => v.id === variantId)
+
+      // Try to get seller's custom XRocket API key
+      let xRocketInstance = xRocket
+      let usingSeller = false
+
+      if (product?.seller?.id) {
+        const seller = await getSellerById(product.seller.id, tenantId)
+        if (seller?.paymentConfig?.xrocketApiKey) {
+          xRocketInstance = new XRocketAPI(seller.paymentConfig.xrocketApiKey)
+          usingSeller = true
+          console.log(`Using seller's XRocket API key for seller: ${product.seller.id}`)
+        }
+      }
+
+      const tokenInfo = xRocketInstance.getTokenInfo()
+
+      console.log('Creating XRocket invoice:', { amount, currency, productId, tokenInfo, usingSeller })
 
       if (!tokenInfo.configured) {
         reply.code(500)
@@ -527,18 +566,13 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const { loadProducts } = await import('../dataStore')
-      const products = await loadProducts(reqTenantId(request))
-      const product = products.find(p => p._id === productId)
-      const variant = product?.variants?.find((v: any) => v.id === variantId)
-
       // Generate order ID
       const orderId = `XR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
       // Convert RUB to crypto
       const cryptoAmount = await convertRubToCrypto(amount, (currency || 'TONCOIN') as CryptoAsset)
 
-      const invoice = await xRocket.createInvoice({
+      const invoice = await xRocketInstance.createInvoice({
         amount: Number(cryptoAmount),
         currency: currency || 'TONCOIN',
         description: description || `Payment for ${product?.name || 'Product'}${variant ? ` - ${variant.name}` : ''}`,
