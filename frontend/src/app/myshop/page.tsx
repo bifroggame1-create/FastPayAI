@@ -154,6 +154,15 @@ export default function MyShopPage() {
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [paymentMethods, setPaymentMethods] = useState<string[]>(['cryptobot'])
 
+  // Seller payment credentials
+  const [sellerPaymentConfig, setSellerPaymentConfig] = useState<{
+    cryptobotToken?: string
+    xrocketApiKey?: string
+  }>({})
+  const [showCryptobotConfig, setShowCryptobotConfig] = useState(false)
+  const [showXrocketConfig, setShowXrocketConfig] = useState(false)
+  const [savingCredentials, setSavingCredentials] = useState(false)
+
   // Wallet
   const [wallet, setWallet] = useState({ balance: 0, pendingBalance: 0 })
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
@@ -221,14 +230,15 @@ export default function MyShopPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, ordersData, statsData, promoData, filesData, settingsData, walletData] = await Promise.all([
+      const [productsData, ordersData, statsData, promoData, filesData, settingsData, walletData, paymentConfigData] = await Promise.all([
         adminApi.getMyShopProducts().catch(() => ({ products: [] })),
         adminApi.getMyShopOrders().catch(() => ({ orders: [] })),
         adminApi.getMyShopStats().catch(() => ({ stats: {} })),
         adminApi.getPromoCodes().catch(() => []),
         adminApi.getFiles().catch(() => ({ files: [] })),
         adminApi.getSettings().catch(() => ({ settings: {} })),
-        adminApi.getWallet().catch(() => ({ wallet: { balance: 0, pendingBalance: 0 } }))
+        adminApi.getWallet().catch(() => ({ wallet: { balance: 0, pendingBalance: 0 } })),
+        adminApi.getSellerPaymentConfig().catch(() => ({ config: {} }))
       ])
 
       // Set wallet data
@@ -248,6 +258,15 @@ export default function MyShopPage() {
       // Load payment methods from settings
       const enabledMethods = settingsData?.settings?.paymentConfig?.enabledMethods || ['cryptobot']
       setPaymentMethods(enabledMethods)
+
+      // Load seller payment config (for showing configured status)
+      if (paymentConfigData?.config) {
+        // We don't store actual tokens, just show if configured
+        setSellerPaymentConfig({
+          cryptobotToken: paymentConfigData.config.hasCryptobotToken ? '••••••••' : '',
+          xrocketApiKey: paymentConfigData.config.hasXrocketApiKey ? '••••••••' : ''
+        })
+      }
 
       // Calculate stats
       const today = new Date().toDateString()
@@ -386,6 +405,25 @@ export default function MyShopPage() {
       alert('Ошибка при сохранении настроек')
     } finally {
       setSavingPayment(false)
+    }
+  }
+
+  const handleSavePaymentCredentials = async () => {
+    setSavingCredentials(true)
+    try {
+      const result = await adminApi.updateSellerPaymentConfig(sellerPaymentConfig)
+      if (result.success) {
+        alert('Платёжные данные сохранены!')
+        setShowCryptobotConfig(false)
+        setShowXrocketConfig(false)
+      } else {
+        alert('Ошибка: ' + (result.error || 'Не удалось сохранить'))
+      }
+    } catch (error: any) {
+      console.error('Error saving payment credentials:', error)
+      alert('Ошибка при сохранении платёжных данных')
+    } finally {
+      setSavingCredentials(false)
     }
   }
 
@@ -1093,22 +1131,143 @@ export default function MyShopPage() {
         {/* Settings */}
         {activeTab === 'settings' && (
           <div className="space-y-4">
+            {/* Payment Methods with Credentials */}
             <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
               <h3 className="text-sm font-medium text-white mb-1">Методы оплаты</h3>
-              <p className="text-xs text-gray-500 mb-4">Выберите доступные способы оплаты для вашего магазина</p>
+              <p className="text-xs text-gray-500 mb-4">Настройте способы оплаты и подключите свои аккаунты</p>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
+                {/* CryptoBot */}
+                <div className="bg-[#0f1117] rounded-xl border border-[#2a2d37] overflow-hidden">
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                        <span className="text-lg">🤖</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">CryptoBot</p>
+                        <p className="text-xs text-gray-500">Криптовалюта через Telegram</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {paymentMethods.includes('cryptobot') && (
+                        <button
+                          onClick={() => setShowCryptobotConfig(!showCryptobotConfig)}
+                          className="p-2 text-gray-400 hover:text-white transition-colors"
+                          title="Настроить"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </button>
+                      )}
+                      <ToggleSwitch
+                        enabled={paymentMethods.includes('cryptobot')}
+                        onChange={() => handleTogglePaymentMethod('cryptobot')}
+                        disabled={savingPayment}
+                      />
+                    </div>
+                  </div>
+                  {showCryptobotConfig && paymentMethods.includes('cryptobot') && (
+                    <div className="px-3 pb-3 border-t border-[#2a2d37] pt-3 space-y-3">
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">API Token от @CryptoBot</label>
+                        <input
+                          type="password"
+                          value={sellerPaymentConfig.cryptobotToken || ''}
+                          onChange={(e) => setSellerPaymentConfig({ ...sellerPaymentConfig, cryptobotToken: e.target.value })}
+                          placeholder="Введите токен из @CryptoBot"
+                          className="w-full px-3 py-2.5 bg-[#1a1d27] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Получить токен: @CryptoBot → Crypto Pay → Мои приложения → Создать
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleSavePaymentCredentials}
+                        disabled={savingCredentials}
+                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
+                      >
+                        {savingCredentials ? 'Сохранение...' : 'Сохранить токен'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* xRocket */}
+                <div className="bg-[#0f1117] rounded-xl border border-[#2a2d37] overflow-hidden">
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                        <span className="text-lg">🚀</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">xRocket</p>
+                        <p className="text-xs text-gray-500">TON кошелёк</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {paymentMethods.includes('xrocket') && (
+                        <button
+                          onClick={() => setShowXrocketConfig(!showXrocketConfig)}
+                          className="p-2 text-gray-400 hover:text-white transition-colors"
+                          title="Настроить"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </button>
+                      )}
+                      <ToggleSwitch
+                        enabled={paymentMethods.includes('xrocket')}
+                        onChange={() => handleTogglePaymentMethod('xrocket')}
+                        disabled={savingPayment}
+                      />
+                    </div>
+                  </div>
+                  {showXrocketConfig && paymentMethods.includes('xrocket') && (
+                    <div className="px-3 pb-3 border-t border-[#2a2d37] pt-3 space-y-3">
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">API Key от @xRocket</label>
+                        <input
+                          type="password"
+                          value={sellerPaymentConfig.xrocketApiKey || ''}
+                          onChange={(e) => setSellerPaymentConfig({ ...sellerPaymentConfig, xrocketApiKey: e.target.value })}
+                          placeholder="Введите API ключ из @xRocket"
+                          className="w-full px-3 py-2.5 bg-[#1a1d27] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Получить ключ: @xRocket → Pay → Create App
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleSavePaymentCredentials}
+                        disabled={savingCredentials}
+                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
+                      >
+                        {savingCredentials ? 'Сохранение...' : 'Сохранить ключ'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Other payment methods (read-only for sellers) */}
                 {[
-                  { id: 'cryptobot', name: 'CryptoBot', desc: 'Криптовалюта через CryptoBot' },
-                  { id: 'xrocket', name: 'xRocket', desc: 'TON кошелёк' },
-                  { id: 'telegram-stars', name: 'Telegram Stars', desc: 'Оплата звёздами Telegram' },
-                  { id: 'cactuspay-sbp', name: 'СБП', desc: 'Система быстрых платежей' },
-                  { id: 'cactuspay-card', name: 'Банковская карта', desc: 'Visa, Mastercard, МИР' },
+                  { id: 'telegram-stars', name: 'Telegram Stars', desc: 'Оплата звёздами Telegram', icon: '⭐' },
+                  { id: 'cactuspay-sbp', name: 'СБП', desc: 'Система быстрых платежей', icon: '🏦' },
+                  { id: 'cactuspay-card', name: 'Банковская карта', desc: 'Visa, Mastercard, МИР', icon: '💳' },
                 ].map(method => (
                   <div key={method.id} className="flex items-center justify-between p-3 bg-[#0f1117] rounded-xl border border-[#2a2d37]">
-                    <div>
-                      <p className="text-sm font-medium text-white">{method.name}</p>
-                      <p className="text-xs text-gray-500">{method.desc}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gray-500/10 flex items-center justify-center">
+                        <span className="text-lg">{method.icon}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">{method.name}</p>
+                        <p className="text-xs text-gray-500">{method.desc}</p>
+                      </div>
                     </div>
                     <ToggleSwitch
                       enabled={paymentMethods.includes(method.id)}
@@ -1118,6 +1277,10 @@ export default function MyShopPage() {
                   </div>
                 ))}
               </div>
+
+              <p className="text-xs text-gray-500 mt-4 p-3 bg-[#0f1117] rounded-lg border border-[#2a2d37]">
+                💡 <strong>Важно:</strong> Для CryptoBot и xRocket подключите свои токены, чтобы оплата поступала напрямую на ваш аккаунт. Без токена будет использоваться общий аккаунт платформы.
+              </p>
             </div>
 
             {/* Theme Toggle Card */}

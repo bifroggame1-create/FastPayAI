@@ -765,6 +765,17 @@ export const adminApi = {
     return data
   },
 
+  // Seller Payment Config
+  getSellerPaymentConfig: async () => {
+    const { data } = await adminApiInstance.get('/admin/my-shop/payment-config')
+    return data
+  },
+
+  updateSellerPaymentConfig: async (config: { cryptobotToken?: string; xrocketApiKey?: string }) => {
+    const { data } = await adminApiInstance.patch('/admin/my-shop/payment-config', config)
+    return data
+  },
+
   // Seller Wallet
   getWallet: async () => {
     const { data } = await adminApiInstance.get('/admin/wallet')

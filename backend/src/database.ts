@@ -406,6 +406,12 @@ export interface SellerBalance {
 
 export type SellerBadge = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky'
 
+export interface SellerPaymentConfig {
+  enabledMethods?: string[]
+  cryptobotToken?: string
+  xrocketApiKey?: string
+}
+
 export interface Seller extends TenantScoped {
   _id?: string | ObjectId
   id: string
@@ -422,6 +428,7 @@ export interface Seller extends TenantScoped {
   isVerified: boolean
   isBlocked: boolean
   blockReason?: string
+  paymentConfig?: SellerPaymentConfig
 }
 
 export interface Chat extends TenantScoped {

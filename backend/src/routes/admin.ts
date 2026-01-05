@@ -2241,6 +2241,94 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   })
 
+  // Get seller's payment config
+  fastify.get('/admin/my-shop/payment-config', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const tenantId = reqTenantId(request)
+      const { getSellersCollection } = await import('../database')
+      const seller = await getSellersCollection().findOne({ id: sellerId, tenantId })
+
+      return {
+        success: true,
+        config: {
+          enabledMethods: seller?.paymentConfig?.enabledMethods || [],
+          hasCryptobotToken: !!seller?.paymentConfig?.cryptobotToken,
+          hasXrocketApiKey: !!seller?.paymentConfig?.xrocketApiKey
+        }
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Update seller's payment config
+  fastify.patch('/admin/my-shop/payment-config', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const { cryptobotToken, xrocketApiKey } = request.body as {
+        cryptobotToken?: string
+        xrocketApiKey?: string
+      }
+
+      const tenantId = reqTenantId(request)
+      const { getSellersCollection } = await import('../database')
+
+      const updateData: any = {}
+      if (cryptobotToken !== undefined) {
+        updateData['paymentConfig.cryptobotToken'] = cryptobotToken
+      }
+      if (xrocketApiKey !== undefined) {
+        updateData['paymentConfig.xrocketApiKey'] = xrocketApiKey
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        reply.code(400)
+        return { success: false, error: 'No payment config provided' }
+      }
+
+      await getSellersCollection().updateOne(
+        { id: sellerId, tenantId },
+        { $set: updateData },
+        { upsert: true }
+      )
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'seller',
+        entityId: sellerId,
+        metadata: {
+          action: 'payment_config_updated',
+          hasCryptobotToken: !!cryptobotToken,
+          hasXrocketApiKey: !!xrocketApiKey
+        }
+      })
+
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
   // ============================================
   // SELLER WALLET
   // ============================================
