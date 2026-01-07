@@ -1988,7 +1988,7 @@ export default function MyShopPage() {
                     <span className="text-sm text-gray-300">{item.label}</span>
                     <ToggleSwitch
                       enabled={notifications[item.key as keyof NotificationSettings] as boolean}
-                      onChange={(v) => handleSaveNotifications({ ...notifications, [item.key]: v })}
+                      onChange={(v: boolean) => handleSaveNotifications({ ...notifications, [item.key]: v })}
                     />
                   </div>
                 ))}
