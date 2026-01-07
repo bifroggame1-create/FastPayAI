@@ -1318,9 +1318,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
         return { success: false, error: 'Missing required fields' }
       }
 
+      const tenantId = reqTenantId(request)
       const { getReviewsCollection, toClientDoc } = await import('../database')
       const review = {
         id: `review-${Date.now()}`,
+        tenantId,
         productId,
         userId: 'admin',
         userName,
