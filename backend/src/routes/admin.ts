@@ -2499,7 +2499,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       for (const order of orders) {
         if (order.status === 'delivered' || order.status === 'paid') {
-          const date = new Date(order.createdAt || order.paidAt).toISOString().split('T')[0]
+          const dateStr = order.createdAt || order.paidAt || new Date().toISOString()
+          const date = new Date(dateStr).toISOString().split('T')[0]
           const existing = dailyMap.get(date) || { revenue: 0, orders: 0 }
           dailyMap.set(date, {
             revenue: existing.revenue + (order.amount || 0),
@@ -2675,7 +2676,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       const tenantId = reqTenantId(request)
       const { getSellersCollection } = await import('../database')
-      const seller = await getSellersCollection().findOne({ id: sellerId, tenantId })
+      const seller = await getSellersCollection().findOne({ id: sellerId, tenantId }) as any
 
       return {
         success: true,
@@ -2766,7 +2767,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       const tenantId = reqTenantId(request)
       const { getSellersCollection } = await import('../database')
-      const seller = await getSellersCollection().findOne({ id: sellerId, tenantId })
+      const seller = await getSellersCollection().findOne({ id: sellerId, tenantId }) as any
 
       return {
         success: true,
