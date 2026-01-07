@@ -14,7 +14,7 @@ function reqTenantId(request: FastifyRequest): string {
 import { cactusPay, PaymentMethod } from '../cactuspay'
 import { validateBody, createCryptoInvoiceSchema, createCactusPaymentSchema, cancelPaymentSchema } from '../validation'
 import { convertRubToCrypto, CryptoAsset, getExchangeRates, refreshExchangeRates } from '../cryptoConverter'
-import { addOrder, updateOrder, getOrderById, Order, incrementPromoUsage } from '../dataStore'
+import { addOrder, updateOrder, getOrderById, Order, incrementPromoUsage, getProductById } from '../dataStore'
 import { logActivity } from '../database'
 import { processAutoDelivery } from '../delivery'
 import { sendPaymentConfirmation, sendAdminNewOrderNotification } from '../email'
@@ -1308,7 +1308,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const product = fastify.products.find(p => p._id === data.productId)
+      const product = await getProductById(data.productId, reqTenantId(request))
       const variant = product?.variants?.find((v: any) => v.id === data.variantId)
 
       // Generate order ID

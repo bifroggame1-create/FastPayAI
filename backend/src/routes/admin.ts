@@ -117,7 +117,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         inStock: true
       }
       const saved = await addProduct(newProduct as any, reqTenantId(request))
-      fastify.products.unshift(saved)
+      // Product saved to DB, no need for in-memory cache
 
       // Log the action (tenantId included via getAdminInfo)
       const adminInfo = getAdminInfo(request)
@@ -150,8 +150,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         reply.code(404)
         return { success: false, error: 'Product not found' }
       }
-      const index = fastify.products.findIndex(p => p._id === id)
-      if (index !== -1) fastify.products[index] = updated
+      // Product updated in DB, no need for in-memory cache
 
       // Log the action
       const adminInfo = getAdminInfo(request)
@@ -185,8 +184,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       reply.code(404)
       return { success: false, error: 'Product not found' }
     }
-    const index = fastify.products.findIndex(p => p._id === id)
-    if (index !== -1) fastify.products.splice(index, 1)
+    // Product deleted from DB, no need for in-memory cache
 
     // Log the action
     const adminInfo = getAdminInfo(request)
@@ -225,11 +223,6 @@ export async function adminRoutes(fastify: FastifyInstance) {
         return { success: false, error: 'Failed to update product' }
       }
 
-      const index = fastify.products.findIndex(p => p._id === id)
-      if (index !== -1) {
-        fastify.products[index] = updated
-      }
-
       // Log the action
       const adminInfo = getAdminInfo(request)
       await logAdminAction({
@@ -261,8 +254,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.get('/admin/products/:id/delivery', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
       const { id } = request.params as any
+      const tenantId = reqTenantId(request)
       const stats = await getDeliveryStats(id)
-      const product = fastify.products.find(p => p._id === id)
+      const product = await getProductById(id, tenantId)
 
       return {
         success: true,
@@ -306,13 +300,6 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       const addedKeys = await addDeliveryKeys(id, validKeys, variantId)
 
-      // Update local cache
-      const product = fastify.products.find(p => p._id === id)
-      if (product) {
-        if (!product.deliveryKeys) product.deliveryKeys = []
-        product.deliveryKeys.push(...addedKeys)
-      }
-
       // Log the action
       const adminInfo = getAdminInfo(request)
       await logAdminAction({
@@ -347,12 +334,6 @@ export async function adminRoutes(fastify: FastifyInstance) {
       if (!deleted) {
         reply.code(404)
         return { success: false, error: 'Key not found' }
-      }
-
-      // Update local cache
-      const product = fastify.products.find(p => p._id === id)
-      if (product && product.deliveryKeys) {
-        product.deliveryKeys = product.deliveryKeys.filter((k: any) => k.id !== keyId)
       }
 
       // Log the action
@@ -393,12 +374,6 @@ export async function adminRoutes(fastify: FastifyInstance) {
       if (!updated) {
         reply.code(404)
         return { success: false, error: 'Product not found' }
-      }
-
-      // Update local cache
-      const product = fastify.products.find(p => p._id === id)
-      if (product) {
-        Object.assign(product, updates)
       }
 
       // Log the action
