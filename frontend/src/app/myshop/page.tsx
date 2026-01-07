@@ -112,7 +112,7 @@ const ToggleSwitch = ({
   disabled = false
 }: {
   enabled: boolean
-  onChange: (value?: boolean) => void
+  onChange: (value: boolean) => void
   disabled?: boolean
 }) => {
   return (
