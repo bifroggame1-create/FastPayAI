@@ -112,7 +112,7 @@ const ToggleSwitch = ({
   disabled = false
 }: {
   enabled: boolean
-  onChange: () => void
+  onChange: (value?: boolean) => void
   disabled?: boolean
 }) => {
   return (
@@ -125,7 +125,7 @@ const ToggleSwitch = ({
         e.preventDefault()
         e.stopPropagation()
         if (!disabled) {
-          onChange()
+          onChange(!enabled)
         }
       }}
       className={`
