@@ -1272,9 +1272,16 @@ export default function AdminPage() {
                             <button
                               onClick={async () => {
                                 const newState = product.isEnabled === false ? true : false
-                                const result = await adminApi.toggleProduct(product._id, newState)
-                                if (result.success) {
-                                  setProducts(products.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
+                                try {
+                                  const result = await adminApi.toggleProduct(product._id, newState)
+                                  if (result.success) {
+                                    setProducts(products.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
+                                  } else {
+                                    alert('Ошибка: ' + (result.error || 'Не удалось изменить статус товара'))
+                                  }
+                                } catch (e: any) {
+                                  console.error('Toggle product error:', e)
+                                  alert('Ошибка: ' + (e.response?.data?.error || e.message || 'Не удалось изменить статус товара'))
                                 }
                               }}
                               className={`relative w-10 h-5 rounded-full transition-colors ${product.isEnabled !== false ? 'bg-emerald-500' : 'bg-gray-600'}`}
@@ -2073,11 +2080,18 @@ export default function AdminPage() {
                               <button
                                 onClick={async () => {
                                   const newState = product.isEnabled === false ? true : false
-                                  const result = await adminApi.toggleProduct(product._id, newState)
-                                  if (result.success) {
-                                    // Update both general products and myShopProducts
-                                    setProducts(products.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
-                                    setMyShopProducts(myShopProducts.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
+                                  try {
+                                    const result = await adminApi.toggleProduct(product._id, newState)
+                                    if (result.success) {
+                                      // Update both general products and myShopProducts
+                                      setProducts(products.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
+                                      setMyShopProducts(myShopProducts.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
+                                    } else {
+                                      alert('Ошибка: ' + (result.error || 'Не удалось изменить статус товара'))
+                                    }
+                                  } catch (e: any) {
+                                    console.error('Toggle product error:', e)
+                                    alert('Ошибка: ' + (e.response?.data?.error || e.message || 'Не удалось изменить статус товара'))
                                   }
                                 }}
                                 className={`text-xs px-2 py-1 rounded transition-colors ${product.isEnabled !== false ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`}

@@ -157,7 +157,7 @@ export default function SupportPage() {
         <div className="bg-tg-secondary-bg rounded-xl border border-tg-separator p-4">
           <h3 className="font-semibold text-tg-text mb-3">Контакты</h3>
           <div className="space-y-2 text-sm text-tg-hint">
-            <p>Поддержка: @fastpay_sup</p>
+            <p>Поддержка: <a href="https://t.me/fastpay_sup" target="_blank" rel="noopener noreferrer" className="text-tg-button hover:underline">@fastpay_sup</a></p>
             <p>Время работы: 24/7</p>
             <p>Среднее время ответа: 15 минут</p>
           </div>

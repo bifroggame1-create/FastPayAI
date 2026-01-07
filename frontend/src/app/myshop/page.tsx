@@ -9,7 +9,7 @@ import { initAuth, getUser } from '@/lib/auth'
 import { formatPrice } from '@/lib/currency'
 import BottomNav from '@/components/BottomNav'
 
-type Tab = 'dashboard' | 'orders' | 'products' | 'promo' | 'files' | 'settings'
+type Tab = 'dashboard' | 'analytics' | 'orders' | 'products' | 'reviews' | 'promo' | 'files' | 'settings' | 'profile'
 type OrderStatus = 'pending' | 'paid' | 'processing' | 'delivered' | 'cancelled' | 'refunded'
 
 interface Order {
@@ -54,6 +54,55 @@ interface Seller {
   name: string
   avatar?: string
   rating: number
+}
+
+interface SellerReview {
+  id: string
+  productId: string
+  productName?: string
+  userId: string
+  userName: string
+  rating: number
+  text: string
+  sellerReply?: string
+  sellerReplyAt?: string
+  createdAt: string
+}
+
+interface Analytics {
+  period: string
+  summary: {
+    totalRevenue: number
+    totalOrders: number
+    deliveredOrders: number
+    conversionRate: number
+    averageOrderValue: number
+  }
+  dailyRevenue: { date: string; revenue: number; orders: number }[]
+  topProducts: { id: string; name: string; sales: number; revenue: number }[]
+}
+
+interface ShopProfile {
+  id: string
+  name: string
+  description: string
+  avatar: string
+  banner: string
+  contacts: { telegram?: string; email?: string; phone?: string }
+  workingHours: string
+  rating: number
+  ratingCount: number
+  isVerified: boolean
+  badges: string[]
+}
+
+interface NotificationSettings {
+  newOrders: boolean
+  orderDelivered: boolean
+  newReviews: boolean
+  lowStock: boolean
+  disputes: boolean
+  emailNotifications: boolean
 }
 
 // Toggle Switch Component
@@ -136,6 +185,21 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
     </svg>
   ),
+  analytics: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+  ),
+  reviews: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+    </svg>
+  ),
+  profile: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+    </svg>
+  ),
 }
 
 export default function MyShopPage() {
@@ -170,6 +234,39 @@ export default function MyShopPage() {
   const [withdrawMethod, setWithdrawMethod] = useState('bank_card')
   const [withdrawDetails, setWithdrawDetails] = useState('')
   const [withdrawing, setWithdrawing] = useState(false)
+
+  // Analytics
+  const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('30d')
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false)
+
+  // Reviews
+  const [reviews, setReviews] = useState<SellerReview[]>([])
+  const [reviewStats, setReviewStats] = useState({ total: 0, averageRating: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } })
+  const [replyingReviewId, setReplyingReviewId] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+
+  // Shop Profile
+  const [shopProfile, setShopProfile] = useState<ShopProfile | null>(null)
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    description: '',
+    avatar: '',
+    banner: '',
+    contacts: { telegram: '', email: '', phone: '' },
+    workingHours: ''
+  })
+
+  // Notifications
+  const [notifications, setNotifications] = useState<NotificationSettings>({
+    newOrders: true,
+    orderDelivered: true,
+    newReviews: true,
+    lowStock: true,
+    disputes: true,
+    emailNotifications: false
+  })
 
   // Stats
   const [stats, setStats] = useState({
@@ -231,7 +328,7 @@ export default function MyShopPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, ordersData, statsData, promoData, filesData, settingsData, walletData, paymentConfigData] = await Promise.all([
+      const [productsData, ordersData, statsData, promoData, filesData, settingsData, walletData, paymentConfigData, profileData, notifData] = await Promise.all([
         adminApi.getMyShopProducts().catch(() => ({ products: [] })),
         adminApi.getMyShopOrders().catch(() => ({ orders: [] })),
         adminApi.getMyShopStats().catch(() => ({ stats: {} })),
@@ -239,8 +336,28 @@ export default function MyShopPage() {
         adminApi.getFiles().catch(() => ({ files: [] })),
         adminApi.getSettings().catch(() => ({ settings: {} })),
         adminApi.getWallet().catch(() => ({ wallet: { balance: 0, pendingBalance: 0 } })),
-        adminApi.getSellerPaymentConfig().catch(() => ({ config: {} }))
+        adminApi.getSellerPaymentConfig().catch(() => ({ config: {} })),
+        adminApi.getMyShopProfile().catch(() => ({ profile: null })),
+        adminApi.getMyShopNotifications().catch(() => ({ notifications: {} }))
       ])
+
+      // Set profile
+      if (profileData?.profile) {
+        setShopProfile(profileData.profile)
+        setProfileForm({
+          name: profileData.profile.name || '',
+          description: profileData.profile.description || '',
+          avatar: profileData.profile.avatar || '',
+          banner: profileData.profile.banner || '',
+          contacts: profileData.profile.contacts || { telegram: '', email: '', phone: '' },
+          workingHours: profileData.profile.workingHours || ''
+        })
+      }
+
+      // Set notifications
+      if (notifData?.notifications) {
+        setNotifications(notifData.notifications)
+      }
 
       // Set wallet data
       if (walletData?.wallet) {
@@ -326,6 +443,85 @@ export default function MyShopPage() {
       alert('Ошибка при выдаче заказа')
     }
   }
+
+  // Load analytics
+  const loadAnalytics = async (period: string) => {
+    setLoadingAnalytics(true)
+    try {
+      const result = await adminApi.getMyShopAnalytics(period)
+      if (result.success) {
+        setAnalytics(result.analytics)
+      }
+    } catch (error) {
+      console.error('Error loading analytics:', error)
+    } finally {
+      setLoadingAnalytics(false)
+    }
+  }
+
+  // Load reviews
+  const loadReviews = async () => {
+    try {
+      const result = await adminApi.getMyShopReviews()
+      if (result.success) {
+        setReviews(result.reviews || [])
+        setReviewStats(result.stats || { total: 0, averageRating: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } })
+      }
+    } catch (error) {
+      console.error('Error loading reviews:', error)
+    }
+  }
+
+  // Reply to review
+  const handleReplyToReview = async (reviewId: string) => {
+    if (!replyText.trim()) return
+    try {
+      const result = await adminApi.replyToReview(reviewId, replyText)
+      if (result.success) {
+        setReviews(reviews.map(r => r.id === reviewId ? { ...r, sellerReply: replyText, sellerReplyAt: new Date().toISOString() } : r))
+        setReplyingReviewId(null)
+        setReplyText('')
+      }
+    } catch (error) {
+      console.error('Error replying to review:', error)
+      alert('Ошибка при отправке ответа')
+    }
+  }
+
+  // Save profile
+  const handleSaveProfile = async () => {
+    try {
+      const result = await adminApi.updateMyShopProfile(profileForm)
+      if (result.success) {
+        setShopProfile({ ...shopProfile, ...profileForm } as ShopProfile)
+        setEditingProfile(false)
+        alert('Профиль сохранён')
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      alert('Ошибка сохранения профиля')
+    }
+  }
+
+  // Save notifications
+  const handleSaveNotifications = async (newSettings: NotificationSettings) => {
+    try {
+      await adminApi.updateMyShopNotifications(newSettings)
+      setNotifications(newSettings)
+    } catch (error) {
+      console.error('Error saving notifications:', error)
+    }
+  }
+
+  // Load data when switching tabs
+  useEffect(() => {
+    if (activeTab === 'analytics' && !analytics) {
+      loadAnalytics(analyticsPeriod)
+    }
+    if (activeTab === 'reviews' && reviews.length === 0) {
+      loadReviews()
+    }
+  }, [activeTab])
 
   const handleCreatePromo = async () => {
     if (!newPromo.code.trim()) {
@@ -611,10 +807,13 @@ export default function MyShopPage() {
 
   const navItems = [
     { id: 'dashboard', label: 'Дашборд', icon: Icons.dashboard },
+    { id: 'analytics', label: 'Аналитика', icon: Icons.analytics },
     { id: 'orders', label: 'Заказы', icon: Icons.orders, count: stats.pendingOrders },
     { id: 'products', label: 'Товары', icon: Icons.products, count: stats.totalProducts },
-    { id: 'promo', label: 'Промокоды', icon: Icons.promo },
-    { id: 'files', label: 'Файлы', icon: Icons.files, count: files.length },
+    { id: 'reviews', label: 'Отзывы', icon: Icons.reviews },
+    { id: 'promo', label: 'Промо', icon: Icons.promo },
+    { id: 'files', label: 'Файлы', icon: Icons.files },
+    { id: 'profile', label: 'Профиль', icon: Icons.profile },
     { id: 'settings', label: 'Настройки', icon: Icons.settings },
   ]
 
@@ -1052,6 +1251,89 @@ export default function MyShopPage() {
                       />
                     </div>
 
+                    {/* Варианты товара */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs text-gray-400">Варианты (опционально)</label>
+                        <button
+                          type="button"
+                          onClick={() => setProductForm({
+                            ...productForm,
+                            variants: [...productForm.variants, { id: `var-${Date.now()}`, name: '', price: 0, period: '', features: [] }]
+                          })}
+                          className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                        >
+                          + Добавить
+                        </button>
+                      </div>
+                      {productForm.variants.length > 0 && (
+                        <p className="text-xs text-gray-500 mb-2">Если есть варианты, цена берётся из первого варианта</p>
+                      )}
+                      {productForm.variants.map((variant, index) => (
+                        <div key={variant.id} className="bg-[#0f1117] rounded-lg p-3 mb-2 space-y-2 border border-[#2a2d37]">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500">Вариант {index + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => setProductForm({
+                                ...productForm,
+                                variants: productForm.variants.filter((_, i) => i !== index)
+                              })}
+                              className="text-xs text-red-500 hover:text-red-400"
+                            >
+                              Удалить
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              value={variant.name}
+                              onChange={(e) => {
+                                const updated = [...productForm.variants]
+                                updated[index] = { ...updated[index], name: e.target.value }
+                                setProductForm({ ...productForm, variants: updated })
+                              }}
+                              placeholder="Название"
+                              className="px-2 py-1.5 bg-[#1a1d27] border border-[#2a2d37] rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                            />
+                            <input
+                              type="number"
+                              value={variant.price || ''}
+                              onChange={(e) => {
+                                const updated = [...productForm.variants]
+                                updated[index] = { ...updated[index], price: parseInt(e.target.value) || 0 }
+                                setProductForm({ ...productForm, variants: updated })
+                              }}
+                              placeholder="Цена"
+                              className="px-2 py-1.5 bg-[#1a1d27] border border-[#2a2d37] rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            value={variant.period || ''}
+                            onChange={(e) => {
+                              const updated = [...productForm.variants]
+                              updated[index] = { ...updated[index], period: e.target.value }
+                              setProductForm({ ...productForm, variants: updated })
+                            }}
+                            placeholder="Период (напр. 1 месяц)"
+                            className="w-full px-2 py-1.5 bg-[#1a1d27] border border-[#2a2d37] rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                          />
+                          <input
+                            type="text"
+                            value={variant.features?.join(', ') || ''}
+                            onChange={(e) => {
+                              const updated = [...productForm.variants]
+                              updated[index] = { ...updated[index], features: e.target.value.split(',').map(f => f.trim()).filter(Boolean) }
+                              setProductForm({ ...productForm, variants: updated })
+                            }}
+                            placeholder="Особенности (через запятую)"
+                            className="w-full px-2 py-1.5 bg-[#1a1d27] border border-[#2a2d37] rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+                          />
+                        </div>
+                      ))}
+                    </div>
+
                     <button
                       onClick={handleCreateProduct}
                       className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
@@ -1418,6 +1700,298 @@ export default function MyShopPage() {
                   </div>
                   <p className="text-xs text-white text-center">Тёмная</p>
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-4">
+            {/* Period Selector */}
+            <div className="flex gap-2">
+              {['7d', '30d', '90d', '365d'].map(p => (
+                <button
+                  key={p}
+                  onClick={() => { setAnalyticsPeriod(p); loadAnalytics(p) }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    analyticsPeriod === p ? 'bg-blue-600 text-white' : 'bg-[#1a1d27] text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {p === '7d' ? '7 дней' : p === '30d' ? '30 дней' : p === '90d' ? '90 дней' : 'Год'}
+                </button>
+              ))}
+            </div>
+
+            {loadingAnalytics ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : analytics ? (
+              <>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+                    <p className="text-xs text-gray-400">Выручка</p>
+                    <p className="text-xl font-bold text-white">{formatPrice(analytics.summary.totalRevenue, currency)}</p>
+                  </div>
+                  <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+                    <p className="text-xs text-gray-400">Заказов</p>
+                    <p className="text-xl font-bold text-white">{analytics.summary.deliveredOrders}</p>
+                  </div>
+                  <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+                    <p className="text-xs text-gray-400">Средний чек</p>
+                    <p className="text-xl font-bold text-white">{formatPrice(analytics.summary.averageOrderValue, currency)}</p>
+                  </div>
+                  <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+                    <p className="text-xs text-gray-400">Конверсия</p>
+                    <p className="text-xl font-bold text-green-400">{analytics.summary.conversionRate}%</p>
+                  </div>
+                </div>
+
+                {/* Revenue Chart */}
+                {analytics.dailyRevenue.length > 0 && (
+                  <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+                    <h3 className="text-sm font-medium text-white mb-3">Выручка по дням</h3>
+                    <div className="h-32 flex items-end gap-1">
+                      {analytics.dailyRevenue.slice(-14).map((d, i) => {
+                        const maxRev = Math.max(...analytics.dailyRevenue.map(x => x.revenue))
+                        const height = maxRev > 0 ? (d.revenue / maxRev) * 100 : 0
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                            <div
+                              className="w-full bg-blue-500 rounded-t"
+                              style={{ height: `${Math.max(height, 2)}%` }}
+                              title={`${d.date}: ${formatPrice(d.revenue, currency)}`}
+                            />
+                            <span className="text-[8px] text-gray-500">{d.date.slice(-2)}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top Products */}
+                {analytics.topProducts.length > 0 && (
+                  <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+                    <h3 className="text-sm font-medium text-white mb-3">Топ товаров</h3>
+                    <div className="space-y-2">
+                      {analytics.topProducts.slice(0, 5).map((p, i) => (
+                        <div key={p.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 w-4">{i + 1}.</span>
+                            <span className="text-sm text-white truncate max-w-[180px]">{p.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-medium text-white">{formatPrice(p.revenue, currency)}</span>
+                            <span className="text-xs text-gray-500 ml-2">{p.sales} шт</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-12 text-gray-400">Нет данных</div>
+            )}
+          </div>
+        )}
+
+        {/* Reviews Tab */}
+        {activeTab === 'reviews' && (
+          <div className="space-y-4">
+            {/* Stats */}
+            <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+              <div className="flex items-center gap-4">
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-white">{reviewStats.averageRating.toFixed(1)}</p>
+                  <div className="flex items-center justify-center gap-0.5 mt-1">
+                    {[1,2,3,4,5].map(s => (
+                      <span key={s} className={s <= Math.round(reviewStats.averageRating) ? 'text-yellow-400' : 'text-gray-600'}>★</span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">{reviewStats.total} отзывов</p>
+                </div>
+                <div className="flex-1 space-y-1">
+                  {[5,4,3,2,1].map(rating => (
+                    <div key={rating} className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 w-3">{rating}</span>
+                      <div className="flex-1 h-2 bg-[#0f1117] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-yellow-400 rounded-full"
+                          style={{ width: `${reviewStats.total > 0 ? (reviewStats.distribution[rating as keyof typeof reviewStats.distribution] / reviewStats.total) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 w-6">{reviewStats.distribution[rating as keyof typeof reviewStats.distribution]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Reviews List */}
+            {reviews.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">Пока нет отзывов</div>
+            ) : (
+              <div className="space-y-3">
+                {reviews.map(review => (
+                  <div key={review.id} className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="text-sm font-medium text-white">{review.userName}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {[1,2,3,4,5].map(s => (
+                            <span key={s} className={`text-sm ${s <= review.rating ? 'text-yellow-400' : 'text-gray-600'}`}>★</span>
+                          ))}
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-sm text-gray-300 mb-2">{review.text}</p>
+
+                    {review.sellerReply ? (
+                      <div className="mt-3 pl-3 border-l-2 border-blue-500">
+                        <p className="text-xs text-gray-400 mb-1">Ваш ответ:</p>
+                        <p className="text-sm text-gray-300">{review.sellerReply}</p>
+                      </div>
+                    ) : replyingReviewId === review.id ? (
+                      <div className="mt-3 space-y-2">
+                        <textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder="Напишите ответ..."
+                          className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none resize-none"
+                          rows={2}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleReplyToReview(review.id)}
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs"
+                          >
+                            Отправить
+                          </button>
+                          <button
+                            onClick={() => { setReplyingReviewId(null); setReplyText('') }}
+                            className="px-3 py-1.5 bg-[#2a2d37] text-gray-300 rounded-lg text-xs"
+                          >
+                            Отмена
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setReplyingReviewId(review.id)}
+                        className="mt-2 text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        Ответить
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Profile Tab */}
+        {activeTab === 'profile' && (
+          <div className="space-y-4">
+            {/* Shop Info */}
+            <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-medium text-white">Профиль магазина</h3>
+                <button
+                  onClick={() => editingProfile ? handleSaveProfile() : setEditingProfile(true)}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs"
+                >
+                  {editingProfile ? 'Сохранить' : 'Редактировать'}
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Название магазина</label>
+                  <input
+                    type="text"
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                    disabled={!editingProfile}
+                    className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Описание</label>
+                  <textarea
+                    value={profileForm.description}
+                    onChange={(e) => setProfileForm({ ...profileForm, description: e.target.value })}
+                    disabled={!editingProfile}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white disabled:opacity-50 resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Часы работы</label>
+                  <input
+                    type="text"
+                    value={profileForm.workingHours}
+                    onChange={(e) => setProfileForm({ ...profileForm, workingHours: e.target.value })}
+                    disabled={!editingProfile}
+                    placeholder="Например: 9:00-21:00"
+                    className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white disabled:opacity-50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Contacts */}
+            <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+              <h3 className="text-sm font-medium text-white mb-3">Контакты</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Telegram</label>
+                  <input
+                    type="text"
+                    value={profileForm.contacts.telegram}
+                    onChange={(e) => setProfileForm({ ...profileForm, contacts: { ...profileForm.contacts, telegram: e.target.value } })}
+                    disabled={!editingProfile}
+                    placeholder="@username"
+                    className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Email</label>
+                  <input
+                    type="email"
+                    value={profileForm.contacts.email}
+                    onChange={(e) => setProfileForm({ ...profileForm, contacts: { ...profileForm.contacts, email: e.target.value } })}
+                    disabled={!editingProfile}
+                    className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white disabled:opacity-50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Notifications */}
+            <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+              <h3 className="text-sm font-medium text-white mb-3">Уведомления</h3>
+              <div className="space-y-3">
+                {[
+                  { key: 'newOrders', label: 'Новые заказы' },
+                  { key: 'orderDelivered', label: 'Доставка заказа' },
+                  { key: 'newReviews', label: 'Новые отзывы' },
+                  { key: 'lowStock', label: 'Мало товара' },
+                  { key: 'disputes', label: 'Споры' },
+                ].map(item => (
+                  <div key={item.key} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-300">{item.label}</span>
+                    <ToggleSwitch
+                      enabled={notifications[item.key as keyof NotificationSettings] as boolean}
+                      onChange={(v) => handleSaveNotifications({ ...notifications, [item.key]: v })}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           </div>

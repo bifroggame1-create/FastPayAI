@@ -352,7 +352,7 @@ export default function ProfilePage() {
         {/* Footer */}
         <div className="text-center py-4">
           <p className="text-[12px] text-tg-hint">
-            by <span className="text-tg-accent font-medium">@cheffofgang</span>
+            by <a href="https://t.me/cheffofgang" target="_blank" rel="noopener noreferrer" className="text-tg-accent font-medium hover:underline">@cheffofgang</a>
           </p>
         </div>
       </div>

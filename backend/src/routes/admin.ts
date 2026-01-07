@@ -206,17 +206,29 @@ export async function adminRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params as any
       const { isEnabled } = request.body as { isEnabled: boolean }
+      const tenantId = reqTenantId(request)
 
-      const before = await getProductById(id, reqTenantId(request))
+      console.log(`[Toggle] Product ${id}, isEnabled: ${isEnabled}, tenant: ${tenantId}`)
+
+      const before = await getProductById(id, tenantId)
       if (!before) {
+        console.log(`[Toggle] Product ${id} not found for tenant ${tenantId}`)
         reply.code(404)
         return { success: false, error: 'Product not found' }
       }
 
-      const updated = await updateProduct(id, { isEnabled }, reqTenantId(request))
+      const updated = await updateProduct(id, { isEnabled }, tenantId)
+
+      if (!updated) {
+        console.log(`[Toggle] Failed to update product ${id}`)
+        reply.code(500)
+        return { success: false, error: 'Failed to update product' }
+      }
 
       const index = fastify.products.findIndex(p => p._id === id)
-      if (index !== -1) fastify.products[index] = updated
+      if (index !== -1) {
+        fastify.products[index] = updated
+      }
 
       // Log the action
       const adminInfo = getAdminInfo(request)
@@ -232,8 +244,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
         metadata: { action: isEnabled ? 'enabled' : 'disabled' }
       })
 
+      console.log(`[Toggle] Product ${id} successfully updated to isEnabled: ${isEnabled}`)
       return { success: true, product: updated }
     } catch (error: any) {
+      console.error(`[Toggle] Error:`, error)
       reply.code(500)
       return { success: false, error: error.message }
     }
@@ -2059,10 +2073,16 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const filteredMethods = enabledMethods.filter(m => validMethods.includes(m))
 
       const { getTenantsCollection } = await import('../database')
-      await getTenantsCollection().updateOne(
+      const updateResult = await getTenantsCollection().updateOne(
         { id: tenantId },
-        { $set: { 'paymentConfig.enabledMethods': filteredMethods } }
+        { $set: { 'paymentConfig.enabledMethods': filteredMethods } },
+        { upsert: true }
       )
+
+      if (updateResult.matchedCount === 0 && updateResult.upsertedCount === 0) {
+        reply.code(500)
+        return { success: false, error: 'Failed to update payment methods' }
+      }
 
       // Log the action
       const adminInfo = getAdminInfo(request)
@@ -2421,6 +2441,462 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return {
         success: true,
         transactions: []
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
+  // SELLER ANALYTICS
+  // ============================================
+
+  // Get seller's analytics data (charts, top products, etc.)
+  fastify.get('/admin/my-shop/analytics', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const tenantId = reqTenantId(request)
+      const { period = '30d' } = request.query as { period?: string }
+
+      // Get seller's products
+      const products = await loadProducts(tenantId)
+      const sellerProducts = products.filter(p => p.seller?.id === sellerId)
+      const sellerProductIds = sellerProducts
+        .map(p => p._id?.toString())
+        .filter((id): id is string => !!id)
+
+      // Calculate date range
+      const now = new Date()
+      let startDate = new Date()
+      if (period === '7d') startDate.setDate(now.getDate() - 7)
+      else if (period === '30d') startDate.setDate(now.getDate() - 30)
+      else if (period === '90d') startDate.setDate(now.getDate() - 90)
+      else startDate.setDate(now.getDate() - 365)
+
+      const ordersCollection = getOrdersCollection()
+
+      // Get orders for period
+      const orders = await ordersCollection
+        .find({
+          tenantId,
+          productId: { $in: sellerProductIds },
+          createdAt: { $gte: startDate.toISOString() }
+        })
+        .sort({ createdAt: -1 })
+        .toArray()
+
+      // Calculate daily revenue chart
+      const dailyRevenue: { date: string; revenue: number; orders: number }[] = []
+      const dailyMap = new Map<string, { revenue: number; orders: number }>()
+
+      for (const order of orders) {
+        if (order.status === 'delivered' || order.status === 'paid') {
+          const date = new Date(order.createdAt || order.paidAt).toISOString().split('T')[0]
+          const existing = dailyMap.get(date) || { revenue: 0, orders: 0 }
+          dailyMap.set(date, {
+            revenue: existing.revenue + (order.amount || 0),
+            orders: existing.orders + 1
+          })
+        }
+      }
+
+      // Sort by date
+      const sortedDates = Array.from(dailyMap.keys()).sort()
+      for (const date of sortedDates) {
+        const data = dailyMap.get(date)!
+        dailyRevenue.push({ date, ...data })
+      }
+
+      // Calculate top products
+      const productStats = new Map<string, { name: string; sales: number; revenue: number }>()
+      for (const order of orders) {
+        if (order.status === 'delivered') {
+          const existing = productStats.get(order.productId) || { name: order.productName || 'Unknown', sales: 0, revenue: 0 }
+          productStats.set(order.productId, {
+            name: existing.name,
+            sales: existing.sales + 1,
+            revenue: existing.revenue + (order.amount || 0)
+          })
+        }
+      }
+
+      const topProducts = Array.from(productStats.entries())
+        .map(([id, stats]) => ({ id, ...stats }))
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 10)
+
+      // Calculate conversion rate (views vs purchases - simplified)
+      const totalOrders = orders.length
+      const deliveredOrders = orders.filter(o => o.status === 'delivered').length
+      const conversionRate = totalOrders > 0 ? Math.round((deliveredOrders / totalOrders) * 100) : 0
+
+      // Calculate totals
+      const totalRevenue = orders
+        .filter(o => o.status === 'delivered')
+        .reduce((sum, o) => sum + (o.amount || 0), 0)
+
+      return {
+        success: true,
+        analytics: {
+          period,
+          summary: {
+            totalRevenue,
+            totalOrders,
+            deliveredOrders,
+            conversionRate,
+            averageOrderValue: deliveredOrders > 0 ? Math.round(totalRevenue / deliveredOrders) : 0
+          },
+          dailyRevenue,
+          topProducts
+        }
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get seller's reviews
+  fastify.get('/admin/my-shop/reviews', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const tenantId = reqTenantId(request)
+
+      // Get seller's products
+      const products = await loadProducts(tenantId)
+      const sellerProductIds = products
+        .filter(p => p.seller?.id === sellerId)
+        .map(p => p._id?.toString())
+        .filter((id): id is string => !!id)
+
+      // Get reviews for seller's products
+      const { getReviewsCollection, toClientDoc } = await import('../database')
+      const reviews = await getReviewsCollection()
+        .find({ productId: { $in: sellerProductIds } })
+        .sort({ createdAt: -1 })
+        .toArray()
+
+      // Calculate average rating
+      const totalRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0)
+      const averageRating = reviews.length > 0 ? (totalRating / reviews.length).toFixed(1) : '0.0'
+
+      // Rating distribution
+      const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+      for (const review of reviews) {
+        const rating = Math.round(review.rating || 0)
+        if (rating >= 1 && rating <= 5) {
+          distribution[rating as keyof typeof distribution]++
+        }
+      }
+
+      return {
+        success: true,
+        reviews: reviews.map(r => toClientDoc(r)),
+        stats: {
+          total: reviews.length,
+          averageRating: parseFloat(averageRating),
+          distribution
+        }
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Respond to a review
+  fastify.post('/admin/my-shop/reviews/:id/reply', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+      const { id } = request.params as { id: string }
+      const { reply: replyText } = request.body as { reply: string }
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      if (!replyText?.trim()) {
+        reply.code(400)
+        return { success: false, error: 'Reply text is required' }
+      }
+
+      const { getReviewsCollection, toClientDoc } = await import('../database')
+
+      const result = await getReviewsCollection().findOneAndUpdate(
+        { id },
+        {
+          $set: {
+            sellerReply: replyText.trim(),
+            sellerReplyAt: new Date().toISOString()
+          }
+        },
+        { returnDocument: 'after' }
+      )
+
+      if (!result) {
+        reply.code(404)
+        return { success: false, error: 'Review not found' }
+      }
+
+      return { success: true, review: toClientDoc(result) }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get/Update seller shop profile
+  fastify.get('/admin/my-shop/profile', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const tenantId = reqTenantId(request)
+      const { getSellersCollection } = await import('../database')
+      const seller = await getSellersCollection().findOne({ id: sellerId, tenantId })
+
+      return {
+        success: true,
+        profile: seller ? {
+          id: seller.id,
+          name: seller.name || '',
+          description: seller.description || '',
+          avatar: seller.avatar || '',
+          banner: seller.banner || '',
+          contacts: seller.contacts || {},
+          workingHours: seller.workingHours || '',
+          rating: seller.rating || 5,
+          ratingCount: seller.ratingCount || 0,
+          isVerified: seller.isVerified || false,
+          badges: seller.badges || []
+        } : null
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  fastify.patch('/admin/my-shop/profile', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const { name, description, avatar, banner, contacts, workingHours } = request.body as {
+        name?: string
+        description?: string
+        avatar?: string
+        banner?: string
+        contacts?: { telegram?: string; email?: string; phone?: string }
+        workingHours?: string
+      }
+
+      const tenantId = reqTenantId(request)
+      const { getSellersCollection } = await import('../database')
+
+      const updateData: any = {}
+      if (name !== undefined) updateData.name = name
+      if (description !== undefined) updateData.description = description
+      if (avatar !== undefined) updateData.avatar = avatar
+      if (banner !== undefined) updateData.banner = banner
+      if (contacts !== undefined) updateData.contacts = contacts
+      if (workingHours !== undefined) updateData.workingHours = workingHours
+
+      await getSellersCollection().updateOne(
+        { id: sellerId, tenantId },
+        { $set: updateData },
+        { upsert: true }
+      )
+
+      // Also update seller info in all their products
+      const products = await loadProducts(tenantId)
+      for (const p of products) {
+        if (p.seller?.id === sellerId && p._id) {
+          const updatedSeller = { ...p.seller }
+          if (name !== undefined) updatedSeller.name = name
+          if (avatar !== undefined) updatedSeller.avatar = avatar
+          await updateProduct(String(p._id), { seller: updatedSeller }, tenantId)
+        }
+      }
+
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get seller's notification settings
+  fastify.get('/admin/my-shop/notifications', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const tenantId = reqTenantId(request)
+      const { getSellersCollection } = await import('../database')
+      const seller = await getSellersCollection().findOne({ id: sellerId, tenantId })
+
+      return {
+        success: true,
+        notifications: seller?.notifications || {
+          newOrders: true,
+          orderDelivered: true,
+          newReviews: true,
+          lowStock: true,
+          disputes: true,
+          emailNotifications: false
+        }
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  fastify.patch('/admin/my-shop/notifications', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const notifications = request.body as {
+        newOrders?: boolean
+        orderDelivered?: boolean
+        newReviews?: boolean
+        lowStock?: boolean
+        disputes?: boolean
+        emailNotifications?: boolean
+      }
+
+      const tenantId = reqTenantId(request)
+      const { getSellersCollection } = await import('../database')
+
+      await getSellersCollection().updateOne(
+        { id: sellerId, tenantId },
+        { $set: { notifications } },
+        { upsert: true }
+      )
+
+      return { success: true }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Get auto-delivery templates for seller
+  fastify.get('/admin/my-shop/delivery-templates', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      const tenantId = reqTenantId(request)
+
+      // Get seller's products with delivery info
+      const products = await loadProducts(tenantId)
+      const sellerProducts = products.filter(p => p.seller?.id === sellerId)
+
+      const templates = sellerProducts.map(p => ({
+        productId: p._id?.toString(),
+        productName: p.name,
+        deliveryType: p.deliveryType || 'manual',
+        deliveryInstructions: p.deliveryInstructions || '',
+        keysCount: (p.deliveryKeys || []).filter((k: any) => !k.isUsed).length,
+        totalKeys: (p.deliveryKeys || []).length
+      }))
+
+      return { success: true, templates }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Bulk upload delivery keys for a product
+  fastify.post('/admin/my-shop/products/:id/keys/bulk', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      const sellerId = user?.userId || user?.id
+      const { id } = request.params as { id: string }
+      const { keys } = request.body as { keys: string }
+
+      if (!sellerId) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      if (!keys?.trim()) {
+        reply.code(400)
+        return { success: false, error: 'Keys are required' }
+      }
+
+      const tenantId = reqTenantId(request)
+
+      // Verify product belongs to seller
+      const product = await getProductById(id, tenantId)
+      if (!product || product.seller?.id !== sellerId) {
+        reply.code(403)
+        return { success: false, error: 'Product not found or access denied' }
+      }
+
+      // Parse keys (one per line)
+      const keysList = keys
+        .split('\n')
+        .map(k => k.trim())
+        .filter(k => k.length > 0)
+
+      if (keysList.length === 0) {
+        reply.code(400)
+        return { success: false, error: 'No valid keys found' }
+      }
+
+      const addedKeys = await addDeliveryKeys(id, keysList)
+
+      return {
+        success: true,
+        addedCount: addedKeys.length,
+        message: `Added ${addedKeys.length} keys`
       }
     } catch (error: any) {
       reply.code(500)

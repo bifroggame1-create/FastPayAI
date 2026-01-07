@@ -255,7 +255,12 @@ export default function RefundPolicyPage() {
 
         <div className="p-4 bg-accent-cyan/10 dark:bg-accent-cyan/20 rounded-xl">
           <p className="text-sm text-tg-text text-center">
-            {t.footer}
+            {t.footer.includes('@') ? (
+              <>
+                {t.footer.split('@')[0]}
+                <a href={`https://t.me/${t.footer.split('@')[1]}`} target="_blank" rel="noopener noreferrer" className="text-tg-button hover:underline">@{t.footer.split('@')[1]}</a>
+              </>
+            ) : t.footer}
           </p>
         </div>
       </div>

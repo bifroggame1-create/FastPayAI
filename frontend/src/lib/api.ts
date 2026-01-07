@@ -797,6 +797,74 @@ export const adminApi = {
     const { data } = await adminApiInstance.get('/admin/activity-logs', { params })
     return data
   },
+
+  // ============================================
+  // EXTENDED SELLER DASHBOARD
+  // ============================================
+
+  // Seller Analytics
+  getMyShopAnalytics: async (period: string = '30d') => {
+    const { data } = await adminApiInstance.get('/admin/my-shop/analytics', { params: { period } })
+    return data
+  },
+
+  // Seller Reviews
+  getMyShopReviews: async () => {
+    const { data } = await adminApiInstance.get('/admin/my-shop/reviews')
+    return data
+  },
+
+  replyToReview: async (reviewId: string, reply: string) => {
+    const { data } = await adminApiInstance.post(`/admin/my-shop/reviews/${reviewId}/reply`, { reply })
+    return data
+  },
+
+  // Seller Profile
+  getMyShopProfile: async () => {
+    const { data } = await adminApiInstance.get('/admin/my-shop/profile')
+    return data
+  },
+
+  updateMyShopProfile: async (profile: {
+    name?: string
+    description?: string
+    avatar?: string
+    banner?: string
+    contacts?: { telegram?: string; email?: string; phone?: string }
+    workingHours?: string
+  }) => {
+    const { data } = await adminApiInstance.patch('/admin/my-shop/profile', profile)
+    return data
+  },
+
+  // Seller Notifications
+  getMyShopNotifications: async () => {
+    const { data } = await adminApiInstance.get('/admin/my-shop/notifications')
+    return data
+  },
+
+  updateMyShopNotifications: async (notifications: {
+    newOrders?: boolean
+    orderDelivered?: boolean
+    newReviews?: boolean
+    lowStock?: boolean
+    disputes?: boolean
+    emailNotifications?: boolean
+  }) => {
+    const { data } = await adminApiInstance.patch('/admin/my-shop/notifications', notifications)
+    return data
+  },
+
+  // Delivery Templates
+  getDeliveryTemplates: async () => {
+    const { data } = await adminApiInstance.get('/admin/my-shop/delivery-templates')
+    return data
+  },
+
+  bulkUploadKeys: async (productId: string, keys: string) => {
+    const { data } = await adminApiInstance.post(`/admin/my-shop/products/${productId}/keys/bulk`, { keys })
+    return data
+  },
 }
 
 export const chatApi = {

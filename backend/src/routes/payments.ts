@@ -15,6 +15,7 @@ import { cactusPay, PaymentMethod } from '../cactuspay'
 import { validateBody, createCryptoInvoiceSchema, createCactusPaymentSchema, cancelPaymentSchema } from '../validation'
 import { convertRubToCrypto, CryptoAsset, getExchangeRates, refreshExchangeRates } from '../cryptoConverter'
 import { addOrder, updateOrder, getOrderById, Order, incrementPromoUsage } from '../dataStore'
+import { logActivity } from '../database'
 import { processAutoDelivery } from '../delivery'
 import { sendPaymentConfirmation, sendAdminNewOrderNotification } from '../email'
 import { logger } from '../logger'
@@ -174,6 +175,17 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       await addOrder(order, reqTenantId(request))
       console.log('Order created:', orderId)
 
+      // Log activity
+      await logActivity({
+        tenantId: reqTenantId(request),
+        userId: data.userId || 'anonymous',
+        username: data.userUsername ? `@${data.userUsername}` : data.userName,
+        action: 'order_created',
+        productId: data.productId,
+        productName: product?.name || 'Unknown',
+        metadata: { orderId, amount: data.amount, paymentMethod: 'cryptobot' }
+      })
+
       return {
         success: true,
         invoice: {
@@ -321,6 +333,17 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         if (updatedOrder) {
           logger.info({ orderId: order.id }, 'Order marked as paid')
 
+          // Log activity
+          await logActivity({
+            tenantId: order.tenantId || DEFAULT_TENANT_ID,
+            userId: order.userId || 'anonymous',
+            username: order.userUsername ? `@${order.userUsername}` : order.userName,
+            action: 'payment_completed',
+            productId: order.productId,
+            productName: order.productName,
+            metadata: { orderId: order.id, amount: order.amount, paymentMethod: 'cryptobot' }
+          })
+
           // Marketplace: Create escrow transaction
           try {
             await onOrderPaid(order.id)
@@ -358,6 +381,17 @@ export async function paymentRoutes(fastify: FastifyInstance) {
               orderId: order.id,
               delivered: true
             }, 'Auto-delivery successful')
+
+            // Log delivery activity
+            await logActivity({
+              tenantId: order.tenantId || DEFAULT_TENANT_ID,
+              userId: order.userId || 'anonymous',
+              username: order.userUsername ? `@${order.userUsername}` : order.userName,
+              action: 'order_delivered',
+              productId: order.productId,
+              productName: order.productName,
+              metadata: { orderId: order.id }
+            })
 
             // Marketplace: Update seller stats on delivery
             try {
@@ -610,6 +644,17 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       await addOrder(order, reqTenantId(request))
       console.log('XRocket order created:', orderId)
 
+      // Log activity
+      await logActivity({
+        tenantId: reqTenantId(request),
+        userId: userId || 'anonymous',
+        username: userUsername ? `@${userUsername}` : userName,
+        action: 'order_created',
+        productId,
+        productName: product?.name || 'Unknown',
+        metadata: { orderId, amount, paymentMethod: 'xrocket' }
+      })
+
       return {
         success: true,
         invoice: {
@@ -718,6 +763,17 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         if (updatedOrder) {
           logger.info({ orderId: order.id }, 'XRocket order marked as paid')
 
+          // Log activity
+          await logActivity({
+            tenantId: order.tenantId || DEFAULT_TENANT_ID,
+            userId: order.userId || 'anonymous',
+            username: order.userUsername ? `@${order.userUsername}` : order.userName,
+            action: 'payment_completed',
+            productId: order.productId,
+            productName: order.productName,
+            metadata: { orderId: order.id, amount: order.amount, paymentMethod: 'xrocket' }
+          })
+
           // Marketplace: Create escrow transaction
           try {
             await onOrderPaid(order.id)
@@ -747,6 +803,17 @@ export async function paymentRoutes(fastify: FastifyInstance) {
 
           if (deliveryResult.success) {
             logger.info({ orderId: order.id }, 'XRocket auto-delivery successful')
+
+            // Log delivery activity
+            await logActivity({
+              tenantId: order.tenantId || DEFAULT_TENANT_ID,
+              userId: order.userId || 'anonymous',
+              username: order.userUsername ? `@${order.userUsername}` : order.userName,
+              action: 'order_delivered',
+              productId: order.productId,
+              productName: order.productName,
+              metadata: { orderId: order.id }
+            })
 
             try {
               await onOrderDelivered(order.id)

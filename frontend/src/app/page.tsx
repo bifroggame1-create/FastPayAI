@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import Header from '@/components/Header'
 import SearchBar from '@/components/SearchBar'
-import CategoryFilter from '@/components/CategoryFilter'
 import ProductCard from '@/components/ProductCard'
 import BottomNav from '@/components/BottomNav'
 import PopularServices from '@/components/PopularServices'
@@ -54,7 +53,6 @@ export default function MarketPage() {
     <div className="min-h-screen bg-tg-bg pb-16">
       <Header />
       <SearchBar />
-      <CategoryFilter />
       <PopularServices />
 
       <div id="products-section" className="px-4 py-4">

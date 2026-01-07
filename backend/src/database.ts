@@ -605,7 +605,20 @@ export interface SellerApplication extends TenantScoped {
 }
 
 // Activity log action types for user activities
-export type ActivityAction = 'add_to_cart' | 'payment_started' | 'add_to_favorite' | 'remove_from_favorite' | 'view_product'
+export type ActivityAction =
+  | 'add_to_cart'
+  | 'remove_from_cart'
+  | 'payment_started'
+  | 'payment_completed'
+  | 'payment_failed'
+  | 'add_to_favorite'
+  | 'remove_from_favorite'
+  | 'view_product'
+  | 'order_created'
+  | 'order_delivered'
+  | 'review_created'
+  | 'chat_started'
+  | 'promo_applied'
 
 export interface ActivityLog extends TenantScoped {
   _id?: string | ObjectId
@@ -927,6 +940,45 @@ export function getKeyReplacementsCollection(): Collection<KeyReplacement> {
 
 export function getSellerApplicationsCollection(): Collection<SellerApplication> {
   return getDB().collection<SellerApplication>('sellerApplications')
+}
+
+export function getActivityLogsCollection(): Collection<ActivityLog> {
+  return getDB().collection<ActivityLog>('activity_logs')
+}
+
+// ============================================
+// ACTIVITY LOGGING
+// ============================================
+
+export interface LogActivityParams {
+  tenantId: string
+  userId: string
+  username?: string
+  action: ActivityAction
+  productId?: string
+  productName?: string
+  metadata?: Record<string, any>
+}
+
+/**
+ * Log user activity (add to cart, payment, favorite, etc.)
+ */
+export async function logActivity(params: LogActivityParams): Promise<ActivityLog> {
+  const log: ActivityLog = {
+    tenantId: params.tenantId,
+    id: `activity-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    timestamp: new Date().toISOString(),
+    userId: params.userId,
+    username: params.username,
+    action: params.action,
+    productId: params.productId,
+    productName: params.productName,
+    metadata: params.metadata
+  }
+
+  const collection = getActivityLogsCollection()
+  await collection.insertOne(log as any)
+  return log
 }
 
 // Close connection
