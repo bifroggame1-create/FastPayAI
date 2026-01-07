@@ -8,6 +8,10 @@ import path from 'path'
 // Load environment variables FIRST
 dotenv.config({ path: path.join(__dirname, '../.env') })
 
+// Initialize Sentry BEFORE anything else
+import { initSentry, Sentry, captureError } from './sentry'
+initSentry()
+
 // Import after env vars are loaded
 import { connectDB, ensureDefaultTenant } from './database'
 import { loadProducts, saveProducts, loadPromoCodes, savePromoCodes } from './dataStore'
@@ -50,6 +54,28 @@ console.log('='.repeat(60))
 const fastify = Fastify({
   logger: loggerConfig,
   disableRequestLogging: false,
+})
+
+// Global error handler - send to Sentry
+fastify.setErrorHandler((error, request, reply) => {
+  // Log error with context
+  captureError(error, {
+    url: request.url,
+    method: request.method,
+    params: request.params,
+    query: request.query,
+    tenantId: request.tenantId,
+    userId: (request as any).user?.id,
+  })
+
+  // Log locally too
+  fastify.log.error(error, `Error on ${request.method} ${request.url}`)
+
+  // Send response
+  reply.status(error.statusCode || 500).send({
+    success: false,
+    error: error.message || 'Internal Server Error',
+  })
 })
 
 // Decorate fastify with shared data
@@ -176,8 +202,26 @@ async function start() {
     console.log(`🚀 Server running at http://${host}:${port}`)
     console.log(`📚 API docs available at http://${host}:${port}/docs`)
 
+    // Graceful shutdown handler
+    const shutdown = async (signal: string) => {
+      console.log(`\n${signal} received, shutting down gracefully...`)
+
+      // Flush Sentry events
+      await Sentry.close(2000)
+
+      // Close Fastify
+      await fastify.close()
+      console.log('Server closed')
+      process.exit(0)
+    }
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'))
+    process.on('SIGINT', () => shutdown('SIGINT'))
+
   } catch (error) {
     console.error('❌ Failed to start server:', error)
+    captureError(error as Error, { phase: 'startup' })
+    await Sentry.close(2000)
     process.exit(1)
   }
 }
