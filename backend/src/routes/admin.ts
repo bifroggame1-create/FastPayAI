@@ -319,7 +319,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
           }
           return null
         })
-        .filter((k): k is string | { key: string; type: 'text' | 'file' | 'image'; fileUrl?: string; fileName?: string } => k !== null)
+        .filter((k): k is NonNullable<typeof k> => k !== null)
 
       if (validKeys.length === 0) {
         reply.code(400)

@@ -148,6 +148,50 @@ class RedisCache {
     }
   }
 
+  // Alias for set with TTL (for backward compatibility)
+  async setex(key: string, ttlSeconds: number, value: any): Promise<boolean> {
+    return this.set(key, value, ttlSeconds)
+  }
+
+  // Increment counter
+  async incr(key: string): Promise<number | null> {
+    if (!this.isConnected || !this.client) return null
+
+    try {
+      const result = await this.client.incr(key)
+      return result
+    } catch (error) {
+      console.error('Redis incr error:', error)
+      return null
+    }
+  }
+
+  // Set expiration time
+  async expire(key: string, ttlSeconds: number): Promise<boolean> {
+    if (!this.isConnected || !this.client) return false
+
+    try {
+      await this.client.expire(key, ttlSeconds)
+      return true
+    } catch (error) {
+      console.error('Redis expire error:', error)
+      return false
+    }
+  }
+
+  // Get TTL for a key
+  async ttl(key: string): Promise<number | null> {
+    if (!this.isConnected || !this.client) return null
+
+    try {
+      const result = await this.client.ttl(key)
+      return result
+    } catch (error) {
+      console.error('Redis ttl error:', error)
+      return null
+    }
+  }
+
   async invalidateProducts(): Promise<void> {
     await this.del(CACHE_KEYS.PRODUCTS)
     await this.delPattern('products:*')
