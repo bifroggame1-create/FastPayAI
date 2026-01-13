@@ -306,6 +306,7 @@ export default function AdminPage() {
   const [myShopStats, setMyShopStats] = useState<any>(null)
   const [myShopProducts, setMyShopProducts] = useState<Product[]>([])
   const [myShopOrders, setMyShopOrders] = useState<any[]>([])
+  const [selectedSellerId, setSelectedSellerId] = useState<string | undefined>(undefined)
 
   // Activity logs state
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
@@ -1070,12 +1071,37 @@ export default function AdminPage() {
                           <tr key={order.id} className="border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028]">
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-xs text-white">
+                                {order.userAvatar ? (
+                                  <img
+                                    src={order.userAvatar}
+                                    alt={order.userName || order.userUsername || 'User'}
+                                    className="w-8 h-8 rounded-full object-cover"
+                                    onError={(e) => {
+                                      // Fallback to placeholder if image fails to load
+                                      e.currentTarget.style.display = 'none'
+                                      e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                                    }}
+                                  />
+                                ) : null}
+                                <div
+                                  className={`w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-xs text-white ${order.userAvatar ? 'hidden' : ''}`}
+                                >
                                   {(order.userName || order.userUsername || 'U').charAt(0).toUpperCase()}
                                 </div>
                                 <div>
                                   <div className="text-sm text-white">{order.userName || order.userUsername || 'Аноним'}</div>
-                                  <div className="text-xs text-gray-500">{order.userId}</div>
+                                  {order.userUsername ? (
+                                    <a
+                                      href={`https://t.me/${order.userUsername}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+                                    >
+                                      @{order.userUsername}
+                                    </a>
+                                  ) : (
+                                    <div className="text-xs text-gray-500">{order.userId}</div>
+                                  )}
                                 </div>
                               </div>
                             </td>
@@ -1387,12 +1413,35 @@ export default function AdminPage() {
                         <tr key={u.id} className="border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028]">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center text-xs text-blue-400">
+                              {u.avatar ? (
+                                <img
+                                  src={u.avatar}
+                                  alt={u.firstName || u.username || 'User'}
+                                  className="w-8 h-8 rounded-full object-cover"
+                                  onError={(e) => {
+                                    // Fallback to placeholder if image fails to load
+                                    e.currentTarget.style.display = 'none'
+                                    e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                                  }}
+                                />
+                              ) : null}
+                              <div
+                                className={`w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center text-xs text-blue-400 ${u.avatar ? 'hidden' : ''}`}
+                              >
                                 {(u.firstName || u.username || 'U').charAt(0).toUpperCase()}
                               </div>
                               <div>
                                 <div className="text-sm text-white">{u.firstName} {u.lastName || ''}</div>
-                                {u.username && <div className="text-xs text-gray-500">@{u.username}</div>}
+                                {u.username && (
+                                  <a
+                                    href={`https://t.me/${u.username}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+                                  >
+                                    @{u.username}
+                                  </a>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -1910,16 +1959,30 @@ export default function AdminPage() {
                           const newMethods = paymentMethods.includes(method.id)
                             ? paymentMethods.filter(m => m !== method.id)
                             : [...paymentMethods, method.id]
+
+                          console.log('[PaymentMethods] Updating:', { from: paymentMethods, to: newMethods })
+
                           try {
                             const result = await adminApi.updatePaymentMethods(newMethods)
+                            console.log('[PaymentMethods] Result:', result)
+
                             if (result.success) {
                               setPaymentMethods(newMethods)
+                              console.log('[PaymentMethods] Updated successfully')
                             } else {
-                              alert('Ошибка сохранения: ' + (result.error || 'Неизвестная ошибка'))
+                              const errorMsg = 'Ошибка сохранения: ' + (result.error || 'Неизвестная ошибка')
+                              console.error('[PaymentMethods] Error from API:', result.error)
+                              alert(errorMsg)
                             }
                           } catch (e: any) {
-                            console.error('Failed to update payment methods:', e)
-                            alert('Ошибка сохранения настроек')
+                            console.error('[PaymentMethods] Exception:', e)
+                            console.error('[PaymentMethods] Response:', e.response?.data)
+                            console.error('[PaymentMethods] Status:', e.response?.status)
+
+                            const errorMsg = e.response?.data?.error
+                              || e.message
+                              || 'Ошибка сохранения настроек'
+                            alert('Ошибка: ' + errorMsg)
                           }
                         }}
                       />
@@ -1988,7 +2051,46 @@ export default function AdminPage() {
           {/* My Shop Tab */}
           {activeTab === 'myshop' && (
             <div className="space-y-6">
-              <h1 className="text-xl font-semibold text-white">Мой магазин</h1>
+              <div className="flex items-center justify-between">
+                <h1 className="text-xl font-semibold text-white">Мой магазин</h1>
+
+                {/* Admin: Seller Selector */}
+                {isAdmin && sellers.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-400">Просмотр магазина:</span>
+                    <select
+                      value={selectedSellerId || ''}
+                      onChange={async (e) => {
+                        const sellerId = e.target.value || undefined
+                        setSelectedSellerId(sellerId)
+
+                        // Reload shop data for selected seller
+                        try {
+                          const params = sellerId ? `?sellerId=${sellerId}` : ''
+                          const [productsRes, ordersRes, statsRes] = await Promise.all([
+                            adminApi.getMyShopProducts(sellerId),
+                            adminApi.getMyShopOrders(sellerId),
+                            adminApi.getMyShopStats(sellerId)
+                          ])
+                          setMyShopProducts(productsRes?.products || [])
+                          setMyShopOrders(ordersRes?.orders || [])
+                          setMyShopStats(statsRes?.stats || null)
+                        } catch (err) {
+                          console.error('Failed to load seller data:', err)
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white focus:outline-none focus:border-blue-500/50"
+                    >
+                      <option value="">Мой магазин</option>
+                      {sellers.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} (ID: {s.id})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
 
               {/* Stats Cards - using seller-specific data */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

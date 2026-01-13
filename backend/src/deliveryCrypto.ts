@@ -8,9 +8,22 @@ const KEY_LENGTH = 32
 // Get encryption key from environment
 function getKey(): Buffer {
   const secret = process.env.DELIVERY_SECRET
+
   if (!secret) {
-    throw new Error('DELIVERY_SECRET environment variable is required')
+    // CRITICAL: In production, delivery secrets MUST be encrypted
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('❌ DELIVERY_SECRET is REQUIRED in production for secure key storage')
+    }
+
+    // In development: generate temporary key (but warn loudly)
+    console.warn('⚠️⚠️⚠️ DELIVERY_SECRET not set! Keys will NOT be encrypted!')
+    console.warn('⚠️⚠️⚠️ This is ONLY acceptable in development. SET IT IN PRODUCTION!')
+
+    // Use a deterministic dev key based on project path
+    const devSecret = 'dev-delivery-secret-' + crypto.createHash('sha256').update(__dirname).digest('hex')
+    return crypto.createHash('sha256').update(devSecret).digest()
   }
+
   // Derive 32-byte key from secret using SHA-256
   return crypto.createHash('sha256').update(secret).digest()
 }

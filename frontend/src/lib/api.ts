@@ -750,18 +750,21 @@ export const adminApi = {
   },
 
   // My Shop (Seller Dashboard)
-  getMyShopProducts: async () => {
-    const { data } = await adminApiInstance.get('/admin/my-shop/products')
+  getMyShopProducts: async (sellerId?: string) => {
+    const params = sellerId ? { sellerId } : {}
+    const { data } = await adminApiInstance.get('/admin/my-shop/products', { params })
     return data
   },
 
-  getMyShopOrders: async () => {
-    const { data } = await adminApiInstance.get('/admin/my-shop/orders')
+  getMyShopOrders: async (sellerId?: string) => {
+    const params = sellerId ? { sellerId } : {}
+    const { data } = await adminApiInstance.get('/admin/my-shop/orders', { params })
     return data
   },
 
-  getMyShopStats: async () => {
-    const { data } = await adminApiInstance.get('/admin/my-shop/stats')
+  getMyShopStats: async (sellerId?: string) => {
+    const params = sellerId ? { sellerId } : {}
+    const { data } = await adminApiInstance.get('/admin/my-shop/stats', { params })
     return data
   },
 

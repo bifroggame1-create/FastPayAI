@@ -3,10 +3,18 @@ import jwt from 'jsonwebtoken'
 import { FastifyRequest, FastifyReply } from 'fastify'
 
 // JWT secret - REQUIRED in production
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error('❌ JWT_SECRET environment variable is required in production')
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('❌ JWT_SECRET environment variable is REQUIRED in production')
+  }
+  // In development, use a consistent dev secret (not random to preserve sessions)
+  console.warn('⚠️ JWT_SECRET not set, using development default. SET IT IN PRODUCTION!')
+  const DEV_SECRET = 'dev-secret-do-not-use-in-production-' + crypto.createHash('sha256').update(__dirname).digest('hex')
+  module.exports.JWT_SECRET = DEV_SECRET
+} else {
+  module.exports.JWT_SECRET = JWT_SECRET
 }
-const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex')
 const JWT_EXPIRES_IN = '7d'
 
 // Telegram Bot Token for WebApp validation
@@ -30,8 +38,16 @@ export interface JWTPayload {
   exp?: number
 }
 
-// Admin user IDs (should be set via environment variable)
-const ADMIN_IDS = (process.env.ADMIN_IDS || '1301598469').split(',').map(id => id.trim())
+// Admin user IDs (REQUIRED - no default for security)
+const ADMIN_IDS_STRING = process.env.ADMIN_IDS || ''
+if (!ADMIN_IDS_STRING && process.env.NODE_ENV === 'production') {
+  console.error('❌ ADMIN_IDS environment variable is REQUIRED in production')
+  throw new Error('ADMIN_IDS must be set in production')
+}
+const ADMIN_IDS = ADMIN_IDS_STRING.split(',').map(id => id.trim()).filter(id => id.length > 0)
+if (ADMIN_IDS.length === 0) {
+  console.warn('⚠️ No ADMIN_IDS configured - admin features will be disabled')
+}
 
 /**
  * Validate Telegram WebApp initData
@@ -116,7 +132,8 @@ export function generateToken(user: TelegramUser): string {
     isAdmin: ADMIN_IDS.includes(String(user.id))
   }
 
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
+  const secret = module.exports.JWT_SECRET || JWT_SECRET
+  return jwt.sign(payload, secret, { expiresIn: JWT_EXPIRES_IN })
 }
 
 /**
@@ -124,7 +141,8 @@ export function generateToken(user: TelegramUser): string {
  */
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload
+    const secret = module.exports.JWT_SECRET || JWT_SECRET
+    return jwt.verify(token, secret) as JWTPayload
   } catch (error) {
     return null
   }

@@ -647,9 +647,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
         return {
           id: user._id?.toString() || user.id,
-          oderId: user.id,
+          orderId: user.id, // Fixed typo: was 'oderId'
           telegramId: user.id,
-          username: user.username,
+          username: user.username, // Telegram @username
+          avatar: user.avatar, // Telegram avatar URL
           firstName: user.name?.split(' ')[0] || user.name,
           lastName: user.name?.split(' ').slice(1).join(' ') || '',
           isBlocked: user.isBlocked || false,
@@ -657,7 +658,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
           isPremium: user.isPremium || false,
           ordersCount: orderStats[0]?.count || 0,
           totalSpent: orderStats[0]?.total || 0,
-          createdAt: user.createdAt
+          createdAt: user.createdAt,
+          lastSeen: user.lastSeen
         }
       }))
 
@@ -930,9 +932,33 @@ export async function adminRoutes(fastify: FastifyInstance) {
         countOrders(filters, reqTenantId(request))
       ])
 
+      // Enrich orders with user avatars
+      const enrichedOrders = await Promise.all(orders.map(async (order: any) => {
+        if (order.userId) {
+          try {
+            const user = await getUsersCollection().findOne({
+              id: order.userId,
+              tenantId: reqTenantId(request)
+            })
+            if (user) {
+              return {
+                ...order,
+                userAvatar: user.avatar,
+                // Also update username if it changed since order creation
+                userUsername: user.username || order.userUsername
+              }
+            }
+          } catch (err) {
+            // If user lookup fails, just return order as-is
+            fastify.log.warn({ userId: order.userId, error: err }, 'Failed to lookup user for order')
+          }
+        }
+        return order
+      }))
+
       return {
         success: true,
-        orders,
+        orders: enrichedOrders,
         total,
         limit: query.limit,
         offset: query.offset
@@ -2040,7 +2066,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const { enabledMethods } = request.body as { enabledMethods: string[] }
       const tenantId = reqTenantId(request)
 
+      fastify.log.info({ tenantId, enabledMethods }, 'Updating payment methods')
+
       if (!enabledMethods || !Array.isArray(enabledMethods)) {
+        fastify.log.warn({ enabledMethods }, 'Invalid enabledMethods format')
         reply.code(400)
         return { success: false, error: 'enabledMethods array is required' }
       }
@@ -2049,16 +2078,36 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const validMethods = ['cryptobot', 'xrocket', 'telegram-stars', 'cactuspay-sbp', 'cactuspay-card']
       const filteredMethods = enabledMethods.filter(m => validMethods.includes(m))
 
+      fastify.log.info({ tenantId, filteredMethods }, 'Filtered methods')
+
       const { getTenantsCollection } = await import('../database')
+
+      // Check if tenant exists first
+      const existingTenant = await getTenantsCollection().findOne({ id: tenantId })
+      fastify.log.info({ tenantId, exists: !!existingTenant }, 'Tenant lookup result')
+
+      if (!existingTenant) {
+        fastify.log.error({ tenantId }, 'Tenant not found for payment methods update')
+        reply.code(404)
+        return { success: false, error: `Tenant '${tenantId}' not found. Please contact support.` }
+      }
+
+      // Update payment methods
       const updateResult = await getTenantsCollection().updateOne(
         { id: tenantId },
-        { $set: { 'paymentConfig.enabledMethods': filteredMethods } },
-        { upsert: true }
+        { $set: { 'paymentConfig.enabledMethods': filteredMethods } }
       )
 
-      if (updateResult.matchedCount === 0 && updateResult.upsertedCount === 0) {
+      fastify.log.info({
+        tenantId,
+        matchedCount: updateResult.matchedCount,
+        modifiedCount: updateResult.modifiedCount
+      }, 'Update result')
+
+      if (updateResult.matchedCount === 0) {
+        fastify.log.error({ tenantId }, 'Tenant not matched during update')
         reply.code(500)
-        return { success: false, error: 'Failed to update payment methods' }
+        return { success: false, error: 'Failed to update payment methods - tenant not found' }
       }
 
       // Log the action
@@ -2071,8 +2120,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
         changes: { after: { enabledMethods: filteredMethods } }
       })
 
+      fastify.log.info({ tenantId, enabledMethods: filteredMethods }, 'Payment methods updated successfully')
       return { success: true, enabledMethods: filteredMethods }
     } catch (error: any) {
+      fastify.log.error({ err: error }, 'Error updating payment methods')
       reply.code(500)
       return { success: false, error: error.message }
     }
@@ -2111,11 +2162,18 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // MY SHOP (SELLER DASHBOARD)
   // ============================================
 
-  // Get seller's own products
+  // Get seller's own products (or any seller's if admin provides sellerId)
   fastify.get('/admin/my-shop/products', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
       const user = (request as any).user
-      const sellerId = user?.userId || user?.id
+      const query = request.query as { sellerId?: string }
+
+      // Admins can view any seller's products by providing sellerId parameter
+      let sellerId = user?.userId || user?.id
+      if (query.sellerId && user?.isAdmin) {
+        sellerId = query.sellerId
+        fastify.log.info({ adminId: user?.userId, viewingSellerId: sellerId }, 'Admin viewing seller products')
+      }
 
       if (!sellerId) {
         reply.code(401)
@@ -2135,11 +2193,18 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Get seller's own orders
+  // Get seller's own orders (or any seller's if admin provides sellerId)
   fastify.get('/admin/my-shop/orders', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
       const user = (request as any).user
-      const sellerId = user?.userId || user?.id
+      const query = request.query as { sellerId?: string }
+
+      // Admins can view any seller's orders by providing sellerId parameter
+      let sellerId = user?.userId || user?.id
+      if (query.sellerId && user?.isAdmin) {
+        sellerId = query.sellerId
+        fastify.log.info({ adminId: user?.userId, viewingSellerId: sellerId }, 'Admin viewing seller orders')
+      }
 
       if (!sellerId) {
         reply.code(401)
@@ -2173,11 +2238,18 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Get seller's stats
+  // Get seller's stats (or any seller's if admin provides sellerId)
   fastify.get('/admin/my-shop/stats', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
       const user = (request as any).user
-      const sellerId = user?.userId || user?.id
+      const query = request.query as { sellerId?: string }
+
+      // Admins can view any seller's stats by providing sellerId parameter
+      let sellerId = user?.userId || user?.id
+      if (query.sellerId && user?.isAdmin) {
+        sellerId = query.sellerId
+        fastify.log.info({ adminId: user?.userId, viewingSellerId: sellerId }, 'Admin viewing seller stats')
+      }
 
       if (!sellerId) {
         reply.code(401)

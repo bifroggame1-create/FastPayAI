@@ -54,6 +54,7 @@ console.log('='.repeat(60))
 const fastify = Fastify({
   logger: loggerConfig,
   disableRequestLogging: false,
+  trustProxy: true, // Trust X-Forwarded-For for rate limiting behind proxy
 })
 
 // Global error handler - send to Sentry
@@ -132,8 +133,9 @@ async function start() {
     fastify.decorate('products', products)
     fastify.decorate('promoCodes', promoCodes)
 
-    // Register rate limiting
+    // Register GLOBAL rate limiting (100 req/min per IP)
     await fastify.register(rateLimit, {
+      global: true,
       max: 100,
       timeWindow: '1 minute',
       keyGenerator: (request) => request.ip || 'unknown',
@@ -142,6 +144,89 @@ async function start() {
         error: 'Too many requests. Please try again later.',
         retryAfter: context.after
       })
+    })
+
+    // STRICTER rate limits for critical endpoints
+    // This hook applies BEFORE routes, adding custom limits
+    fastify.addHook('onRequest', async (request, reply) => {
+      const url = request.url
+
+      // Payment endpoints: 10 requests per minute per IP
+      if (url.startsWith('/payment/create') || url.startsWith('/payment/cactuspay')) {
+        const key = `payment:${request.ip}`
+        const count = await redis.incr(key)
+
+        if (count === 1) {
+          await redis.expire(key, 60) // 60 seconds TTL
+        }
+
+        if (count > 10) {
+          reply.code(429).send({
+            success: false,
+            error: 'Too many payment requests. Limit: 10 per minute.',
+            retryAfter: await redis.ttl(key)
+          })
+          return
+        }
+      }
+
+      // Admin endpoints: 30 requests per minute per IP
+      if (url.startsWith('/admin/')) {
+        const key = `admin:${request.ip}`
+        const count = await redis.incr(key)
+
+        if (count === 1) {
+          await redis.expire(key, 60)
+        }
+
+        if (count > 30) {
+          reply.code(429).send({
+            success: false,
+            error: 'Too many admin requests. Limit: 30 per minute.',
+            retryAfter: await redis.ttl(key)
+          })
+          return
+        }
+      }
+
+      // Auth endpoints: 5 requests per minute per IP
+      if (url.startsWith('/auth/')) {
+        const key = `auth:${request.ip}`
+        const count = await redis.incr(key)
+
+        if (count === 1) {
+          await redis.expire(key, 60)
+        }
+
+        if (count > 5) {
+          reply.code(429).send({
+            success: false,
+            error: 'Too many authentication attempts. Limit: 5 per minute.',
+            retryAfter: await redis.ttl(key)
+          })
+          return
+        }
+      }
+
+      // Webhook endpoint: 100 requests per minute per IP (allow burst from payment providers)
+      if (url.startsWith('/payment/webhook')) {
+        const key = `webhook:${request.ip}`
+        const count = await redis.incr(key)
+
+        if (count === 1) {
+          await redis.expire(key, 60)
+        }
+
+        if (count > 100) {
+          fastify.log.warn({ ip: request.ip, url }, 'Webhook rate limit exceeded - possible attack')
+          reply.code(429).send({
+            success: false,
+            error: 'Too many webhook requests',
+            retryAfter: await redis.ttl(key)
+          })
+          return
+        }
+      }
     })
 
     // CORS configuration

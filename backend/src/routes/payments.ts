@@ -294,6 +294,19 @@ export async function paymentRoutes(fastify: FastifyInstance) {
           paidAt: payload.paid_at,
         }, 'CryptoBot payment confirmed')
 
+        // IDEMPOTENCY: Check if webhook already processed
+        const webhookId = `cryptobot:${payload.invoice_id}:${payload.paid_at}`
+        const { redis } = await import('../redis')
+        const alreadyProcessed = await redis.get(`webhook:${webhookId}`)
+
+        if (alreadyProcessed) {
+          logger.info({ webhookId }, 'Webhook already processed (idempotency check)')
+          return { success: true, status: 'already_processed' }
+        }
+
+        // Mark webhook as processing (with 24h TTL to prevent reprocessing)
+        await redis.setex(`webhook:${webhookId}`, 86400, 'processing')
+
         // Parse custom payload
         let customPayload: any = {}
         try {
@@ -321,7 +334,9 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         // SECURITY: Check if order already processed (prevent duplicate delivery)
         if (order.status === 'paid' || order.status === 'delivered') {
           logger.info({ orderId: order.id, status: order.status }, 'Order already processed, skipping')
-          return { success: true }
+          // Mark webhook as successfully processed
+          await redis.setex(`webhook:${webhookId}`, 86400, 'completed')
+          return { success: true, status: 'already_paid' }
         }
 
         // Update order status to paid
@@ -734,6 +749,20 @@ export async function paymentRoutes(fastify: FastifyInstance) {
           currency: webhookData.currency,
         }, 'XRocket payment confirmed')
 
+        // IDEMPOTENCY - Check if webhook already processed
+        const webhookTimestamp = webhookData.created_at || Date.now()
+        const webhookId = `xrocket:${invoiceId}:${webhookTimestamp}`
+        const { redis } = await import('../redis')
+        const alreadyProcessed = await redis.get(`webhook:${webhookId}`)
+
+        if (alreadyProcessed) {
+          logger.info({ webhookId }, 'XRocket webhook already processed (idempotency check)')
+          return { success: true, status: 'already_processed' }
+        }
+
+        // Mark webhook as processing (with 24h TTL to prevent reprocessing)
+        await redis.setex(`webhook:${webhookId}`, 86400, 'processing')
+
         // Find order
         let order = await getOrderById(payload.orderId)
 
@@ -751,7 +780,8 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         // SECURITY: Check if order already processed
         if (order.status === 'paid' || order.status === 'delivered') {
           logger.info({ orderId: order.id, status: order.status }, 'Order already processed, skipping')
-          return { success: true }
+          await redis.setex(`webhook:${webhookId}`, 86400, 'completed')
+          return { success: true, status: 'already_paid' }
         }
 
         // Update order status to paid
@@ -1424,6 +1454,19 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         return { success: true }
       }
 
+      // IDEMPOTENCY - Check if webhook already processed (check BEFORE expensive operations)
+      const webhookId = `cactuspay:${order_id}:${id}`
+      const { redis } = await import('../redis')
+      const alreadyProcessed = await redis.get(`webhook:${webhookId}`)
+
+      if (alreadyProcessed) {
+        logger.info({ webhookId }, 'CactusPay webhook already processed (idempotency check)')
+        return { success: true, status: 'already_processed' }
+      }
+
+      // Mark webhook as processing (with 24h TTL to prevent reprocessing)
+      await redis.setex(`webhook:${webhookId}`, 86400, 'processing')
+
       // Get order first to check if already processed
       const existingOrder = await getOrderById(order_id)
       if (!existingOrder) {
@@ -1434,7 +1477,8 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       // SECURITY: Check if order already processed (prevent duplicate delivery)
       if (existingOrder.status === 'paid' || existingOrder.status === 'delivered') {
         logger.info({ orderId: order_id, status: existingOrder.status }, 'Order already processed, skipping')
-        return { success: true }
+        await redis.setex(`webhook:${webhookId}`, 86400, 'completed')
+        return { success: true, status: 'already_paid' }
       }
 
       // SECURITY: Verify payment status via CactusPay API (don't trust webhook data)
