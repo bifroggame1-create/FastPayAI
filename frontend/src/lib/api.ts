@@ -503,8 +503,22 @@ export const adminApi = {
     return data
   },
 
-  addDeliveryKeys: async (productId: string, keys: string[], variantId?: string) => {
+  addDeliveryKeys: async (
+    productId: string,
+    keys: Array<string | {
+      key: string
+      type?: 'text' | 'file' | 'image'
+      fileUrl?: string
+      fileName?: string
+    }>,
+    variantId?: string
+  ) => {
     const { data } = await adminApiInstance.post(`/admin/products/${productId}/delivery/keys`, { keys, variantId })
+    return data
+  },
+
+  getDeliveryStats: async (productId: string) => {
+    const { data } = await adminApiInstance.get(`/admin/products/${productId}/delivery`)
     return data
   },
 
