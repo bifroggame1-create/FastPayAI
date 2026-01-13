@@ -266,6 +266,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
         keys: product?.deliveryKeys?.map((k: any) => ({
           id: k.id,
           key: k.isUsed ? '***' : k.key,
+          type: k.type || 'text',
+          fileUrl: k.fileUrl,
+          fileName: k.fileName,
           variantId: k.variantId,
           isUsed: k.isUsed,
           usedByOrderId: k.usedByOrderId,
@@ -279,26 +282,51 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Add delivery keys to a product
+  // Add delivery keys to a product (supports text, file, and image types)
   fastify.post('/admin/products/:id/delivery/keys', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
       const { id } = request.params as any
-      const { keys, variantId } = request.body as { keys: string[]; variantId?: string }
+      const { keys, variantId } = request.body as {
+        keys: Array<string | {
+          key: string
+          type?: 'text' | 'file' | 'image'
+          fileUrl?: string
+          fileName?: string
+        }>
+        variantId?: string
+      }
 
       if (!keys || !Array.isArray(keys) || keys.length === 0) {
         reply.code(400)
         return { success: false, error: 'Keys array is required' }
       }
 
-      // Filter out empty keys
-      const validKeys = keys.map(k => k.trim()).filter(k => k.length > 0)
+      // Process keys - support both string[] (legacy) and objects (new format)
+      const validKeys = keys
+        .map(k => {
+          if (typeof k === 'string') {
+            const trimmed = k.trim()
+            return trimmed.length > 0 ? trimmed : null
+          } else if (k && typeof k === 'object') {
+            // New format with type support
+            if (!k.key || k.key.trim().length === 0) return null
+            return {
+              key: k.key.trim(),
+              type: k.type || 'text',
+              fileUrl: k.fileUrl,
+              fileName: k.fileName
+            }
+          }
+          return null
+        })
+        .filter((k): k is string | { key: string; type: 'text' | 'file' | 'image'; fileUrl?: string; fileName?: string } => k !== null)
 
       if (validKeys.length === 0) {
         reply.code(400)
         return { success: false, error: 'No valid keys provided' }
       }
 
-      const addedKeys = await addDeliveryKeys(id, validKeys, variantId)
+      const addedKeys = await addDeliveryKeys(id, validKeys as any, variantId)
 
       // Log the action
       const adminInfo = getAdminInfo(request)
@@ -309,7 +337,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
         entityId: id,
         metadata: {
           keysAdded: addedKeys.length,
-          variantId
+          variantId,
+          types: addedKeys.map(k => k.type || 'text')
         }
       })
 

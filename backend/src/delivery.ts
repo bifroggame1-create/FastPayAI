@@ -131,18 +131,34 @@ export async function countAvailableKeys(
  */
 export async function addDeliveryKeys(
   productId: string,
-  keys: string[],
+  keys: string[] | DeliveryKey[],
   variantId?: string
 ): Promise<DeliveryKey[]> {
   const products = getProductsCollection()
 
-  const newKeys: DeliveryKey[] = keys.map(key => ({
-    id: `key_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    key: key.trim(),
-    variantId,
-    isUsed: false,
-    addedAt: new Date().toISOString()
-  }))
+  // Support both string[] (legacy) and DeliveryKey[] (new)
+  const newKeys: DeliveryKey[] = keys.map((key) => {
+    if (typeof key === 'string') {
+      // Legacy format: string keys
+      return {
+        id: `key_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        key: key.trim(),
+        type: 'text',
+        variantId,
+        isUsed: false,
+        addedAt: new Date().toISOString()
+      }
+    } else {
+      // New format: DeliveryKey objects
+      return {
+        ...key,
+        id: key.id || `key_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        variantId: key.variantId || variantId,
+        isUsed: false,
+        addedAt: new Date().toISOString()
+      }
+    }
+  })
 
   await products.updateOne(
     { _id: productId },
