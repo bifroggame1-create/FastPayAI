@@ -124,12 +124,14 @@ export function validateTelegramWebAppData(initData: string): TelegramUser | nul
 
 /**
  * Generate JWT token for user
+ * Note: isAdmin flag in JWT is set at login time.
+ * For real-time admin status, always check with isAdmin() function or use adminMiddleware.
  */
-export function generateToken(user: TelegramUser): string {
+export async function generateToken(user: TelegramUser): Promise<string> {
   const payload: JWTPayload = {
     userId: String(user.id),
     username: user.username,
-    isAdmin: ADMIN_IDS.includes(String(user.id))
+    isAdmin: await isAdmin(String(user.id), user.username)
   }
 
   const secret = module.exports.JWT_SECRET || JWT_SECRET
@@ -210,8 +212,8 @@ export async function adminMiddleware(
     return
   }
 
-  // Check if user is admin (from JWT payload or ADMIN_IDS env var)
-  const isUserAdmin = payload.isAdmin || ADMIN_IDS.includes(payload.userId)
+  // Check if user is admin (from JWT payload, ADMIN_IDS env var, or database)
+  const isUserAdmin = payload.isAdmin || ADMIN_IDS.includes(payload.userId) || await isAdmin(payload.userId, payload.username)
 
   if (!isUserAdmin) {
     console.log('🔐 Admin access DENIED - not an admin:', payload.userId)
@@ -221,7 +223,7 @@ export async function adminMiddleware(
 
   // Add user info to request
   ;(request as any).user = { ...payload, isAdmin: true }
-  console.log('🔐 Admin access granted via JWT:', payload.userId)
+  console.log('🔐 Admin access granted:', payload.userId, payload.username)
 }
 
 /**
@@ -242,10 +244,36 @@ export async function optionalAuthMiddleware(
 }
 
 /**
- * Check if user ID is admin
+ * Check if user ID is admin (checks both env var and database)
  */
-export function isAdmin(userId: string): boolean {
-  return ADMIN_IDS.includes(userId)
+export async function isAdmin(userId: string, username?: string): Promise<boolean> {
+  // Check ADMIN_IDS environment variable first
+  if (ADMIN_IDS.includes(userId)) {
+    return true
+  }
+
+  // Dynamic import to avoid circular dependency
+  try {
+    const { getAdminByUserId, getAdminByUsername } = await import('./dataStore')
+
+    // Check database for admin by userId
+    const adminByUserId = await getAdminByUserId(userId)
+    if (adminByUserId) {
+      return true
+    }
+
+    // Check database for admin by username
+    if (username) {
+      const adminByUsername = await getAdminByUsername(username.toLowerCase())
+      if (adminByUsername) {
+        return true
+      }
+    }
+  } catch (error) {
+    console.error('Error checking admin status from database:', error)
+  }
+
+  return false
 }
 
 // Log configuration on startup

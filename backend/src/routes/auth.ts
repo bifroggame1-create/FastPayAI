@@ -124,7 +124,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         } else if (process.env.NODE_ENV !== 'production' && isLocalhost && process.env.ALLOW_DEV_AUTH === 'true') {
           // SECURITY: Dev auth requires explicit ALLOW_DEV_AUTH=true AND localhost
           console.warn('⚠️ [LOCALHOST ONLY] Using mock dev auth - set ALLOW_DEV_AUTH=false to disable')
-          const mockToken = generateToken({
+          const mockToken = await generateToken({
             id: 123456789,
             first_name: 'Dev',
             username: 'devuser'
@@ -148,7 +148,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       // At this point user is guaranteed to be non-null
       const validUser = user!
-      const token = generateToken(validUser)
+      const token = await generateToken(validUser)
 
       // Check if user is admin (bootstrap IDs or in database)
       const isAdmin = await checkIsAdmin(String(validUser.id), validUser.username)
