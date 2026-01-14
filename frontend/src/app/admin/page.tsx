@@ -104,6 +104,7 @@ type SellerBadge = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume'
 interface Seller {
   id: string
   name: string
+  shopName?: string
   avatar: string
   rating: number
   isVerified?: boolean
@@ -309,6 +310,9 @@ export default function AdminPage() {
   const [myShopProducts, setMyShopProducts] = useState<Product[]>([])
   const [myShopOrders, setMyShopOrders] = useState<any[]>([])
   const [selectedSellerId, setSelectedSellerId] = useState<string | undefined>(undefined)
+
+  // Seller selector dropdown state
+  const [sellerDropdownOpen, setSellerDropdownOpen] = useState(false)
 
   // Activity logs state
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
@@ -898,8 +902,79 @@ export default function AdminPage() {
             <button className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#1a1d27] transition-colors hidden sm:block">
               {Icons.settings}
             </button>
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-xs font-medium">A</span>
+
+            {/* Admin Seller Selector */}
+            <div className="relative">
+              <button
+                onClick={() => setSellerDropdownOpen(!sellerDropdownOpen)}
+                className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
+              >
+                <span className="text-white text-xs font-medium">
+                  {selectedSellerId ? sellers.find(s => s.id === selectedSellerId)?.name.charAt(0).toUpperCase() : 'A'}
+                </span>
+              </button>
+
+              {/* Dropdown */}
+              {sellerDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setSellerDropdownOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-64 bg-[#1a1d27] border border-[#2a2d37] rounded-lg shadow-xl z-50 py-2">
+                    <div className="px-3 py-2 border-b border-[#2a2d37]">
+                      <div className="text-xs text-gray-500">Просмотр как:</div>
+                    </div>
+
+                    {/* All Sellers option */}
+                    <button
+                      onClick={() => {
+                        setSelectedSellerId(undefined)
+                        setSellerDropdownOpen(false)
+                      }}
+                      className={`w-full px-3 py-2 text-left hover:bg-[#2a2d37] transition-colors ${
+                        !selectedSellerId ? 'bg-blue-500/10 text-blue-400' : 'text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-medium">A</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">Все продавцы</div>
+                          <div className="text-xs text-gray-500">Общий обзор</div>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Individual sellers */}
+                    {sellers.map(seller => (
+                      <button
+                        key={seller.id}
+                        onClick={() => {
+                          setSelectedSellerId(seller.id)
+                          setSellerDropdownOpen(false)
+                        }}
+                        className={`w-full px-3 py-2 text-left hover:bg-[#2a2d37] transition-colors ${
+                          selectedSellerId === seller.id ? 'bg-blue-500/10 text-blue-400' : 'text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={seller.avatar || '/avatars/default.png'}
+                            alt={seller.name}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">{seller.name}</div>
+                            <div className="text-xs text-gray-500">{seller.shopName || 'Магазин'}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>

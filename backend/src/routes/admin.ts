@@ -2116,15 +2116,24 @@ export async function adminRoutes(fastify: FastifyInstance) {
       fastify.log.info({ tenantId, exists: !!existingTenant }, 'Tenant lookup result')
 
       if (!existingTenant) {
-        fastify.log.error({ tenantId }, 'Tenant not found for payment methods update')
-        reply.code(404)
-        return { success: false, error: `Tenant '${tenantId}' not found. Please contact support.` }
+        // Auto-create tenant with default settings
+        fastify.log.info({ tenantId }, 'Creating tenant automatically')
+        await getTenantsCollection().insertOne({
+          id: tenantId,
+          name: tenantId,
+          createdAt: new Date().toISOString(),
+          paymentConfig: {
+            enabledMethods: filteredMethods as any
+          }
+        } as any)
+        fastify.log.info({ tenantId }, 'Tenant created successfully')
       }
 
       // Update payment methods
       const updateResult = await getTenantsCollection().updateOne(
         { id: tenantId },
-        { $set: { 'paymentConfig.enabledMethods': filteredMethods } }
+        { $set: { 'paymentConfig.enabledMethods': filteredMethods } },
+        { upsert: true }
       )
 
       fastify.log.info({
