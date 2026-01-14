@@ -112,6 +112,15 @@ export const cryptoAssetSchema = z.enum(['TON', 'USDT', 'BTC', 'ETH', 'LTC', 'US
 
 export const cactusPayMethodSchema = z.enum(['card', 'sbp', 'yoomoney', 'crypto', 'nspk'])
 
+export const checkoutItemSchema = z.object({
+  productId: z.string().min(1).max(50),
+  productName: z.string().max(200),
+  variantId: z.string().max(50).optional(),
+  variantName: z.string().max(100).optional(),
+  price: z.number().positive(),
+  quantity: z.number().positive()
+})
+
 export const createCryptoInvoiceSchema = z.object({
   amount: z.number().positive().max(10000000),
   description: z.string().max(200).optional(),
@@ -121,7 +130,8 @@ export const createCryptoInvoiceSchema = z.object({
   userId: z.string().max(50).optional(),
   userName: z.string().max(100).optional(),
   userUsername: z.string().max(50).optional(),
-  promoCode: z.string().max(50).optional() // promo code used for discount
+  promoCode: z.string().max(50).optional(), // promo code used for discount
+  items: z.array(checkoutItemSchema).optional() // for multi-item orders
 })
 
 export const createCactusPaymentSchema = z.object({
@@ -134,7 +144,33 @@ export const createCactusPaymentSchema = z.object({
   userId: z.string().max(50).optional(),
   userName: z.string().max(100).optional(),
   userUsername: z.string().max(50).optional(),
-  promoCode: z.string().max(50).optional() // promo code used for discount
+  promoCode: z.string().max(50).optional(), // promo code used for discount
+  items: z.array(checkoutItemSchema).optional() // for multi-item orders
+})
+
+export const createXRocketInvoiceSchema = z.object({
+  amount: z.number().positive().max(10000000),
+  currency: z.string().max(20).optional(),
+  description: z.string().max(200).optional(),
+  productId: z.string().min(1).max(50),
+  variantId: z.string().max(50).optional(),
+  userId: z.string().max(50).optional(),
+  userName: z.string().max(100).optional(),
+  userUsername: z.string().max(50).optional(),
+  promoCode: z.string().max(50).optional(),
+  items: z.array(checkoutItemSchema).optional()
+})
+
+export const createStarsInvoiceSchema = z.object({
+  amount: z.number().positive().max(10000000),
+  description: z.string().max(200).optional(),
+  productId: z.string().min(1).max(50),
+  variantId: z.string().max(50).optional(),
+  userId: z.string().max(50).optional(),
+  userName: z.string().max(100).optional(),
+  userUsername: z.string().max(50).optional(),
+  promoCode: z.string().max(50).optional(),
+  items: z.array(checkoutItemSchema).optional()
 })
 
 export const cancelPaymentSchema = z.object({
@@ -243,6 +279,8 @@ export type CreateProductInput = z.infer<typeof createProductSchema>
 export type CreateOrderInput = z.infer<typeof createOrderSchema>
 export type CreateCryptoInvoiceInput = z.infer<typeof createCryptoInvoiceSchema>
 export type CreateCactusPaymentInput = z.infer<typeof createCactusPaymentSchema>
+export type CreateXRocketInvoiceInput = z.infer<typeof createXRocketInvoiceSchema>
+export type CreateStarsInvoiceInput = z.infer<typeof createStarsInvoiceSchema>
 export type ValidatePromoInput = z.infer<typeof validatePromoSchema>
 export type CreatePromoInput = z.infer<typeof createPromoSchema>
 

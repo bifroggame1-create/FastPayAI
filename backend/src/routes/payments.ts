@@ -12,7 +12,7 @@ function reqTenantId(request: FastifyRequest): string {
   return request.tenantId || DEFAULT_TENANT_ID
 }
 import { cactusPay, PaymentMethod } from '../cactuspay'
-import { validateBody, createCryptoInvoiceSchema, createCactusPaymentSchema, cancelPaymentSchema } from '../validation'
+import { validateBody, createCryptoInvoiceSchema, createCactusPaymentSchema, createXRocketInvoiceSchema, createStarsInvoiceSchema, cancelPaymentSchema } from '../validation'
 import { convertRubToCrypto, CryptoAsset, getExchangeRates, refreshExchangeRates } from '../cryptoConverter'
 import { addOrder, updateOrder, getOrderById, Order, incrementPromoUsage, getProductById } from '../dataStore'
 import { logActivity } from '../database'
@@ -581,13 +581,13 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   // Create XRocket invoice
   fastify.post('/payment/xrocket/create-invoice', async (request, reply) => {
     try {
-      const { amount, currency, productId, variantId, userId, userName, userUsername, description, promoCode } = request.body as any
+      const data = validateBody(createXRocketInvoiceSchema, request.body)
       const tenantId = reqTenantId(request)
 
       const { loadProducts } = await import('../dataStore')
       const products = await loadProducts(tenantId)
-      const product = products.find(p => p._id === productId)
-      const variant = product?.variants?.find((v: any) => v.id === variantId)
+      const product = products.find(p => p._id === data.productId)
+      const variant = product?.variants?.find((v: any) => v.id === data.variantId)
 
       // Try to get seller's custom XRocket API key
       let xRocketInstance = xRocket
@@ -604,7 +604,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
 
       const tokenInfo = xRocketInstance.getTokenInfo()
 
-      console.log('Creating XRocket invoice:', { amount, currency, productId, tokenInfo, usingSeller })
+      console.log('Creating XRocket invoice:', { ...data, tokenInfo, usingSeller })
 
       if (!tokenInfo.configured) {
         reply.code(500)
@@ -619,21 +619,21 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       const orderId = `XR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
       // Convert RUB to crypto
-      const cryptoAmount = await convertRubToCrypto(amount, (currency || 'TONCOIN') as CryptoAsset)
+      const cryptoAmount = await convertRubToCrypto(data.amount, (data.currency || 'TONCOIN') as CryptoAsset)
 
       const invoice = await xRocketInstance.createInvoice({
         amount: Number(cryptoAmount),
-        currency: currency || 'TONCOIN',
-        description: description || `Payment for ${product?.name || 'Product'}${variant ? ` - ${variant.name}` : ''}`,
+        currency: data.currency || 'TONCOIN',
+        description: data.description || `Payment for ${product?.name || 'Product'}${variant ? ` - ${variant.name}` : ''}`,
         callbackUrl: `${process.env.WEBHOOK_BASE_URL || 'https://fastpayai.onrender.com'}/payment/xrocket/webhook`,
         payload: JSON.stringify({
           orderId,
-          productId,
-          variantId,
-          userId,
-          userName,
-          userUsername,
-          originalAmount: amount
+          productId: data.productId,
+          variantId: data.variantId,
+          userId: data.userId,
+          userName: data.userName,
+          userUsername: data.userUsername,
+          originalAmount: data.amount
         })
       })
 
@@ -642,18 +642,18 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         tenantId: reqTenantId(request),
         id: orderId,
         oderId: String(invoice.id),
-        userId: userId || 'anonymous',
-        userName,
-        userUsername,
-        productId,
+        userId: data.userId || 'anonymous',
+        userName: data.userName,
+        userUsername: data.userUsername,
+        productId: data.productId,
         productName: product?.name || 'Unknown',
-        variantId,
+        variantId: data.variantId,
         variantName: variant?.name,
-        amount,
+        amount: data.amount,
         paymentMethod: 'xrocket',
         paymentId: String(invoice.id),
         status: 'pending',
-        promoCode,
+        promoCode: data.promoCode,
         createdAt: new Date().toISOString(),
       }
       await addOrder(order, reqTenantId(request))
@@ -662,12 +662,12 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       // Log activity
       await logActivity({
         tenantId: reqTenantId(request),
-        userId: userId || 'anonymous',
-        username: userUsername ? `@${userUsername}` : userName,
+        userId: data.userId || 'anonymous',
+        username: data.userUsername ? `@${data.userUsername}` : data.userName,
         action: 'order_created',
-        productId,
+        productId: data.productId,
         productName: product?.name || 'Unknown',
-        metadata: { orderId, amount, paymentMethod: 'xrocket' }
+        metadata: { orderId, amount: data.amount, paymentMethod: 'xrocket' }
       })
 
       return {
@@ -1036,10 +1036,10 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   // Create Telegram Stars invoice link
   fastify.post('/payment/stars/create-invoice', async (request, reply) => {
     try {
-      const { amount, productId, variantId, userId, userName, userUsername, description, promoCode } = request.body as any
+      const data = validateBody(createStarsInvoiceSchema, request.body)
       const tokenInfo = telegramStars.getTokenInfo()
 
-      console.log('Creating Telegram Stars invoice:', { amount, productId, tokenInfo })
+      console.log('Creating Telegram Stars invoice:', { ...data, tokenInfo })
 
       if (!tokenInfo.configured) {
         reply.code(500)
@@ -1052,26 +1052,26 @@ export async function paymentRoutes(fastify: FastifyInstance) {
 
       const { loadProducts } = await import('../dataStore')
       const products = await loadProducts(reqTenantId(request))
-      const product = products.find(p => p._id === productId)
-      const variant = product?.variants?.find((v: any) => v.id === variantId)
+      const product = products.find(p => p._id === data.productId)
+      const variant = product?.variants?.find((v: any) => v.id === data.variantId)
 
       // Generate order ID
       const orderId = `STARS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
       // Convert RUB to Stars
-      const starsAmount = rubToStars(amount)
+      const starsAmount = rubToStars(data.amount)
 
       const invoiceLink = await telegramStars.createInvoiceLink({
         title: product?.name || 'Товар',
-        description: description || `${product?.name || 'Product'}${variant ? ` - ${variant.name}` : ''}`,
+        description: data.description || `${product?.name || 'Product'}${variant ? ` - ${variant.name}` : ''}`,
         payload: JSON.stringify({
           orderId,
-          productId,
-          variantId,
-          userId,
-          userName,
-          userUsername,
-          originalAmount: amount,
+          productId: data.productId,
+          variantId: data.variantId,
+          userId: data.userId,
+          userName: data.userName,
+          userUsername: data.userUsername,
+          originalAmount: data.amount,
           tenantId: reqTenantId(request)
         }),
         prices: [{ label: product?.name || 'Товар', amount: starsAmount }]
@@ -1082,18 +1082,18 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         tenantId: reqTenantId(request),
         id: orderId,
         oderId: orderId,
-        userId: userId || 'anonymous',
-        userName,
-        userUsername,
-        productId,
+        userId: data.userId || 'anonymous',
+        userName: data.userName,
+        userUsername: data.userUsername,
+        productId: data.productId,
         productName: product?.name || 'Unknown',
-        variantId,
+        variantId: data.variantId,
         variantName: variant?.name,
-        amount,
+        amount: data.amount,
         paymentMethod: 'telegram-stars',
         paymentId: orderId,
         status: 'pending',
-        promoCode,
+        promoCode: data.promoCode,
         createdAt: new Date().toISOString(),
       }
       await addOrder(order, reqTenantId(request))
@@ -1104,7 +1104,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         invoice: {
           payUrl: invoiceLink,
           starsAmount,
-          originalAmount: amount,
+          originalAmount: data.amount,
         },
         orderId
       }
