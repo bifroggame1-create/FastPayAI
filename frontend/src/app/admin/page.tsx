@@ -350,6 +350,38 @@ export default function AdminPage() {
     }
   }, [selectedSellerId, isAdmin])
 
+  // Load wallet data when switching to wallet tab
+  useEffect(() => {
+    if (activeTab === 'wallet' && isAdmin) {
+      const loadWallet = async () => {
+        try {
+          const wallet = await adminApi.getWallet()
+          setWalletData(wallet.wallet)
+          const transactions = await adminApi.getWalletTransactions()
+          setWalletTransactions(transactions.transactions || [])
+        } catch (e: any) {
+          console.error('Failed to load wallet:', e)
+        }
+      }
+      loadWallet()
+    }
+  }, [activeTab, isAdmin])
+
+  // Load withdrawals when switching to withdrawals tab
+  useEffect(() => {
+    if (activeTab === 'withdrawals' && isAdmin && user?.isAdmin) {
+      const loadWithdrawals = async () => {
+        try {
+          const result = await adminApi.getWithdrawals()
+          setWithdrawalRequests(result.withdrawals || [])
+        } catch (e: any) {
+          console.error('Failed to load withdrawals:', e)
+        }
+      }
+      loadWithdrawals()
+    }
+  }, [activeTab, isAdmin, user?.isAdmin])
+
   const loadSellerData = async () => {
     try {
       if (selectedSellerId) {
@@ -2472,6 +2504,324 @@ export default function AdminPage() {
                               </span>
                             </td>
                             <td className="px-4 py-3 text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('ru-RU')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Wallet Tab */}
+          {activeTab === 'wallet' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h1 className="text-xl font-semibold text-white">Кошелёк</h1>
+                <button
+                  onClick={async () => {
+                    try {
+                      const wallet = await adminApi.getWallet()
+                      setWalletData(wallet.wallet)
+                      const transactions = await adminApi.getWalletTransactions()
+                      setWalletTransactions(transactions.transactions || [])
+                    } catch (e: any) {
+                      console.error('Failed to load wallet:', e)
+                      alert('Ошибка загрузки кошелька: ' + (e.response?.data?.error || e.message))
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors"
+                >
+                  Обновить
+                </button>
+              </div>
+
+              {/* Balance Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-lg p-6 border border-emerald-500/20">
+                  <p className="text-sm text-emerald-400 mb-2">Доступно для вывода</p>
+                  <p className="text-3xl font-bold text-white">{walletData?.balance?.toLocaleString() || 0} ₽</p>
+                </div>
+                <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 rounded-lg p-6 border border-yellow-500/20">
+                  <p className="text-sm text-yellow-400 mb-2">В ожидании</p>
+                  <p className="text-3xl font-bold text-white">{walletData?.pendingBalance?.toLocaleString() || 0} ₽</p>
+                </div>
+                <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg p-6 border border-blue-500/20">
+                  <p className="text-sm text-blue-400 mb-2">Всего выведено</p>
+                  <p className="text-3xl font-bold text-white">{walletData?.totalWithdrawn?.toLocaleString() || 0} ₽</p>
+                </div>
+              </div>
+
+              {/* Withdrawal Form */}
+              <div className="bg-[#1a1d27] rounded-lg p-6 border border-[#2a2d37]">
+                <h2 className="text-lg font-medium text-white mb-4">Заявка на вывод средств</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Сумма</label>
+                    <input
+                      type="number"
+                      value={withdrawalAmount}
+                      onChange={(e) => setWithdrawalAmount(e.target.value)}
+                      placeholder="Введите сумму"
+                      className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Доступно: {walletData?.balance?.toLocaleString() || 0} ₽</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Способ вывода</label>
+                    <select
+                      value={withdrawalMethod}
+                      onChange={(e) => {
+                        setWithdrawalMethod(e.target.value as any)
+                        setWithdrawalDetails({})
+                      }}
+                      className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                    >
+                      <option value="cryptobot">CryptoBot (TON/USDT)</option>
+                      <option value="xrocket">xRocket (TON/USDT)</option>
+                      <option value="sbp">СБП</option>
+                      <option value="card">Карта</option>
+                    </select>
+                  </div>
+
+                  {/* Method-specific fields */}
+                  {(withdrawalMethod === 'cryptobot' || withdrawalMethod === 'xrocket') && (
+                    <>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Валюта</label>
+                        <select
+                          value={withdrawalDetails.currency || 'TON'}
+                          onChange={(e) => setWithdrawalDetails({ ...withdrawalDetails, currency: e.target.value })}
+                          className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                        >
+                          <option value="TON">TON</option>
+                          <option value="USDT">USDT</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Адрес кошелька</label>
+                        <input
+                          type="text"
+                          value={withdrawalDetails.wallet || ''}
+                          onChange={(e) => setWithdrawalDetails({ ...withdrawalDetails, wallet: e.target.value })}
+                          placeholder="UQ..."
+                          className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {withdrawalMethod === 'sbp' && (
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">Номер телефона</label>
+                      <input
+                        type="tel"
+                        value={withdrawalDetails.phone || ''}
+                        onChange={(e) => setWithdrawalDetails({ ...withdrawalDetails, phone: e.target.value })}
+                        placeholder="+7"
+                        className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                      />
+                    </div>
+                  )}
+
+                  {withdrawalMethod === 'card' && (
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">Номер карты</label>
+                      <input
+                        type="text"
+                        value={withdrawalDetails.cardNumber || ''}
+                        onChange={(e) => setWithdrawalDetails({ ...withdrawalDetails, cardNumber: e.target.value })}
+                        placeholder="0000 0000 0000 0000"
+                        className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                      />
+                    </div>
+                  )}
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        const amount = parseFloat(withdrawalAmount)
+                        if (!amount || amount <= 0) {
+                          alert('Введите корректную сумму')
+                          return
+                        }
+
+                        if ((withdrawalMethod === 'cryptobot' || withdrawalMethod === 'xrocket') && !withdrawalDetails.wallet) {
+                          alert('Укажите адрес кошелька')
+                          return
+                        }
+
+                        if (withdrawalMethod === 'sbp' && !withdrawalDetails.phone) {
+                          alert('Укажите номер телефона')
+                          return
+                        }
+
+                        if (withdrawalMethod === 'card' && !withdrawalDetails.cardNumber) {
+                          alert('Укажите номер карты')
+                          return
+                        }
+
+                        const result = await adminApi.requestWithdrawal({
+                          amount,
+                          method: withdrawalMethod,
+                          methodDetails: withdrawalDetails
+                        })
+
+                        if (result.success) {
+                          alert('Заявка на вывод создана успешно!')
+                          setWithdrawalAmount('')
+                          setWithdrawalDetails({})
+                          // Reload wallet data
+                          const wallet = await adminApi.getWallet()
+                          setWalletData(wallet.wallet)
+                          const transactions = await adminApi.getWalletTransactions()
+                          setWalletTransactions(transactions.transactions || [])
+                        } else {
+                          alert('Ошибка: ' + (result.error || 'Не удалось создать заявку'))
+                        }
+                      } catch (e: any) {
+                        console.error('Withdrawal failed:', e)
+                        alert('Ошибка: ' + (e.response?.data?.error || e.message || 'Не удалось создать заявку'))
+                      }
+                    }}
+                    className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                  >
+                    Отправить заявку
+                  </button>
+                </div>
+              </div>
+
+              {/* Transaction History */}
+              <div className="bg-[#1a1d27] rounded-lg p-6 border border-[#2a2d37]">
+                <h2 className="text-lg font-medium text-white mb-4">История выводов</h2>
+                {walletTransactions.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <p>Нет заявок на вывод</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {walletTransactions.map((tx: any) => (
+                      <div key={tx._id} className="flex items-center justify-between p-3 bg-[#0f1117] rounded-lg border border-[#2a2d37]">
+                        <div className="flex-1">
+                          <p className="text-sm text-white font-medium">{tx.amount?.toLocaleString()} ₽</p>
+                          <p className="text-xs text-gray-400">
+                            {tx.method === 'cryptobot' && 'CryptoBot'}
+                            {tx.method === 'xrocket' && 'xRocket'}
+                            {tx.method === 'sbp' && 'СБП'}
+                            {tx.method === 'card' && 'Карта'}
+                            {' • '}
+                            {new Date(tx.requestedAt).toLocaleDateString('ru-RU')}
+                          </p>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          tx.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
+                          tx.status === 'processing' ? 'bg-blue-500/10 text-blue-500' :
+                          tx.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
+                          'bg-yellow-500/10 text-yellow-500'
+                        }`}>
+                          {tx.status === 'completed' && 'Выполнено'}
+                          {tx.status === 'processing' && 'Обработка'}
+                          {tx.status === 'rejected' && 'Отклонено'}
+                          {tx.status === 'pending' && 'Ожидание'}
+                          {tx.status === 'cancelled' && 'Отменено'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Withdrawals Tab (Admin Only) */}
+          {activeTab === 'withdrawals' && user?.isAdmin && (
+            <div className="space-y-6">
+              <h1 className="text-xl font-semibold text-white">Заявки на вывод</h1>
+
+              <div className="bg-[#1a1d27] rounded-lg border border-[#2a2d37]">
+                {withdrawalRequests.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <p>Нет заявок на вывод</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left text-xs text-gray-500 border-b border-[#2a2d37]">
+                          <th className="px-4 py-3 font-medium">Продавец</th>
+                          <th className="px-4 py-3 font-medium">Сумма</th>
+                          <th className="px-4 py-3 font-medium">Метод</th>
+                          <th className="px-4 py-3 font-medium">Статус</th>
+                          <th className="px-4 py-3 font-medium">Дата</th>
+                          <th className="px-4 py-3 font-medium">Действия</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {withdrawalRequests.map((req: any) => (
+                          <tr key={req._id} className="border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028]">
+                            <td className="px-4 py-3 text-sm text-white">{req.sellerName}</td>
+                            <td className="px-4 py-3 text-sm text-white font-medium">{req.amount?.toLocaleString()} ₽</td>
+                            <td className="px-4 py-3 text-xs text-gray-400">
+                              {req.method === 'cryptobot' && 'CryptoBot'}
+                              {req.method === 'xrocket' && 'xRocket'}
+                              {req.method === 'sbp' && 'СБП'}
+                              {req.method === 'card' && 'Карта'}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                req.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
+                                req.status === 'processing' ? 'bg-blue-500/10 text-blue-500' :
+                                req.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
+                                'bg-yellow-500/10 text-yellow-500'
+                              }`}>
+                                {req.status === 'completed' && 'Выполнено'}
+                                {req.status === 'processing' && 'Обработка'}
+                                {req.status === 'rejected' && 'Отклонено'}
+                                {req.status === 'pending' && 'Ожидание'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-gray-400">{new Date(req.requestedAt).toLocaleDateString('ru-RU')}</td>
+                            <td className="px-4 py-3">
+                              {req.status === 'pending' && (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={async () => {
+                                      if (confirm('Подтвердить выполнение вывода?')) {
+                                        try {
+                                          await adminApi.updateWithdrawal(req._id, { status: 'completed' })
+                                          const result = await adminApi.getWithdrawals()
+                                          setWithdrawalRequests(result.withdrawals || [])
+                                        } catch (e: any) {
+                                          alert('Ошибка: ' + (e.response?.data?.error || e.message))
+                                        }
+                                      }
+                                    }}
+                                    className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded transition-colors"
+                                  >
+                                    Выполнено
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      const reason = prompt('Причина отклонения:')
+                                      if (reason) {
+                                        try {
+                                          await adminApi.updateWithdrawal(req._id, { status: 'rejected', rejectionReason: reason })
+                                          const result = await adminApi.getWithdrawals()
+                                          setWithdrawalRequests(result.withdrawals || [])
+                                        } catch (e: any) {
+                                          alert('Ошибка: ' + (e.response?.data?.error || e.message))
+                                        }
+                                      }
+                                    }}
+                                    className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+                                  >
+                                    Отклонить
+                                  </button>
+                                </div>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
