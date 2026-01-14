@@ -278,6 +278,9 @@ export const paymentApi = {
     productId: string
     variantId?: string
     asset?: string
+    userId?: string
+    userName?: string
+    userUsername?: string
     items?: CheckoutItem[]
   }) => {
     const idempotencyKey = generateIdempotencyKey()
@@ -305,6 +308,9 @@ export const paymentApi = {
     variantId?: string
     method?: 'card' | 'sbp' | 'yoomoney' | 'crypto' | 'nspk'
     userIp?: string
+    userId?: string
+    userName?: string
+    userUsername?: string
     items?: CheckoutItem[]
   }) => {
     const idempotencyKey = generateIdempotencyKey()
@@ -332,6 +338,9 @@ export const paymentApi = {
     description?: string
     productId: string
     variantId?: string
+    userId?: string
+    userName?: string
+    userUsername?: string
     items?: CheckoutItem[]
   }) => {
     const idempotencyKey = generateIdempotencyKey()
@@ -352,6 +361,9 @@ export const paymentApi = {
     description?: string
     productId: string
     variantId?: string
+    userId?: string
+    userName?: string
+    userUsername?: string
     items?: CheckoutItem[]
   }) => {
     const idempotencyKey = generateIdempotencyKey()
