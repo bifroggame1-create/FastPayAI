@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest } from 'fastify'
-import { adminMiddleware } from '../auth'
+import { adminMiddleware, authMiddleware } from '../auth'
 
 // Default tenant ID for fallback
 const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
@@ -200,19 +200,28 @@ export async function adminRoutes(fastify: FastifyInstance) {
   })
 
   // Toggle product visibility (enable/disable)
-  fastify.patch('/admin/products/:id/toggle', { preHandler: adminMiddleware }, async (request, reply) => {
+  fastify.patch('/admin/products/:id/toggle', { preHandler: authMiddleware }, async (request, reply) => {
     try {
       const { id } = request.params as any
       const { isEnabled } = request.body as { isEnabled: boolean }
       const tenantId = reqTenantId(request)
+      const user = (request as any).user
 
-      console.log(`[Toggle] Product ${id}, isEnabled: ${isEnabled}, tenant: ${tenantId}`)
+      console.log(`[Toggle] Product ${id}, isEnabled: ${isEnabled}, tenant: ${tenantId}, user: ${user?.userId}`)
 
       const before = await getProductById(id, tenantId)
       if (!before) {
         console.log(`[Toggle] Product ${id} not found for tenant ${tenantId}`)
         reply.code(404)
         return { success: false, error: 'Product not found' }
+      }
+
+      // Check permissions: admin can toggle any product, seller can only toggle their own
+      const userIsAdmin = user?.isAdmin || false
+      if (!userIsAdmin && before.seller?.id !== user?.userId) {
+        console.log(`[Toggle] Access denied: user ${user?.userId} is not admin and doesn't own product ${id}`)
+        reply.code(403)
+        return { success: false, error: 'You can only toggle your own products' }
       }
 
       const updated = await updateProduct(id, { isEnabled }, tenantId)
