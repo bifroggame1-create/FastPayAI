@@ -32,6 +32,24 @@ declare module 'fastify' {
   }
 }
 
+// Helper: Check if payment method is enabled for tenant
+async function isPaymentMethodEnabled(tenantId: string, method: string): Promise<boolean> {
+  try {
+    const { getTenantsCollection } = await import('../database')
+    const tenant = await getTenantsCollection().findOne({ id: tenantId }) as any
+
+    // If no config, allow all methods (backward compatibility)
+    if (!tenant || !tenant.paymentConfig || !tenant.paymentConfig.enabledMethods) {
+      return true
+    }
+
+    return (tenant.paymentConfig.enabledMethods as string[]).includes(method)
+  } catch (error) {
+    console.error('Error checking payment method:', error)
+    return true // Fail open for backward compatibility
+  }
+}
+
 export async function paymentRoutes(fastify: FastifyInstance) {
   // ============================================
   // EXCHANGE RATES
@@ -102,6 +120,12 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     try {
       const data = validateBody(createCryptoInvoiceSchema, request.body)
       const tenantId = reqTenantId(request)
+
+      // Check if payment method is enabled
+      if (!await isPaymentMethodEnabled(tenantId, 'cryptobot')) {
+        reply.code(400)
+        return { success: false, error: 'CryptoBot payment method is disabled' }
+      }
 
       // Load product to get seller info
       const { loadProducts } = await import('../dataStore')
@@ -584,6 +608,12 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       const data = validateBody(createXRocketInvoiceSchema, request.body)
       const tenantId = reqTenantId(request)
 
+      // Check if payment method is enabled
+      if (!await isPaymentMethodEnabled(tenantId, 'xrocket')) {
+        reply.code(400)
+        return { success: false, error: 'xRocket payment method is disabled' }
+      }
+
       const { loadProducts } = await import('../dataStore')
       const products = await loadProducts(tenantId)
       const product = products.find(p => p._id === data.productId)
@@ -1037,6 +1067,14 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   fastify.post('/payment/stars/create-invoice', async (request, reply) => {
     try {
       const data = validateBody(createStarsInvoiceSchema, request.body)
+      const tenantId = reqTenantId(request)
+
+      // Check if payment method is enabled
+      if (!await isPaymentMethodEnabled(tenantId, 'telegram-stars')) {
+        reply.code(400)
+        return { success: false, error: 'Telegram Stars payment method is disabled' }
+      }
+
       const tokenInfo = telegramStars.getTokenInfo()
 
       console.log('Creating Telegram Stars invoice:', { ...data, tokenInfo })
@@ -1325,6 +1363,15 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   fastify.post('/payment/cactuspay/create', async (request, reply) => {
     try {
       const data = validateBody(createCactusPaymentSchema, request.body)
+      const tenantId = reqTenantId(request)
+
+      // Check if payment method is enabled (method can be 'sbp' or 'card')
+      const methodKey = data.method === 'sbp' ? 'cactuspay-sbp' : 'cactuspay-card'
+      if (!await isPaymentMethodEnabled(tenantId, methodKey)) {
+        reply.code(400)
+        return { success: false, error: `CactusPay ${data.method} payment method is disabled` }
+      }
+
       const tokenInfo = cactusPay.getTokenInfo()
 
       console.log('Creating CactusPay payment:', { ...data, tokenInfo })
