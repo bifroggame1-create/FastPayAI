@@ -64,6 +64,7 @@ interface AppState {
   setSelectedFilter: (filter: 'all' | 'new' | 'used') => void
   setSearchQuery: (query: string) => void
   toggleTheme: () => void
+  setTheme: (theme: 'light' | 'dark') => void
   setLanguage: (language: 'ru' | 'en') => void
   setCurrency: (currency: 'RUB' | 'USD' | 'EUR') => void
   isFavorite: (productId: string) => boolean
@@ -129,6 +130,15 @@ export const useAppStore = create<AppState>()(
           }
         }
         return { theme: newTheme }
+      }),
+
+      setTheme: (theme) => set(() => {
+        if (typeof window !== 'undefined') {
+          const html = document.documentElement
+          html.classList.remove('dark', 'light')
+          html.classList.add(theme)
+        }
+        return { theme }
       }),
 
       setLanguage: (language) => set({ language }),

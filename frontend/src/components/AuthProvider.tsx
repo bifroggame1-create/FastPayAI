@@ -2,7 +2,7 @@
 
 import { useEffect, useState, createContext, useContext, ReactNode } from 'react'
 import { authenticate, getAuthUser, AuthUser } from '@/lib/auth'
-import { initTelegramWebApp, getTelegramUser, getTelegramStartParam } from '@/lib/telegram'
+import { initTelegramWebApp, getTelegramUser, getTelegramStartParam, getTelegramColorScheme } from '@/lib/telegram'
 import { useAppStore } from '@/lib/store'
 import { userApi, referralApi } from '@/lib/api'
 
@@ -40,6 +40,10 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       // Initialize Telegram WebApp
       initTelegramWebApp()
+
+      // Sync theme with Telegram/system preference
+      const detectedTheme = getTelegramColorScheme()
+      useAppStore.getState().setTheme(detectedTheme)
 
       // Authenticate with backend
       try {

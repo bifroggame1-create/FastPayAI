@@ -218,8 +218,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       // Check permissions: admin can toggle any product, seller can only toggle their own
       const userIsAdmin = user?.isAdmin || false
-      if (!userIsAdmin && before.seller?.id !== user?.userId) {
-        console.log(`[Toggle] Access denied: user ${user?.userId} is not admin and doesn't own product ${id}`)
+      const productSellerId = String(before.seller?.id || '')
+      const currentUserId = String(user?.userId || '')
+      const isOwner = productSellerId && currentUserId && productSellerId === currentUserId
+
+      console.log(`[Toggle] Permission check: userIsAdmin=${userIsAdmin}, productSellerId=${productSellerId}, currentUserId=${currentUserId}, isOwner=${isOwner}`)
+
+      if (!userIsAdmin && !isOwner) {
+        console.log(`[Toggle] Access denied: user ${currentUserId} is not admin and doesn't own product ${id} (owner: ${productSellerId})`)
         reply.code(403)
         return { success: false, error: 'You can only toggle your own products' }
       }
@@ -2171,6 +2177,42 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return { success: true, enabledMethods: filteredMethods }
     } catch (error: any) {
       fastify.log.error({ err: error }, 'Error updating payment methods')
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Update platform commission
+  fastify.patch('/admin/settings/commission', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { platformFeePercent } = request.body as { platformFeePercent: number }
+      const tenantId = reqTenantId(request)
+
+      // Validate
+      if (typeof platformFeePercent !== 'number' || platformFeePercent < 0 || platformFeePercent > 100) {
+        reply.code(400)
+        return { success: false, error: 'Invalid platformFeePercent (must be 0-100)' }
+      }
+
+      const { getTenantsCollection } = await import('../database')
+      await getTenantsCollection().updateOne(
+        { id: tenantId },
+        { $set: { 'commissionRules.platformFeePercent': platformFeePercent } },
+        { upsert: true }
+      )
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'settings',
+        entityId: 'commission',
+        changes: { after: { platformFeePercent } }
+      })
+
+      return { success: true, platformFeePercent }
+    } catch (error: any) {
       reply.code(500)
       return { success: false, error: error.message }
     }

@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { validateQuery, productQuerySchema, favoriteIdsSchema } from '../validation'
 import { searchProducts, getSearchSuggestions } from '../searchUtils'
 import { loadProducts, getProductById } from '../dataStore'
+import { optionalAuthMiddleware } from '../auth'
 
 // Products decorator for backward compatibility with admin routes
 declare module 'fastify' {
@@ -12,7 +13,7 @@ declare module 'fastify' {
 
 export async function productRoutes(fastify: FastifyInstance) {
   // Get all products with optional filtering - NOW READS FROM MONGODB
-  fastify.get('/products', async (request) => {
+  fastify.get('/products', { preHandler: optionalAuthMiddleware }, async (request) => {
     const query = validateQuery(productQuerySchema, request.query)
 
     // Always load fresh from MongoDB for data consistency
@@ -22,9 +23,18 @@ export async function productRoutes(fastify: FastifyInstance) {
     // Update in-memory cache for admin routes compatibility
     fastify.products = products
 
+    // Check if user is authenticated and has admin/seller rights
+    const user = (request as any).user
+    const showAll = (request.query as any).showAll === 'true'
+
+    // Only admins and sellers can see disabled products (when showAll=true)
+    const canSeeAll = user && (user.isAdmin || user.isSeller)
+
     // Filter out disabled products for regular users (isEnabled !== false)
     // Products without isEnabled field are considered enabled (backward compat)
-    products = products.filter(p => p.isEnabled !== false)
+    if (!showAll || !canSeeAll) {
+      products = products.filter(p => p.isEnabled !== false)
+    }
 
     // Apply category filter
     if (query.category) {

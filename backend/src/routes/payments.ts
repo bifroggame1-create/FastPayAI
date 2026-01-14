@@ -81,6 +81,140 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   })
 
   // ============================================
+  // DIAGNOSTICS - Check all payment providers
+  // ============================================
+
+  fastify.get('/payment/diagnostics', async (request, reply) => {
+    const results: Record<string, any> = {}
+
+    // Check CryptoBot
+    try {
+      const cryptoBotInfo = cryptoBot.getTokenInfo()
+      if (cryptoBotInfo.configured) {
+        const me = await cryptoBot.getMe()
+        results.cryptobot = {
+          status: 'ok',
+          configured: true,
+          appName: me.name,
+          tokenPreview: cryptoBotInfo.preview
+        }
+      } else {
+        results.cryptobot = {
+          status: 'error',
+          configured: false,
+          error: 'Token not configured'
+        }
+      }
+    } catch (error: any) {
+      results.cryptobot = {
+        status: 'error',
+        configured: cryptoBot.getTokenInfo().configured,
+        error: error.message
+      }
+    }
+
+    // Check XRocket
+    try {
+      const xRocketInfo = xRocket.getTokenInfo()
+      if (xRocketInfo.configured) {
+        const appInfo = await xRocket.getAppInfo()
+        results.xrocket = {
+          status: 'ok',
+          configured: true,
+          appName: appInfo?.name,
+          tokenPreview: xRocketInfo.preview
+        }
+      } else {
+        results.xrocket = {
+          status: 'error',
+          configured: false,
+          error: 'Token not configured'
+        }
+      }
+    } catch (error: any) {
+      results.xrocket = {
+        status: 'error',
+        configured: xRocket.getTokenInfo().configured,
+        error: error.message
+      }
+    }
+
+    // Check CactusPay
+    try {
+      const cactusInfo = cactusPay.getTokenInfo()
+      results.cactuspay = {
+        status: cactusInfo.configured ? 'ok' : 'not_configured',
+        configured: cactusInfo.configured,
+        tokenPreview: cactusInfo.preview
+      }
+    } catch (error: any) {
+      results.cactuspay = {
+        status: 'error',
+        configured: false,
+        error: error.message
+      }
+    }
+
+    // Check Telegram Stars
+    try {
+      const starsInfo = telegramStars.getTokenInfo()
+      results.telegram_stars = {
+        status: starsInfo.configured ? 'ok' : 'not_configured',
+        configured: starsInfo.configured,
+        tokenPreview: starsInfo.preview
+      }
+    } catch (error: any) {
+      results.telegram_stars = {
+        status: 'error',
+        configured: false,
+        error: error.message
+      }
+    }
+
+    // Check Redis (for idempotency)
+    try {
+      const { redis } = await import('../redis')
+      const isConnected = redis.isEnabled()
+      results.redis = {
+        status: isConnected ? 'ok' : 'not_configured',
+        connected: isConnected
+      }
+    } catch (error: any) {
+      results.redis = {
+        status: 'not_configured',
+        connected: false,
+        error: error.message
+      }
+    }
+
+    // Check MongoDB
+    try {
+      const { getDB } = await import('../database')
+      const db = getDB()
+      await db.command({ ping: 1 })
+      results.mongodb = { status: 'ok', connected: true }
+    } catch (error: any) {
+      results.mongodb = {
+        status: 'error',
+        connected: false,
+        error: error.message
+      }
+    }
+
+    // Summary
+    const allOk = Object.values(results).every((r: any) => r.status === 'ok')
+    const criticalOk = results.mongodb?.status === 'ok' &&
+      (results.cryptobot?.status === 'ok' || results.xrocket?.status === 'ok' || results.cactuspay?.status === 'ok')
+
+    return {
+      success: allOk,
+      critical: criticalOk,
+      timestamp: new Date().toISOString(),
+      providers: results
+    }
+  })
+
+  // ============================================
   // CRYPTOBOT PAYMENTS
   // ============================================
 

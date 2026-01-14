@@ -165,6 +165,32 @@ export function extractToken(authHeader: string | undefined): string | null {
 }
 
 /**
+ * Optional authentication middleware - validates JWT if present but doesn't require it
+ * Use this for endpoints that should work for both authenticated and unauthenticated users
+ */
+export async function optionalAuthMiddleware(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const token = extractToken(request.headers.authorization)
+
+  if (token) {
+    const payload = verifyToken(token)
+    if (payload) {
+      // Get tenantId from request context
+      const tenantId = (request as any).tenantId
+
+      // Check if user is admin
+      const isUserAdmin = payload.isAdmin || ADMIN_IDS.includes(payload.userId) || await isAdmin(payload.userId, payload.username, tenantId)
+
+      // Add user info to request with admin flag
+      ;(request as any).user = { ...payload, isAdmin: isUserAdmin, isSeller: !isUserAdmin }
+    }
+  }
+  // If no token or invalid token, continue without user (request.user will be undefined)
+}
+
+/**
  * Authentication middleware - validates JWT and adds user to request
  */
 export async function authMiddleware(

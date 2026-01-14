@@ -44,10 +44,25 @@ export const initTelegramWebApp = () => {
   webApp.ready()
   webApp.expand()
 
-  // Set theme colors
-  if (webApp.colorScheme === 'dark') {
-    document.documentElement.classList.add('dark')
+  // Theme is now synced via store in AuthProvider
+}
+
+// Get Telegram color scheme or fallback to system preference
+export const getTelegramColorScheme = (): 'dark' | 'light' => {
+  const webApp = useTelegramWebApp()
+  
+  // First try Telegram theme
+  if (webApp && webApp.colorScheme) {
+    return webApp.colorScheme === 'dark' ? 'dark' : 'light'
   }
+  
+  // Fallback to system preference
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+  
+  // Default to dark
+  return 'dark'
 }
 
 // Haptic feedback functions

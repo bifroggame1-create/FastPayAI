@@ -191,7 +191,7 @@ export const tenantApi = {
 }
 
 export const productsApi = {
-  getAll: async (params?: ProductFilters & { category?: string; condition?: string; search?: string }) => {
+  getAll: async (params?: ProductFilters & { category?: string; condition?: string; search?: string; showAll?: boolean }) => {
     const { data } = await api.get<Product[]>('/products', { params })
     return data
   },
@@ -772,6 +772,11 @@ export const adminApi = {
 
   updateBranding: async (branding: BrandingSettings) => {
     const { data } = await adminApiInstance.patch('/admin/settings/branding', branding)
+    return data
+  },
+
+  updateCommission: async (platformFeePercent: number) => {
+    const { data } = await adminApiInstance.patch('/admin/settings/commission', { platformFeePercent })
     return data
   },
 

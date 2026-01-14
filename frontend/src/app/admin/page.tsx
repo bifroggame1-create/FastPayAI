@@ -304,6 +304,7 @@ export default function AdminPage() {
   // Settings state
   const [paymentMethods, setPaymentMethods] = useState<string[]>(['cryptobot'])
   const [shopBranding, setShopBranding] = useState<any>({})
+  const [platformFeePercent, setPlatformFeePercent] = useState<number>(5)
 
   // My Shop state
   const [myShopStats, setMyShopStats] = useState<any>(null)
@@ -345,38 +346,58 @@ export default function AdminPage() {
     try {
       if (selectedSellerId) {
         // Load data for specific seller
-        // First load products to get the seller's product list
-        const sellerProducts = await productsApi.getAll({}).then(data =>
-          data.filter((p: Product) => p.seller?.id === selectedSellerId)
-        )
+        // First load all products (including disabled ones)
+        const allProducts = await productsApi.getAll({ showAll: true })
+        const sellerProducts = allProducts.filter((p: Product) => p.seller?.id === selectedSellerId)
 
         // Create a Set of seller's product IDs for efficient filtering
         const sellerProductIds = new Set(sellerProducts.map(p => p._id))
 
         // Load all orders and filter by seller's products
         const allOrders = await adminApi.getOrders()
-        const sellerOrders = allOrders.orders.filter((o: any) => sellerProductIds.has(o.productId))
+        const sellerOrders = (allOrders.orders || []).filter((o: any) => sellerProductIds.has(o.productId))
 
+        // Update MY SHOP specific data
         setMyShopProducts(sellerProducts)
-        setMyShopOrders(sellerOrders || [])
+        setMyShopOrders(sellerOrders)
+
+        // Also update MAIN data (products, orders) for other tabs
+        setProducts(sellerProducts)
+        setOrders(sellerOrders)
 
         // Calculate seller-specific stats
+        const paidOrders = sellerOrders.filter((o: any) => o.status === 'paid' || o.status === 'delivered')
         const stats = {
-          totalRevenue: sellerOrders.filter((o: any) => o.status === 'paid' || o.status === 'delivered').reduce((sum: number, o: any) => sum + o.amount, 0),
+          totalRevenue: paidOrders.reduce((sum: number, o: any) => sum + (o.amount || 0), 0),
           ordersCount: sellerOrders.length,
-          productsCount: sellerProducts.length
+          productsCount: sellerProducts.length,
+          activeProducts: sellerProducts.filter((p: Product) => p.isEnabled !== false).length
         }
         setMyShopStats(stats)
+        setOrdersStats({
+          totalOrders: sellerOrders.length,
+          paidOrders: sellerOrders.filter((o: any) => o.status === 'paid').length,
+          deliveredOrders: sellerOrders.filter((o: any) => o.status === 'delivered').length,
+          revenue: stats.totalRevenue
+        })
+
+        console.log(`[Admin] Loaded seller ${selectedSellerId} data: ${sellerProducts.length} products, ${sellerOrders.length} orders`)
       } else {
         // Load all data (all sellers)
-        const [myShopProductsData, myShopOrdersData, myShopStatsData] = await Promise.all([
-          adminApi.getMyShopProducts().catch(() => ({ products: [] })),
-          adminApi.getMyShopOrders().catch(() => ({ orders: [] })),
+        const [allProducts, allOrdersData, myShopStatsData] = await Promise.all([
+          productsApi.getAll({ showAll: true }),
+          adminApi.getOrders().catch(() => ({ orders: [] })),
           adminApi.getMyShopStats().catch(() => ({ stats: null }))
         ])
-        setMyShopProducts(myShopProductsData?.products || [])
-        setMyShopOrders(myShopOrdersData?.orders || [])
+
+        // Set both main and my shop data
+        setProducts(allProducts)
+        setOrders(allOrdersData.orders || [])
+        setMyShopProducts(allProducts)
+        setMyShopOrders(allOrdersData.orders || [])
         setMyShopStats(myShopStatsData?.stats || null)
+
+        console.log('[Admin] Loaded all sellers data')
       }
     } catch (error) {
       console.error('Error loading seller data:', error)
@@ -386,7 +407,7 @@ export default function AdminPage() {
   const loadData = async () => {
     try {
       const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData, applicationsData, usersData, myShopProductsData, myShopOrdersData, myShopStatsData, settingsData] = await Promise.all([
-        productsApi.getAll({}),
+        productsApi.getAll({ showAll: true }),
         adminApi.getPromoCodes().catch(() => []),
         adminApi.getOrders().catch(() => ({ orders: [], total: 0 })),
         adminApi.getOrdersStats().catch(() => ({ stats: {} })),
@@ -427,6 +448,12 @@ export default function AdminPage() {
         setShopBranding(settingsData.settings.branding)
       } else if (settingsData?.branding) {
         setShopBranding(settingsData.branding)
+      }
+      // Set commission
+      if (settingsData?.settings?.commissionRules?.platformFeePercent !== undefined) {
+        setPlatformFeePercent(settingsData.settings.commissionRules.platformFeePercent)
+      } else if (settingsData?.commissionRules?.platformFeePercent !== undefined) {
+        setPlatformFeePercent(settingsData.commissionRules.platformFeePercent)
       }
     } catch (error) {
       // Error loading data
@@ -869,22 +896,20 @@ export default function AdminPage() {
             <button
               key={item.id}
               onClick={() => { setActiveTab(item.id as Tab); setMobileMenuOpen(false) }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                activeTab === item.id
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeTab === item.id
                   ? 'bg-blue-600/10 text-blue-500'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-[#1a1d27]'
-              }`}
+                }`}
             >
               {item.icon}
               {(!sidebarCollapsed || mobileMenuOpen) && (
                 <>
                   <span className="flex-1 text-left">{item.label}</span>
                   {item.count !== undefined && item.count > 0 && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${
-                      item.highlight && activeTab !== item.id
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${item.highlight && activeTab !== item.id
                         ? 'bg-amber-500 text-white'
                         : 'bg-[#2a2d37] text-gray-400'
-                    }`}>
+                      }`}>
                       {item.count}
                     </span>
                   )}
@@ -981,9 +1006,8 @@ export default function AdminPage() {
                         setSelectedSellerId(undefined)
                         setSellerDropdownOpen(false)
                       }}
-                      className={`w-full px-3 py-2 text-left hover:bg-[#2a2d37] transition-colors ${
-                        !selectedSellerId ? 'bg-blue-500/10 text-blue-400' : 'text-white'
-                      }`}
+                      className={`w-full px-3 py-2 text-left hover:bg-[#2a2d37] transition-colors ${!selectedSellerId ? 'bg-blue-500/10 text-blue-400' : 'text-white'
+                        }`}
                     >
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -1004,9 +1028,8 @@ export default function AdminPage() {
                           setSelectedSellerId(seller.id)
                           setSellerDropdownOpen(false)
                         }}
-                        className={`w-full px-3 py-2 text-left hover:bg-[#2a2d37] transition-colors ${
-                          selectedSellerId === seller.id ? 'bg-blue-500/10 text-blue-400' : 'text-white'
-                        }`}
+                        className={`w-full px-3 py-2 text-left hover:bg-[#2a2d37] transition-colors ${selectedSellerId === seller.id ? 'bg-blue-500/10 text-blue-400' : 'text-white'
+                          }`}
                       >
                         <div className="flex items-center gap-2">
                           <img
@@ -1347,9 +1370,8 @@ export default function AdminPage() {
                           <h3 className="font-medium text-white">{app.shopName}</h3>
                           <p className="text-xs text-gray-500">{app.telegram}</p>
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          app.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
-                        }`}>
+                        <span className={`text-xs px-2 py-1 rounded-full ${app.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                          }`}>
                           {app.status === 'approved' ? 'Одобрена' : 'Отклонена'}
                         </span>
                       </div>
@@ -1636,7 +1658,7 @@ export default function AdminPage() {
                         <div>
                           <div className="font-medium text-white">{review.userName}</div>
                           <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(star => (
+                            {[1, 2, 3, 4, 5].map(star => (
                               <span key={star} className={`text-sm ${star <= review.rating ? 'text-amber-400' : 'text-gray-600'}`}>★</span>
                             ))}
                           </div>
@@ -1955,15 +1977,14 @@ export default function AdminPage() {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-start gap-3">
                             {/* Action Icon */}
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              log.action === 'add_to_cart' ? 'bg-blue-500/10 text-blue-400' :
-                              log.action === 'checkout' || log.action === 'payment_started' ? 'bg-amber-500/10 text-amber-400' :
-                              log.action === 'payment_completed' ? 'bg-emerald-500/10 text-emerald-400' :
-                              log.action === 'payment_failed' ? 'bg-red-500/10 text-red-400' :
-                              log.action === 'add_to_favorites' ? 'bg-pink-500/10 text-pink-400' :
-                              log.action === 'remove_from_favorites' ? 'bg-gray-500/10 text-gray-400' :
-                              'bg-purple-500/10 text-purple-400'
-                            }`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${log.action === 'add_to_cart' ? 'bg-blue-500/10 text-blue-400' :
+                                log.action === 'checkout' || log.action === 'payment_started' ? 'bg-amber-500/10 text-amber-400' :
+                                  log.action === 'payment_completed' ? 'bg-emerald-500/10 text-emerald-400' :
+                                    log.action === 'payment_failed' ? 'bg-red-500/10 text-red-400' :
+                                      log.action === 'add_to_favorites' ? 'bg-pink-500/10 text-pink-400' :
+                                        log.action === 'remove_from_favorites' ? 'bg-gray-500/10 text-gray-400' :
+                                          'bg-purple-500/10 text-purple-400'
+                              }`}>
                               {log.action === 'add_to_cart' && (
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -2002,15 +2023,14 @@ export default function AdminPage() {
                                 <span className="text-sm font-medium text-white">
                                   {log.userUsername ? `@${log.userUsername}` : log.userName || `ID: ${log.userId}`}
                                 </span>
-                                <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                  log.action === 'add_to_cart' ? 'bg-blue-500/10 text-blue-400' :
-                                  log.action === 'checkout' || log.action === 'payment_started' ? 'bg-amber-500/10 text-amber-400' :
-                                  log.action === 'payment_completed' ? 'bg-emerald-500/10 text-emerald-400' :
-                                  log.action === 'payment_failed' ? 'bg-red-500/10 text-red-400' :
-                                  log.action === 'add_to_favorites' ? 'bg-pink-500/10 text-pink-400' :
-                                  log.action === 'remove_from_favorites' ? 'bg-gray-500/10 text-gray-400' :
-                                  'bg-purple-500/10 text-purple-400'
-                                }`}>
+                                <span className={`text-xs px-1.5 py-0.5 rounded ${log.action === 'add_to_cart' ? 'bg-blue-500/10 text-blue-400' :
+                                    log.action === 'checkout' || log.action === 'payment_started' ? 'bg-amber-500/10 text-amber-400' :
+                                      log.action === 'payment_completed' ? 'bg-emerald-500/10 text-emerald-400' :
+                                        log.action === 'payment_failed' ? 'bg-red-500/10 text-red-400' :
+                                          log.action === 'add_to_favorites' ? 'bg-pink-500/10 text-pink-400' :
+                                            log.action === 'remove_from_favorites' ? 'bg-gray-500/10 text-gray-400' :
+                                              'bg-purple-500/10 text-purple-400'
+                                  }`}>
                                   {log.action === 'add_to_cart' && 'Добавил в корзину'}
                                   {log.action === 'checkout' && 'Оформил заказ'}
                                   {log.action === 'payment_started' && 'Перешёл к оплате'}
@@ -2115,6 +2135,68 @@ export default function AdminPage() {
                       />
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Platform Commission */}
+              <div className="bg-[#1a1d27] rounded-lg p-5 border border-[#2a2d37]">
+                <h2 className="text-lg font-medium text-white mb-4">Комиссия платформы</h2>
+                <p className="text-sm text-gray-400 mb-4">Процент от каждой продажи, который будет удерживаться в пользу платформы</p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Процент комиссии</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={platformFeePercent}
+                        className="w-32 px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                        onChange={async (e) => {
+                          const value = parseFloat(e.target.value) || 0
+                          if (value >= 0 && value <= 100) {
+                            setPlatformFeePercent(value)
+                            try {
+                              const result = await adminApi.updateCommission(value)
+                              if (result.success) {
+                                console.log('Commission updated successfully:', value)
+                              } else {
+                                console.error('Failed to update commission:', result.error)
+                                alert('Ошибка сохранения комиссии: ' + (result.error || 'Неизвестная ошибка'))
+                              }
+                            } catch (e: any) {
+                              console.error('Exception updating commission:', e)
+                              alert('Ошибка сохранения комиссии: ' + (e.response?.data?.error || e.message || 'Неизвестная ошибка'))
+                            }
+                          }
+                        }}
+                      />
+                      <span className="text-sm text-gray-400">%</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Рекомендуемые значения: 5-12%. Комиссия удерживается автоматически при каждой оплате.
+                    </p>
+                  </div>
+
+                  <div className="bg-[#0f1117] rounded-lg p-4 border border-[#2a2d37]">
+                    <h3 className="text-sm font-medium text-white mb-2">Пример расчета</h3>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between text-gray-400">
+                        <span>Сумма заказа:</span>
+                        <span className="text-white">1000 ₽</span>
+                      </div>
+                      <div className="flex justify-between text-gray-400">
+                        <span>Комиссия ({platformFeePercent}%):</span>
+                        <span className="text-amber-400">-{(1000 * platformFeePercent / 100).toFixed(0)} ₽</span>
+                      </div>
+                      <div className="flex justify-between text-white font-medium pt-1 border-t border-[#2a2d37]">
+                        <span>Продавец получит:</span>
+                        <span className="text-emerald-400">{(1000 - (1000 * platformFeePercent / 100)).toFixed(0)} ₽</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -2271,70 +2353,70 @@ export default function AdminPage() {
                     <p className="text-sm mt-1">Нажмите "+ Добавить товар" чтобы создать первый товар</p>
                   </div>
                 ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-left text-xs text-gray-500 border-b border-[#2a2d37]">
-                        <th className="px-4 py-3 font-medium">Товар</th>
-                        <th className="px-4 py-3 font-medium">Цена</th>
-                        <th className="px-4 py-3 font-medium">Продаж</th>
-                        <th className="px-4 py-3 font-medium">Статус</th>
-                        <th className="px-4 py-3 font-medium">Действия</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {myShopProducts.map(product => (
-                        <tr key={product._id} className={`border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028] ${product.isEnabled === false ? 'opacity-50' : ''}`}>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover" />
-                              <span className="text-sm text-white">{product.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-white">{product.price.toLocaleString()} ₽</td>
-                          <td className="px-4 py-3 text-sm text-gray-400">{product.salesCount || 0}</td>
-                          <td className="px-4 py-3">
-                            <span className={`text-xs px-2 py-1 rounded ${product.isEnabled !== false ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-500/10 text-gray-500'}`}>
-                              {product.isEnabled !== false ? 'Активен' : 'Скрыт'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => setEditingProduct(product)}
-                                className="text-xs px-2 py-1 bg-blue-500/10 text-blue-500 rounded hover:bg-blue-500/20 transition-colors"
-                              >
-                                Изменить
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  // Toggle: if enabled (true/undefined) -> disable (false), if disabled (false) -> enable (true)
-                                  const newState = product.isEnabled !== false ? false : true
-                                  try {
-                                    const result = await adminApi.toggleProduct(product._id, newState)
-                                    if (result.success) {
-                                      // Update both general products and myShopProducts
-                                      setProducts(products.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
-                                      setMyShopProducts(myShopProducts.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
-                                    } else {
-                                      alert('Ошибка: ' + (result.error || 'Не удалось изменить статус товара'))
-                                    }
-                                  } catch (e: any) {
-                                    console.error('Toggle product error:', e)
-                                    alert('Ошибка: ' + (e.response?.data?.error || e.message || 'Не удалось изменить статус товара'))
-                                  }
-                                }}
-                                className={`text-xs px-2 py-1 rounded transition-colors ${product.isEnabled !== false ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`}
-                              >
-                                {product.isEnabled !== false ? 'Скрыть' : 'Показать'}
-                              </button>
-                            </div>
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left text-xs text-gray-500 border-b border-[#2a2d37]">
+                          <th className="px-4 py-3 font-medium">Товар</th>
+                          <th className="px-4 py-3 font-medium">Цена</th>
+                          <th className="px-4 py-3 font-medium">Продаж</th>
+                          <th className="px-4 py-3 font-medium">Статус</th>
+                          <th className="px-4 py-3 font-medium">Действия</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {myShopProducts.map(product => (
+                          <tr key={product._id} className={`border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028] ${product.isEnabled === false ? 'opacity-50' : ''}`}>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover" />
+                                <span className="text-sm text-white">{product.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-white">{product.price.toLocaleString()} ₽</td>
+                            <td className="px-4 py-3 text-sm text-gray-400">{product.salesCount || 0}</td>
+                            <td className="px-4 py-3">
+                              <span className={`text-xs px-2 py-1 rounded ${product.isEnabled !== false ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-500/10 text-gray-500'}`}>
+                                {product.isEnabled !== false ? 'Активен' : 'Скрыт'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setEditingProduct(product)}
+                                  className="text-xs px-2 py-1 bg-blue-500/10 text-blue-500 rounded hover:bg-blue-500/20 transition-colors"
+                                >
+                                  Изменить
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    // Toggle: if enabled (true/undefined) -> disable (false), if disabled (false) -> enable (true)
+                                    const newState = product.isEnabled !== false ? false : true
+                                    try {
+                                      const result = await adminApi.toggleProduct(product._id, newState)
+                                      if (result.success) {
+                                        // Update both general products and myShopProducts
+                                        setProducts(products.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
+                                        setMyShopProducts(myShopProducts.map(p => p._id === product._id ? { ...p, isEnabled: newState } : p))
+                                      } else {
+                                        alert('Ошибка: ' + (result.error || 'Не удалось изменить статус товара'))
+                                      }
+                                    } catch (e: any) {
+                                      console.error('Toggle product error:', e)
+                                      alert('Ошибка: ' + (e.response?.data?.error || e.message || 'Не удалось изменить статус товара'))
+                                    }
+                                  }}
+                                  className={`text-xs px-2 py-1 rounded transition-colors ${product.isEnabled !== false ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`}
+                                >
+                                  {product.isEnabled !== false ? 'Скрыть' : 'Показать'}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
 
@@ -2349,43 +2431,42 @@ export default function AdminPage() {
                     <p className="text-sm mt-1">Заказы появятся здесь после первых покупок</p>
                   </div>
                 ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-left text-xs text-gray-500 border-b border-[#2a2d37]">
-                        <th className="px-4 py-3 font-medium">Заказ</th>
-                        <th className="px-4 py-3 font-medium">Товар</th>
-                        <th className="px-4 py-3 font-medium">Сумма</th>
-                        <th className="px-4 py-3 font-medium">Статус</th>
-                        <th className="px-4 py-3 font-medium">Дата</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {myShopOrders.slice(0, 10).map((order: Order) => (
-                        <tr key={order.id} className="border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028]">
-                          <td className="px-4 py-3 text-xs text-gray-400 font-mono">{order.oderId?.slice(0, 8) || order.id.slice(0, 8)}</td>
-                          <td className="px-4 py-3 text-sm text-white">{order.productName}</td>
-                          <td className="px-4 py-3 text-sm text-white">{order.amount?.toLocaleString()} ₽</td>
-                          <td className="px-4 py-3">
-                            <span className={`text-xs px-2 py-1 rounded ${
-                              order.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500' :
-                              order.status === 'paid' ? 'bg-blue-500/10 text-blue-500' :
-                              order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                              'bg-gray-500/10 text-gray-500'
-                            }`}>
-                              {order.status === 'delivered' ? 'Доставлен' :
-                               order.status === 'paid' ? 'Оплачен' :
-                               order.status === 'pending' ? 'Ожидает' :
-                               order.status === 'cancelled' ? 'Отменён' :
-                               order.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('ru-RU')}</td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left text-xs text-gray-500 border-b border-[#2a2d37]">
+                          <th className="px-4 py-3 font-medium">Заказ</th>
+                          <th className="px-4 py-3 font-medium">Товар</th>
+                          <th className="px-4 py-3 font-medium">Сумма</th>
+                          <th className="px-4 py-3 font-medium">Статус</th>
+                          <th className="px-4 py-3 font-medium">Дата</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {myShopOrders.slice(0, 10).map((order: Order) => (
+                          <tr key={order.id} className="border-b border-[#2a2d37] last:border-0 hover:bg-[#1e2028]">
+                            <td className="px-4 py-3 text-xs text-gray-400 font-mono">{order.oderId?.slice(0, 8) || order.id.slice(0, 8)}</td>
+                            <td className="px-4 py-3 text-sm text-white">{order.productName}</td>
+                            <td className="px-4 py-3 text-sm text-white">{order.amount?.toLocaleString()} ₽</td>
+                            <td className="px-4 py-3">
+                              <span className={`text-xs px-2 py-1 rounded ${order.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-500' :
+                                  order.status === 'paid' ? 'bg-blue-500/10 text-blue-500' :
+                                    order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
+                                      'bg-gray-500/10 text-gray-500'
+                                }`}>
+                                {order.status === 'delivered' ? 'Доставлен' :
+                                  order.status === 'paid' ? 'Оплачен' :
+                                    order.status === 'pending' ? 'Ожидает' :
+                                      order.status === 'cancelled' ? 'Отменён' :
+                                        order.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('ru-RU')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             </div>
@@ -2536,7 +2617,7 @@ function ProductEditor({
                 <input
                   type="text"
                   value={form.images[0]}
-                  onChange={e => setForm({...form, images: [e.target.value]})}
+                  onChange={e => setForm({ ...form, images: [e.target.value] })}
                   placeholder="/brands/example.webp"
                   className="flex-1 px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white"
                 />
@@ -2552,7 +2633,7 @@ function ProductEditor({
             <input
               type="text"
               value={form.name}
-              onChange={e => setForm({...form, name: e.target.value})}
+              onChange={e => setForm({ ...form, name: e.target.value })}
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
             />
           </div>
@@ -2562,7 +2643,7 @@ function ProductEditor({
               <label className="block text-sm text-gray-400 mb-1">Категория</label>
               <select
                 value={form.category}
-                onChange={e => setForm({...form, category: e.target.value})}
+                onChange={e => setForm({ ...form, category: e.target.value })}
                 className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
               >
                 <option value="ai-subscriptions">AI Подписки</option>
@@ -2578,7 +2659,7 @@ function ProductEditor({
                 value={form.seller?.id}
                 onChange={e => {
                   const seller = sellers.find(s => s.id === e.target.value)
-                  if (seller) setForm({...form, seller})
+                  if (seller) setForm({ ...form, seller })
                 }}
                 className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
               >
@@ -2593,7 +2674,7 @@ function ProductEditor({
               <input
                 type="number"
                 value={form.price}
-                onChange={e => setForm({...form, price: parseInt(e.target.value) || 0})}
+                onChange={e => setForm({ ...form, price: parseInt(e.target.value) || 0 })}
                 className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
               />
             </div>
@@ -2603,7 +2684,7 @@ function ProductEditor({
             <label className="block text-sm text-gray-400 mb-1">Описание</label>
             <textarea
               value={form.description}
-              onChange={e => setForm({...form, description: e.target.value})}
+              onChange={e => setForm({ ...form, description: e.target.value })}
               rows={4}
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
             />
@@ -2671,7 +2752,7 @@ function ProductEditor({
                 ].map(brand => (
                   <button
                     key={brand.url}
-                    onClick={() => { setForm({...form, images: [brand.url]}); setShowFilePicker(false) }}
+                    onClick={() => { setForm({ ...form, images: [brand.url] }); setShowFilePicker(false) }}
                     className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500"
                   >
                     <img src={brand.url} alt={brand.name} className="w-full h-full object-cover" />
@@ -2683,7 +2764,7 @@ function ProductEditor({
                   {uploadedFiles.filter(f => f.type.startsWith('image/')).map(file => (
                     <button
                       key={file.id}
-                      onClick={() => { setForm({...form, images: [file.data]}); setShowFilePicker(false) }}
+                      onClick={() => { setForm({ ...form, images: [file.data] }); setShowFilePicker(false) }}
                       className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500"
                     >
                       <img src={file.data} alt={file.name} className="w-full h-full object-cover" />
@@ -2755,7 +2836,7 @@ function SellerEditor({
             <input
               type="text"
               value={form.id}
-              onChange={e => setForm({...form, id: e.target.value})}
+              onChange={e => setForm({ ...form, id: e.target.value })}
               placeholder="Telegram ID"
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
             />
@@ -2766,7 +2847,7 @@ function SellerEditor({
             <input
               type="text"
               value={form.name}
-              onChange={e => setForm({...form, name: e.target.value})}
+              onChange={e => setForm({ ...form, name: e.target.value })}
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
             />
           </div>
@@ -2779,7 +2860,7 @@ function SellerEditor({
               min="0"
               max="5"
               value={form.rating}
-              onChange={e => setForm({...form, rating: parseFloat(e.target.value) || 0})}
+              onChange={e => setForm({ ...form, rating: parseFloat(e.target.value) || 0 })}
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
             />
           </div>
@@ -2790,7 +2871,7 @@ function SellerEditor({
               <input
                 type="checkbox"
                 checked={form.isVerified || false}
-                onChange={e => setForm({...form, isVerified: e.target.checked})}
+                onChange={e => setForm({ ...form, isVerified: e.target.checked })}
                 className="w-4 h-4 rounded accent-green-500"
               />
               ✅ Верифицированный продавец
@@ -2799,7 +2880,7 @@ function SellerEditor({
               <input
                 type="checkbox"
                 checked={form.isBlocked || false}
-                onChange={e => setForm({...form, isBlocked: e.target.checked})}
+                onChange={e => setForm({ ...form, isBlocked: e.target.checked })}
                 className="w-4 h-4 rounded accent-red-500"
               />
               🚫 Заблокирован
@@ -2812,7 +2893,7 @@ function SellerEditor({
               <input
                 type="text"
                 value={form.blockReason || ''}
-                onChange={e => setForm({...form, blockReason: e.target.value})}
+                onChange={e => setForm({ ...form, blockReason: e.target.value })}
                 placeholder="Укажите причину блокировки"
                 className="w-full px-3 py-2 bg-red-900/20 border border-red-800 rounded-lg text-white"
               />
@@ -2832,13 +2913,12 @@ function SellerEditor({
                     const newBadges = currentBadges.includes(badge.id)
                       ? currentBadges.filter(b => b !== badge.id)
                       : [...currentBadges, badge.id]
-                    setForm({...form, badges: newBadges})
+                    setForm({ ...form, badges: newBadges })
                   }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    (form.badges || []).includes(badge.id)
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${(form.badges || []).includes(badge.id)
                       ? badge.color + ' ring-2 ring-offset-1 ring-offset-[#1a1d27] ring-blue-500'
                       : 'bg-[#0f1117] text-gray-500 border-[#2a2d37]'
-                  }`}
+                    }`}
                 >
                   {badge.label}
                 </button>
@@ -2864,7 +2944,7 @@ function SellerEditor({
                 <input
                   type="text"
                   value={form.avatar}
-                  onChange={e => setForm({...form, avatar: e.target.value})}
+                  onChange={e => setForm({ ...form, avatar: e.target.value })}
                   placeholder="Или введите URL"
                   className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-sm text-white"
                 />
@@ -2927,7 +3007,7 @@ function UserEditor({
             <input
               type="checkbox"
               checked={form.isPremium || false}
-              onChange={e => setForm({...form, isPremium: e.target.checked})}
+              onChange={e => setForm({ ...form, isPremium: e.target.checked })}
               className="rounded"
             />
             Premium пользователь
@@ -2937,7 +3017,7 @@ function UserEditor({
             <input
               type="checkbox"
               checked={form.isBlocked || false}
-              onChange={e => setForm({...form, isBlocked: e.target.checked})}
+              onChange={e => setForm({ ...form, isBlocked: e.target.checked })}
               className="rounded"
             />
             Заблокирован
@@ -2947,7 +3027,7 @@ function UserEditor({
             <input
               type="text"
               value={form.blockReason || ''}
-              onChange={e => setForm({...form, blockReason: e.target.value})}
+              onChange={e => setForm({ ...form, blockReason: e.target.value })}
               placeholder="Причина блокировки"
               className="w-full px-3 py-2 bg-red-900/20 border border-red-800 rounded-lg text-white"
             />
@@ -2990,7 +3070,7 @@ function ReviewEditor({
             <label className="block text-sm text-gray-400 mb-1">Товар</label>
             <select
               value={form.productId}
-              onChange={e => setForm({...form, productId: e.target.value})}
+              onChange={e => setForm({ ...form, productId: e.target.value })}
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
             >
               {products.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
@@ -3002,7 +3082,7 @@ function ReviewEditor({
             <input
               type="text"
               value={form.userName}
-              onChange={e => setForm({...form, userName: e.target.value})}
+              onChange={e => setForm({ ...form, userName: e.target.value })}
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
             />
           </div>
@@ -3010,10 +3090,10 @@ function ReviewEditor({
           <div>
             <label className="block text-sm text-gray-400 mb-1">Рейтинг</label>
             <div className="flex gap-1">
-              {[1,2,3,4,5].map(star => (
+              {[1, 2, 3, 4, 5].map(star => (
                 <button
                   key={star}
-                  onClick={() => setForm({...form, rating: star})}
+                  onClick={() => setForm({ ...form, rating: star })}
                   className={`text-2xl ${star <= form.rating ? 'text-amber-400' : 'text-gray-600'}`}
                 >★</button>
               ))}
@@ -3024,7 +3104,7 @@ function ReviewEditor({
             <label className="block text-sm text-gray-400 mb-1">Текст</label>
             <textarea
               value={form.text}
-              onChange={e => setForm({...form, text: e.target.value})}
+              onChange={e => setForm({ ...form, text: e.target.value })}
               rows={3}
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
             />
@@ -3107,7 +3187,7 @@ function PromoEditor({
             <input
               type="text"
               value={form.code}
-              onChange={e => setForm({...form, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')})}
+              onChange={e => setForm({ ...form, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
               placeholder="PROMO10"
               className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white font-mono"
             />
@@ -3118,7 +3198,7 @@ function PromoEditor({
               <label className="block text-sm text-gray-400 mb-1">Тип</label>
               <select
                 value={form.discountType}
-                onChange={e => setForm({...form, discountType: e.target.value as 'percentage' | 'fixed'})}
+                onChange={e => setForm({ ...form, discountType: e.target.value as 'percentage' | 'fixed' })}
                 className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
               >
                 <option value="percentage">Процент (%)</option>
@@ -3131,7 +3211,7 @@ function PromoEditor({
                 type="number"
                 min="1"
                 value={form.discountValue}
-                onChange={e => setForm({...form, discountValue: parseInt(e.target.value) || 0})}
+                onChange={e => setForm({ ...form, discountValue: parseInt(e.target.value) || 0 })}
                 className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
               />
             </div>
@@ -3144,7 +3224,7 @@ function PromoEditor({
                 type="number"
                 min="0"
                 value={form.minOrderAmount}
-                onChange={e => setForm({...form, minOrderAmount: parseInt(e.target.value) || 0})}
+                onChange={e => setForm({ ...form, minOrderAmount: parseInt(e.target.value) || 0 })}
                 className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
               />
             </div>
@@ -3154,7 +3234,7 @@ function PromoEditor({
                 type="number"
                 min="1"
                 value={form.maxUses}
-                onChange={e => setForm({...form, maxUses: parseInt(e.target.value) || 0})}
+                onChange={e => setForm({ ...form, maxUses: parseInt(e.target.value) || 0 })}
                 className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white"
               />
             </div>
@@ -3164,7 +3244,7 @@ function PromoEditor({
             <input
               type="checkbox"
               checked={form.isActive}
-              onChange={e => setForm({...form, isActive: e.target.checked})}
+              onChange={e => setForm({ ...form, isActive: e.target.checked })}
               className="rounded"
             />
             Активен
@@ -3411,31 +3491,28 @@ function DeliveryKeysManager({ productId }: { productId: string }) {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setActiveTab('text')}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'text'
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${activeTab === 'text'
                 ? 'bg-blue-600 text-white'
                 : 'bg-[#0f1117] text-gray-400 hover:text-white'
-            }`}
+              }`}
           >
             📝 Текст
           </button>
           <button
             onClick={() => setActiveTab('file')}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'file'
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${activeTab === 'file'
                 ? 'bg-blue-600 text-white'
                 : 'bg-[#0f1117] text-gray-400 hover:text-white'
-            }`}
+              }`}
           >
             📁 Файлы
           </button>
           <button
             onClick={() => setActiveTab('image')}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'image'
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${activeTab === 'image'
                 ? 'bg-blue-600 text-white'
                 : 'bg-[#0f1117] text-gray-400 hover:text-white'
-            }`}
+              }`}
           >
             🖼️ Фото
           </button>
