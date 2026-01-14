@@ -334,6 +334,51 @@ export default function AdminPage() {
     checkAccessAndLoad()
   }, [user])
 
+  // Load seller-specific data when seller selection changes
+  useEffect(() => {
+    if (isAdmin) {
+      loadSellerData()
+    }
+  }, [selectedSellerId, isAdmin])
+
+  const loadSellerData = async () => {
+    try {
+      if (selectedSellerId) {
+        // Load data for specific seller
+        const [sellerProducts, sellerOrders, sellerStats] = await Promise.all([
+          productsApi.getAll({}).then(data => data.filter((p: Product) => p.seller?.id === selectedSellerId)),
+          adminApi.getOrders().then(data => ({ orders: data.orders.filter((o: any) => {
+            const product = products.find(p => p._id === o.productId)
+            return product?.seller?.id === selectedSellerId
+          })})),
+          adminApi.getOrdersStats().catch(() => ({ stats: {} }))
+        ])
+        setMyShopProducts(sellerProducts)
+        setMyShopOrders(sellerOrders.orders || [])
+        // Calculate seller-specific stats
+        const sellerOrdersData = sellerOrders.orders || []
+        const stats = {
+          totalRevenue: sellerOrdersData.filter((o: any) => o.status === 'paid' || o.status === 'delivered').reduce((sum: number, o: any) => sum + o.amount, 0),
+          ordersCount: sellerOrdersData.length,
+          productsCount: sellerProducts.length
+        }
+        setMyShopStats(stats)
+      } else {
+        // Load all data (all sellers)
+        const [myShopProductsData, myShopOrdersData, myShopStatsData] = await Promise.all([
+          adminApi.getMyShopProducts().catch(() => ({ products: [] })),
+          adminApi.getMyShopOrders().catch(() => ({ orders: [] })),
+          adminApi.getMyShopStats().catch(() => ({ stats: null }))
+        ])
+        setMyShopProducts(myShopProductsData?.products || [])
+        setMyShopOrders(myShopOrdersData?.orders || [])
+        setMyShopStats(myShopStatsData?.stats || null)
+      }
+    } catch (error) {
+      console.error('Error loading seller data:', error)
+    }
+  }
+
   const loadData = async () => {
     try {
       const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData, applicationsData, usersData, myShopProductsData, myShopOrdersData, myShopStatsData, settingsData] = await Promise.all([
