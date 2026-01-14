@@ -90,10 +90,6 @@ export default function BottomNav() {
     },
   ]
 
-  // Check if developer (ID: 1301598469)
-  const telegramUser = typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user : null
-  const isDeveloper = telegramUser?.id === 1301598469 || String(telegramUser?.id) === '1301598469'
-
   // Show "Мой магазин" for sellers/admins
   if (isAdmin) {
     navItems.push({
@@ -110,10 +106,8 @@ export default function BottomNav() {
         </svg>
       ),
     })
-  }
 
-  // Show "Админ" only for developer
-  if (isDeveloper) {
+    // Show "Админ" for all admins
     navItems.push({
       name: 'Админ',
       path: '/admin',
