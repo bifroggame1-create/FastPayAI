@@ -115,6 +115,7 @@ export const cactusPayMethodSchema = z.enum(['card', 'sbp', 'yoomoney', 'crypto'
 export const checkoutItemSchema = z.object({
   productId: z.string().min(1).max(50),
   productName: z.string().max(200),
+  productImage: z.string().max(500000).optional(), // Allow image URLs or base64
   variantId: z.string().max(50).optional(),
   variantName: z.string().max(100).optional(),
   price: z.number().positive(),
