@@ -1095,6 +1095,58 @@ export async function incrementTenantUsage(
   )
 }
 
+// ============================================
+// WITHDRAWAL REQUESTS
+// ============================================
+
+export type WithdrawalMethod = 'cryptobot' | 'xrocket' | 'sbp' | 'card'
+export type WithdrawalStatus = 'pending' | 'processing' | 'completed' | 'rejected' | 'cancelled'
+
+export interface WithdrawalRequest extends TenantScoped {
+  _id?: string | ObjectId
+
+  // Seller info
+  sellerId: string          // User ID of seller
+  sellerName: string
+  sellerUsername?: string
+
+  // Withdrawal details
+  amount: number            // Amount to withdraw (after commission)
+  method: WithdrawalMethod
+  methodDetails: {
+    // CryptoBot/xRocket
+    wallet?: string         // TON/USDT wallet address
+    currency?: string       // TON, USDT, etc.
+
+    // СБП
+    phone?: string          // Phone number for SBP
+
+    // Card
+    cardNumber?: string     // Card number (last 4 digits visible)
+  }
+
+  // Status
+  status: WithdrawalStatus
+  requestedAt: string
+  processedAt?: string
+  completedAt?: string
+  rejectedAt?: string
+
+  // Admin handling
+  processedBy?: string      // Admin ID who processed
+  adminNote?: string        // Internal note from admin
+  rejectionReason?: string
+
+  // Transaction reference
+  transactionId?: string    // External transaction ID (from CryptoBot/xRocket)
+  proofUrl?: string         // Screenshot/proof of transfer
+}
+
+export function getWithdrawalRequestsCollection(): Collection<WithdrawalRequest> {
+  if (!db) throw new Error('Database not initialized')
+  return db.collection<WithdrawalRequest>('withdrawal_requests')
+}
+
 // Helper to convert ObjectId to string
 export function toClientDoc<T extends { _id?: string | ObjectId }>(doc: T): T {
   if (doc._id) {

@@ -2496,19 +2496,71 @@ export async function adminRoutes(fastify: FastifyInstance) {
     try {
       const user = (request as any).user
       const sellerId = user?.userId || user?.id
+      const tenantId = reqTenantId(request)
 
       if (!sellerId) {
         reply.code(401)
         return { success: false, error: 'Unauthorized' }
       }
 
-      // For now, return a simple wallet structure
-      // In production, this would be stored in database
+      // Get seller's products
+      const products = await loadProducts(tenantId)
+      const sellerProducts = products.filter(p => p.seller?.id === sellerId)
+      const sellerProductIds = sellerProducts.map(p => p._id)
+
+      // Get all orders for seller's products
+      const { getOrdersCollection, getWithdrawalRequestsCollection, getTenantsCollection } = await import('../database')
+      const orders = await getOrdersCollection().find({
+        tenantId,
+        productId: { $in: sellerProductIds },
+        status: { $in: ['paid', 'delivered'] }
+      }).toArray()
+
+      // Get platform fee percent
+      const tenant = await getTenantsCollection().findOne({ id: tenantId }) as any
+      const platformFeePercent = tenant?.commissionRules?.platformFeePercent || 0
+
+      // Calculate total revenue and balance
+      let totalRevenue = 0
+      let platformFee = 0
+
+      for (const order of orders) {
+        const orderAmount = order.amount || 0
+        totalRevenue += orderAmount
+        platformFee += (orderAmount * platformFeePercent) / 100
+      }
+
+      const balance = totalRevenue - platformFee
+
+      // Get sum of completed withdrawals
+      const completedWithdrawals = await getWithdrawalRequestsCollection().find({
+        tenantId,
+        sellerId,
+        status: 'completed'
+      }).toArray()
+
+      const totalWithdrawn = completedWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0)
+
+      // Get sum of pending withdrawals
+      const pendingWithdrawals = await getWithdrawalRequestsCollection().find({
+        tenantId,
+        sellerId,
+        status: { $in: ['pending', 'processing'] }
+      }).toArray()
+
+      const pendingBalance = pendingWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0)
+
+      // Available balance = total balance - withdrawn - pending
+      const availableBalance = balance - totalWithdrawn - pendingBalance
+
       return {
         success: true,
         wallet: {
-          balance: 0,
-          pendingBalance: 0,
+          balance: availableBalance,
+          pendingBalance,
+          totalRevenue,
+          platformFee,
+          totalWithdrawn,
           sellerId
         }
       }
@@ -2523,6 +2575,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
     try {
       const user = (request as any).user
       const sellerId = user?.userId || user?.id
+      const tenantId = reqTenantId(request)
       const { amount, method, methodDetails } = request.body as any
 
       if (!sellerId) {
@@ -2535,8 +2588,72 @@ export async function adminRoutes(fastify: FastifyInstance) {
         return { success: false, error: 'Invalid amount' }
       }
 
-      // Create withdrawal request (stub - would be saved to database)
-      const withdrawalId = `wd_${Date.now()}`
+      if (!method || !['cryptobot', 'xrocket', 'sbp', 'card'].includes(method)) {
+        reply.code(400)
+        return { success: false, error: 'Invalid withdrawal method' }
+      }
+
+      // Get current balance
+      const products = await loadProducts(tenantId)
+      const sellerProducts = products.filter(p => p.seller?.id === sellerId)
+      const sellerProductIds = sellerProducts.map(p => p._id)
+
+      const { getOrdersCollection, getWithdrawalRequestsCollection, getTenantsCollection } = await import('../database')
+      const orders = await getOrdersCollection().find({
+        tenantId,
+        productId: { $in: sellerProductIds },
+        status: { $in: ['paid', 'delivered'] }
+      }).toArray()
+
+      const tenant = await getTenantsCollection().findOne({ id: tenantId }) as any
+      const platformFeePercent = tenant?.commissionRules?.platformFeePercent || 0
+
+      let totalRevenue = 0
+      for (const order of orders) {
+        const orderAmount = order.amount || 0
+        totalRevenue += orderAmount
+      }
+
+      const balance = totalRevenue - (totalRevenue * platformFeePercent) / 100
+
+      const completedWithdrawals = await getWithdrawalRequestsCollection().find({
+        tenantId,
+        sellerId,
+        status: 'completed'
+      }).toArray()
+
+      const totalWithdrawn = completedWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0)
+
+      const pendingWithdrawals = await getWithdrawalRequestsCollection().find({
+        tenantId,
+        sellerId,
+        status: { $in: ['pending', 'processing'] }
+      }).toArray()
+
+      const pendingBalance = pendingWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0)
+      const availableBalance = balance - totalWithdrawn - pendingBalance
+
+      // Check if enough balance
+      if (amount > availableBalance) {
+        reply.code(400)
+        return { success: false, error: `Insufficient balance. Available: ${availableBalance}` }
+      }
+
+      // Create withdrawal request
+      const withdrawal = {
+        tenantId,
+        sellerId,
+        sellerName: user?.name || user?.username || 'Unknown',
+        sellerUsername: user?.username,
+        amount,
+        method,
+        methodDetails: methodDetails || {},
+        status: 'pending' as const,
+        requestedAt: new Date().toISOString()
+      }
+
+      const result = await getWithdrawalRequestsCollection().insertOne(withdrawal as any)
+      const withdrawalId = result.insertedId.toString()
 
       // Log the action
       const adminInfo = getAdminInfo(request)
@@ -2552,10 +2669,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         success: true,
         withdrawal: {
           id: withdrawalId,
-          amount,
-          method,
-          status: 'pending',
-          requestedAt: new Date().toISOString()
+          ...withdrawal
         }
       }
     } catch (error: any) {
@@ -2564,21 +2678,145 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Get wallet transactions
+  // Get wallet transactions (withdrawal requests history)
   fastify.get('/admin/wallet/transactions', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
       const user = (request as any).user
       const sellerId = user?.userId || user?.id
+      const tenantId = reqTenantId(request)
+      const { limit = 50, offset = 0 } = request.query as any
 
       if (!sellerId) {
         reply.code(401)
         return { success: false, error: 'Unauthorized' }
       }
 
-      // Return empty transactions for now
+      const { getWithdrawalRequestsCollection } = await import('../database')
+      const transactions = await getWithdrawalRequestsCollection()
+        .find({ tenantId, sellerId })
+        .sort({ requestedAt: -1 })
+        .skip(Number(offset))
+        .limit(Number(limit))
+        .toArray()
+
       return {
         success: true,
-        transactions: []
+        transactions: transactions.map(t => ({
+          ...t,
+          _id: t._id?.toString()
+        }))
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Admin: Get all withdrawal requests
+  fastify.get('/admin/withdrawals', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      if (!user?.isAdmin) {
+        reply.code(403)
+        return { success: false, error: 'Admin access required' }
+      }
+
+      const tenantId = reqTenantId(request)
+      const { status, limit = 100, offset = 0 } = request.query as any
+
+      const { getWithdrawalRequestsCollection } = await import('../database')
+      const query: any = { tenantId }
+      if (status) {
+        query.status = status
+      }
+
+      const withdrawals = await getWithdrawalRequestsCollection()
+        .find(query)
+        .sort({ requestedAt: -1 })
+        .skip(Number(offset))
+        .limit(Number(limit))
+        .toArray()
+
+      return {
+        success: true,
+        withdrawals: withdrawals.map(w => ({
+          ...w,
+          _id: w._id?.toString()
+        }))
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Admin: Update withdrawal status
+  fastify.patch('/admin/withdrawals/:id', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const user = (request as any).user
+      if (!user?.isAdmin) {
+        reply.code(403)
+        return { success: false, error: 'Admin access required' }
+      }
+
+      const { id } = request.params as any
+      const { status, adminNote, rejectionReason, transactionId, proofUrl } = request.body as any
+      const tenantId = reqTenantId(request)
+
+      if (!status || !['processing', 'completed', 'rejected', 'cancelled'].includes(status)) {
+        reply.code(400)
+        return { success: false, error: 'Invalid status' }
+      }
+
+      const { getWithdrawalRequestsCollection, ObjectId } = await import('../database')
+      const updates: any = {
+        status,
+        processedBy: user.userId,
+        processedAt: new Date().toISOString()
+      }
+
+      if (status === 'completed') {
+        updates.completedAt = new Date().toISOString()
+        if (transactionId) updates.transactionId = transactionId
+        if (proofUrl) updates.proofUrl = proofUrl
+      }
+
+      if (status === 'rejected') {
+        updates.rejectedAt = new Date().toISOString()
+        if (rejectionReason) updates.rejectionReason = rejectionReason
+      }
+
+      if (adminNote) {
+        updates.adminNote = adminNote
+      }
+
+      const result = await getWithdrawalRequestsCollection().findOneAndUpdate(
+        { _id: new ObjectId(id), tenantId },
+        { $set: updates },
+        { returnDocument: 'after' }
+      )
+
+      if (!result) {
+        reply.code(404)
+        return { success: false, error: 'Withdrawal request not found' }
+      }
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'withdrawal',
+        entityId: id,
+        changes: { after: updates }
+      })
+
+      return {
+        success: true,
+        withdrawal: {
+          ...result,
+          _id: result._id?.toString()
+        }
       }
     } catch (error: any) {
       reply.code(500)
