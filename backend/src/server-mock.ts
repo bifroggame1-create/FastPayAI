@@ -254,7 +254,7 @@ async function start() {
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Admin-Id', 'X-Tenant-ID', 'X-User-ID']
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Admin-Id', 'X-Tenant-ID', 'X-User-ID', 'X-Idempotency-Key']
     })
 
     // Security headers
