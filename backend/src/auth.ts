@@ -127,11 +127,11 @@ export function validateTelegramWebAppData(initData: string): TelegramUser | nul
  * Note: isAdmin flag in JWT is set at login time.
  * For real-time admin status, always check with isAdmin() function or use adminMiddleware.
  */
-export async function generateToken(user: TelegramUser): Promise<string> {
+export async function generateToken(user: TelegramUser, tenantId?: string): Promise<string> {
   const payload: JWTPayload = {
     userId: String(user.id),
     username: user.username,
-    isAdmin: await isAdmin(String(user.id), user.username)
+    isAdmin: await isAdmin(String(user.id), user.username, tenantId)
   }
 
   const secret = module.exports.JWT_SECRET || JWT_SECRET
@@ -212,18 +212,21 @@ export async function adminMiddleware(
     return
   }
 
+  // Get tenantId from request context (set by tenantMiddleware)
+  const tenantId = (request as any).tenantId
+
   // Check if user is admin (from JWT payload, ADMIN_IDS env var, or database)
-  const isUserAdmin = payload.isAdmin || ADMIN_IDS.includes(payload.userId) || await isAdmin(payload.userId, payload.username)
+  const isUserAdmin = payload.isAdmin || ADMIN_IDS.includes(payload.userId) || await isAdmin(payload.userId, payload.username, tenantId)
 
   if (!isUserAdmin) {
-    console.log('🔐 Admin access DENIED - not an admin:', payload.userId)
+    console.log('🔐 Admin access DENIED - not an admin:', payload.userId, 'tenantId:', tenantId)
     reply.code(403).send({ success: false, error: 'Admin privileges required' })
     return
   }
 
   // Add user info to request
   ;(request as any).user = { ...payload, isAdmin: true }
-  console.log('🔐 Admin access granted:', payload.userId, payload.username)
+  console.log('🔐 Admin access granted:', payload.userId, payload.username, 'tenantId:', tenantId)
 }
 
 /**
@@ -246,7 +249,7 @@ export async function optionalAuthMiddleware(
 /**
  * Check if user ID is admin (checks both env var and database)
  */
-export async function isAdmin(userId: string, username?: string): Promise<boolean> {
+export async function isAdmin(userId: string, username?: string, tenantId?: string): Promise<boolean> {
   // Check ADMIN_IDS environment variable first
   if (ADMIN_IDS.includes(userId)) {
     return true
@@ -257,14 +260,14 @@ export async function isAdmin(userId: string, username?: string): Promise<boolea
     const { getAdminByUserId, getAdminByUsername } = await import('./dataStore')
 
     // Check database for admin by userId
-    const adminByUserId = await getAdminByUserId(userId)
+    const adminByUserId = await getAdminByUserId(userId, tenantId)
     if (adminByUserId) {
       return true
     }
 
     // Check database for admin by username
     if (username) {
-      const adminByUsername = await getAdminByUsername(username.toLowerCase())
+      const adminByUsername = await getAdminByUsername(username.toLowerCase(), tenantId)
       if (adminByUsername) {
         return true
       }

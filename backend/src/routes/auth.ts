@@ -65,21 +65,21 @@ async function rateLimitMiddleware(request: FastifyRequest, reply: FastifyReply)
 }
 
 // Check if user is admin (bootstrap IDs or in database)
-async function checkIsAdmin(userId: string, username?: string): Promise<boolean> {
+async function checkIsAdmin(userId: string, username?: string, tenantId?: string): Promise<boolean> {
   // Check bootstrap admin IDs first
   if (BOOTSTRAP_ADMIN_IDS.includes(userId)) {
     return true
   }
 
   // Check database for admin by userId
-  const adminByUserId = await getAdminByUserId(userId)
+  const adminByUserId = await getAdminByUserId(userId, tenantId)
   if (adminByUserId) {
     return true
   }
 
   // Check database for admin by username
   if (username) {
-    const adminByUsername = await getAdminByUsername(username.toLowerCase())
+    const adminByUsername = await getAdminByUsername(username.toLowerCase(), tenantId)
     if (adminByUsername) {
       return true
     }
@@ -124,11 +124,12 @@ export async function authRoutes(fastify: FastifyInstance) {
         } else if (process.env.NODE_ENV !== 'production' && isLocalhost && process.env.ALLOW_DEV_AUTH === 'true') {
           // SECURITY: Dev auth requires explicit ALLOW_DEV_AUTH=true AND localhost
           console.warn('⚠️ [LOCALHOST ONLY] Using mock dev auth - set ALLOW_DEV_AUTH=false to disable')
+          const tenantId = (request as any).tenantId
           const mockToken = await generateToken({
             id: 123456789,
             first_name: 'Dev',
             username: 'devuser'
-          })
+          }, tenantId)
           return {
             success: true,
             token: mockToken,
@@ -148,10 +149,11 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       // At this point user is guaranteed to be non-null
       const validUser = user!
-      const token = await generateToken(validUser)
+      const tenantId = (request as any).tenantId
+      const token = await generateToken(validUser, tenantId)
 
       // Check if user is admin (bootstrap IDs or in database)
-      const isAdmin = await checkIsAdmin(String(validUser.id), validUser.username)
+      const isAdmin = await checkIsAdmin(String(validUser.id), validUser.username, tenantId)
 
       console.log('🔐 Auth:', { userId: validUser.id, username: validUser.username, isAdmin })
 
@@ -179,9 +181,10 @@ export async function authRoutes(fastify: FastifyInstance) {
   // Verify token and return fresh admin status
   fastify.get('/auth/verify', { preHandler: authMiddleware }, async (request) => {
     const user = (request as any).user as JWTPayload
+    const tenantId = (request as any).tenantId
 
     // Check current admin status from database (may have changed since token was issued)
-    const isAdmin = await checkIsAdmin(user.userId, user.username)
+    const isAdmin = await checkIsAdmin(user.userId, user.username, tenantId)
 
     console.log('🔐 Token verify:', { userId: user.userId, username: user.username, isAdmin })
 
