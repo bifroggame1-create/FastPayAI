@@ -31,8 +31,8 @@ const COINGECKO_IDS: Record<CryptoAsset, string> = {
   USDC: 'usd-coin',
 }
 
-// Update interval (5 minutes)
-const UPDATE_INTERVAL_MS = 5 * 60 * 1000
+// Update interval (30 minutes) - reduced frequency to avoid rate limits
+const UPDATE_INTERVAL_MS = 30 * 60 * 1000
 
 /**
  * Fetch current exchange rates from CoinGecko API
