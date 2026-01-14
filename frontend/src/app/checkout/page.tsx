@@ -157,6 +157,10 @@ function CheckoutContent() {
           productId: checkoutItems[0].productId,
           variantId: checkoutItems[0].variantId,
           asset: selectedCrypto,
+          // Pass user data
+          userId: user?.id?.toString(),
+          userName: user?.name,
+          userUsername: user?.username,
           // Pass all items for multi-item orders
           items: checkoutItems.length > 1 ? checkoutItems : undefined,
         }
@@ -197,6 +201,10 @@ function CheckoutContent() {
           description: getDescription(),
           productId: checkoutItems[0].productId,
           variantId: checkoutItems[0].variantId,
+          // Pass user data
+          userId: user?.id?.toString(),
+          userName: user?.name,
+          userUsername: user?.username,
           items: checkoutItems.length > 1 ? checkoutItems : undefined,
         }
 
@@ -229,6 +237,10 @@ function CheckoutContent() {
           description: getDescription(),
           productId: checkoutItems[0].productId,
           variantId: checkoutItems[0].variantId,
+          // Pass user data
+          userId: user?.id?.toString(),
+          userName: user?.name,
+          userUsername: user?.username,
           items: checkoutItems.length > 1 ? checkoutItems : undefined,
         }
 
@@ -264,6 +276,10 @@ function CheckoutContent() {
           productId: checkoutItems[0].productId,
           variantId: checkoutItems[0].variantId,
           method: cactusMethod as 'sbp' | 'card',
+          // Pass user data
+          userId: user?.id?.toString(),
+          userName: user?.name,
+          userUsername: user?.username,
           items: checkoutItems.length > 1 ? checkoutItems : undefined,
         }
 

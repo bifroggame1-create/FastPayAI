@@ -1374,7 +1374,8 @@ export default function AdminPage() {
                           <td className="px-4 py-3">
                             <button
                               onClick={async () => {
-                                const newState = product.isEnabled === false ? true : false
+                                // Toggle: if enabled (true/undefined) -> disable (false), if disabled (false) -> enable (true)
+                                const newState = product.isEnabled !== false ? false : true
                                 try {
                                   const result = await adminApi.toggleProduct(product._id, newState)
                                   if (result.success) {
@@ -2258,7 +2259,8 @@ export default function AdminPage() {
                               </button>
                               <button
                                 onClick={async () => {
-                                  const newState = product.isEnabled === false ? true : false
+                                  // Toggle: if enabled (true/undefined) -> disable (false), if disabled (false) -> enable (true)
+                                  const newState = product.isEnabled !== false ? false : true
                                   try {
                                     const result = await adminApi.toggleProduct(product._id, newState)
                                     if (result.success) {
