@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
 import { Product, ProductVariant } from '@/types'
@@ -200,6 +200,266 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
     </svg>
   ),
+}
+
+// Delivery Keys Manager Component
+function DeliveryKeysManager({ productId }: { productId: string }) {
+  const [stats, setStats] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [deliveryType, setDeliveryType] = useState<'manual' | 'auto'>('manual')
+  const [activeTab, setActiveTab] = useState<'text' | 'file' | 'image'>('text')
+
+  // Text keys input
+  const [textKeys, setTextKeys] = useState('')
+
+  // File upload
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Image upload
+  const imageInputRef = useRef<HTMLInputElement>(null)
+
+  // Load delivery stats
+  const loadStats = async () => {
+    if (!productId) return
+    try {
+      setLoading(true)
+      const response = await adminApi.getDeliveryStats(productId)
+      setStats(response.stats)
+      setDeliveryType(response.deliveryType || 'manual')
+    } catch (error) {
+      console.error('Failed to load delivery stats:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadStats()
+  }, [productId])
+
+  const handleAddTextKeys = async () => {
+    if (!textKeys.trim()) return
+    try {
+      const keys = textKeys.split('\n').filter(k => k.trim())
+      await adminApi.addDeliveryKeys(productId, keys)
+      setTextKeys('')
+      await loadStats()
+    } catch (error: any) {
+      alert('Ошибка: ' + (error.response?.data?.error || error.message))
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    try {
+      for (const file of Array.from(files)) {
+        const reader = new FileReader()
+        reader.onload = async (event) => {
+          const fileUrl = event.target?.result as string
+          await adminApi.addDeliveryKeys(productId, [{
+            key: file.name,
+            type: 'file',
+            fileUrl: fileUrl,
+            fileName: file.name
+          }])
+          await loadStats()
+        }
+        reader.readAsDataURL(file)
+      }
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    } catch (error: any) {
+      alert('Ошибка: ' + (error.response?.data?.error || error.message))
+    }
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    try {
+      for (const file of Array.from(files)) {
+        const reader = new FileReader()
+        reader.onload = async (event) => {
+          const fileUrl = event.target?.result as string
+          await adminApi.addDeliveryKeys(productId, [{
+            key: file.name,
+            type: 'image',
+            fileUrl: fileUrl,
+            fileName: file.name
+          }])
+          await loadStats()
+        }
+        reader.readAsDataURL(file)
+      }
+      if (imageInputRef.current) imageInputRef.current.value = ''
+    } catch (error: any) {
+      alert('Ошибка: ' + (error.response?.data?.error || error.message))
+    }
+  }
+
+  const handleRemoveKey = async (keyId: string) => {
+    if (!confirm('Удалить этот ключ?')) return
+    try {
+      await adminApi.removeDeliveryKey(productId, keyId)
+      await loadStats()
+    } catch (error: any) {
+      alert('Ошибка: ' + (error.response?.data?.error || error.message))
+    }
+  }
+
+  const handleToggleDeliveryType = async () => {
+    const newType = deliveryType === 'manual' ? 'auto' : 'manual'
+    try {
+      await adminApi.updateProductDelivery(productId, { deliveryType: newType })
+      setDeliveryType(newType)
+      await loadStats()
+    } catch (error: any) {
+      alert('Ошибка: ' + (error.response?.data?.error || error.message))
+    }
+  }
+
+  if (loading) {
+    return <div className="text-sm text-gray-400">Загрузка...</div>
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm text-gray-400 mb-2">Склад товаров</label>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-[#0f1117] rounded-lg p-3 border border-[#2a2d37]">
+            <div className="text-xs text-gray-500 mb-1">Всего</div>
+            <div className="text-lg font-semibold text-white">{stats?.total || 0}</div>
+          </div>
+          <div className="bg-[#0f1117] rounded-lg p-3 border border-[#2a2d37]">
+            <div className="text-xs text-gray-500 mb-1">Доступно</div>
+            <div className="text-lg font-semibold text-emerald-400">{stats?.available || 0}</div>
+          </div>
+          <div className="bg-[#0f1117] rounded-lg p-3 border border-[#2a2d37]">
+            <div className="text-xs text-gray-500 mb-1">Использовано</div>
+            <div className="text-lg font-semibold text-gray-400">{stats?.used || 0}</div>
+          </div>
+        </div>
+
+        {/* Delivery Type Toggle */}
+        <div className="flex items-center justify-between bg-[#0f1117] rounded-lg p-3 border border-[#2a2d37] mb-4">
+          <div>
+            <div className="text-sm text-white mb-1">Автоматическая выдача</div>
+            <div className="text-xs text-gray-500">
+              {deliveryType === 'auto'
+                ? 'Ключи выдаются автоматически после оплаты'
+                : 'Требуется ручная выдача товара'}
+            </div>
+          </div>
+          <ToggleSwitch enabled={deliveryType === 'auto'} onChange={handleToggleDeliveryType} />
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setActiveTab('text')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'text'
+                ? 'bg-blue-600 text-white'
+                : 'bg-[#0f1117] text-gray-400 hover:text-white'
+            }`}
+          >
+            📝 Текст
+          </button>
+          <button
+            onClick={() => setActiveTab('file')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'file'
+                ? 'bg-blue-600 text-white'
+                : 'bg-[#0f1117] text-gray-400 hover:text-white'
+            }`}
+          >
+            📁 Файлы
+          </button>
+          <button
+            onClick={() => setActiveTab('image')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'image'
+                ? 'bg-blue-600 text-white'
+                : 'bg-[#0f1117] text-gray-400 hover:text-white'
+            }`}
+          >
+            🖼️ Фото
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'text' && (
+          <div className="space-y-3">
+            <textarea
+              value={textKeys}
+              onChange={e => setTextKeys(e.target.value)}
+              placeholder="Введите ключи по одному на строку&#10;key1&#10;key2&#10;key3"
+              rows={5}
+              className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm font-mono"
+            />
+            <button
+              onClick={handleAddTextKeys}
+              disabled={!textKeys.trim()}
+              className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors"
+            >
+              Добавить ключи
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'file' && (
+          <div className="space-y-3">
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full py-8 border border-dashed border-[#2a2d37] rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-blue-500/50 transition-colors bg-[#0f1117]"
+            >
+              <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <p className="text-sm text-gray-400">Нажмите для загрузки файлов</p>
+              <p className="text-xs text-gray-500">TXT, PDF, ZIP, любые документы</p>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".txt,.pdf,.zip,.doc,.docx,.json"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </div>
+        )}
+
+        {activeTab === 'image' && (
+          <div className="space-y-3">
+            <div
+              onClick={() => imageInputRef.current?.click()}
+              className="w-full py-8 border border-dashed border-[#2a2d37] rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-blue-500/50 transition-colors bg-[#0f1117]"
+            >
+              <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="text-sm text-gray-400">Нажмите для загрузки изображений</p>
+              <p className="text-xs text-gray-500">JPG, PNG, WEBP</p>
+            </div>
+            <input
+              ref={imageInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export default function MyShopPage() {
@@ -1333,6 +1593,11 @@ export default function MyShopPage() {
                         </div>
                       ))}
                     </div>
+
+                    {/* Delivery Keys Manager - only for existing products */}
+                    {editingProduct && editingProduct._id && (
+                      <DeliveryKeysManager productId={editingProduct._id} />
+                    )}
 
                     <button
                       onClick={handleCreateProduct}
