@@ -7,7 +7,7 @@ import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi, sellerApplicationsApi } from '@/lib/api'
 import { initAuth, isAdmin as checkIsAdmin, getUser } from '@/lib/auth'
 
-type Tab = 'dashboard' | 'orders' | 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'admins' | 'applications' | 'users' | 'settings' | 'myshop' | 'logs'
+type Tab = 'dashboard' | 'orders' | 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'admins' | 'applications' | 'users' | 'settings' | 'myshop' | 'wallet' | 'logs' | 'withdrawals'
 
 // Toggle Switch Component
 const ToggleSwitch = ({
@@ -318,6 +318,14 @@ export default function AdminPage() {
   // Activity logs state
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
   const [logsLoading, setLogsLoading] = useState(false)
+
+  // Wallet state
+  const [walletData, setWalletData] = useState<any>(null)
+  const [walletTransactions, setWalletTransactions] = useState<any[]>([])
+  const [withdrawalRequests, setWithdrawalRequests] = useState<any[]>([])
+  const [withdrawalAmount, setWithdrawalAmount] = useState('')
+  const [withdrawalMethod, setWithdrawalMethod] = useState<'cryptobot' | 'xrocket' | 'sbp' | 'card'>('cryptobot')
+  const [withdrawalDetails, setWithdrawalDetails] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const checkAccessAndLoad = async () => {
@@ -829,6 +837,8 @@ export default function AdminPage() {
     { id: 'logs', label: 'Логи', icon: Icons.logs },
     { id: 'settings', label: 'Настройки', icon: Icons.settings },
     { id: 'myshop', label: 'Мой магазин', icon: Icons.products },
+    { id: 'wallet', label: 'Кошелёк', icon: Icons.promo }, // Using promo icon temporarily
+    { id: 'withdrawals', label: 'Выводы', icon: Icons.orders }, // Admin only - will filter below
   ]
 
   if (loading) {

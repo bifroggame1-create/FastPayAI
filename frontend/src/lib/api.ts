@@ -826,6 +826,17 @@ export const adminApi = {
     return data
   },
 
+  // Withdrawal Requests (Admin)
+  getWithdrawals: async (params?: { status?: string; limit?: number; offset?: number }) => {
+    const { data } = await adminApiInstance.get('/admin/withdrawals', { params })
+    return data
+  },
+
+  updateWithdrawal: async (id: string, updates: { status: string; adminNote?: string; rejectionReason?: string; transactionId?: string; proofUrl?: string }) => {
+    const { data } = await adminApiInstance.patch(`/admin/withdrawals/${id}`, updates)
+    return data
+  },
+
   // Activity Logs
   getActivityLogs: async (params?: { action?: string; limit?: number; offset?: number }) => {
     const { data } = await adminApiInstance.get('/admin/activity-logs', { params })
