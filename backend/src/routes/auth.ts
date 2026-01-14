@@ -155,7 +155,15 @@ export async function authRoutes(fastify: FastifyInstance) {
       // Check if user is admin (bootstrap IDs or in database)
       const isAdmin = await checkIsAdmin(String(validUser.id), validUser.username, tenantId)
 
-      console.log('🔐 Auth:', { userId: validUser.id, username: validUser.username, isAdmin })
+      console.log('========================================')
+      console.log('🔐 AUTH LOGIN:', {
+        userId: validUser.id,
+        username: validUser.username,
+        isAdmin,
+        tenantId,
+        bootstrapAdminIds: BOOTSTRAP_ADMIN_IDS
+      })
+      console.log('========================================')
 
       return {
         success: true,
@@ -211,6 +219,21 @@ export async function authRoutes(fastify: FastifyInstance) {
     return {
       success: true,
       isAdmin
+    }
+  })
+
+  // Get my Telegram ID - useful for adding to ADMIN_IDS
+  fastify.get('/auth/me', { preHandler: authMiddleware }, async (request) => {
+    const user = (request as any).user as JWTPayload
+    const tenantId = (request as any).tenantId
+    const isAdmin = await checkIsAdmin(user.userId, user.username, tenantId)
+
+    return {
+      success: true,
+      userId: user.userId,
+      username: user.username,
+      isAdmin,
+      hint: `To make this user an admin, add "${user.userId}" to ADMIN_IDS environment variable`
     }
   })
 }
