@@ -345,21 +345,25 @@ export default function AdminPage() {
     try {
       if (selectedSellerId) {
         // Load data for specific seller
-        const [sellerProducts, sellerOrders, sellerStats] = await Promise.all([
-          productsApi.getAll({}).then(data => data.filter((p: Product) => p.seller?.id === selectedSellerId)),
-          adminApi.getOrders().then(data => ({ orders: data.orders.filter((o: any) => {
-            const product = products.find(p => p._id === o.productId)
-            return product?.seller?.id === selectedSellerId
-          })})),
-          adminApi.getOrdersStats().catch(() => ({ stats: {} }))
-        ])
+        // First load products to get the seller's product list
+        const sellerProducts = await productsApi.getAll({}).then(data =>
+          data.filter((p: Product) => p.seller?.id === selectedSellerId)
+        )
+
+        // Create a Set of seller's product IDs for efficient filtering
+        const sellerProductIds = new Set(sellerProducts.map(p => p._id))
+
+        // Load all orders and filter by seller's products
+        const allOrders = await adminApi.getOrders()
+        const sellerOrders = allOrders.orders.filter((o: any) => sellerProductIds.has(o.productId))
+
         setMyShopProducts(sellerProducts)
-        setMyShopOrders(sellerOrders.orders || [])
+        setMyShopOrders(sellerOrders || [])
+
         // Calculate seller-specific stats
-        const sellerOrdersData = sellerOrders.orders || []
         const stats = {
-          totalRevenue: sellerOrdersData.filter((o: any) => o.status === 'paid' || o.status === 'delivered').reduce((sum: number, o: any) => sum + o.amount, 0),
-          ordersCount: sellerOrdersData.length,
+          totalRevenue: sellerOrders.filter((o: any) => o.status === 'paid' || o.status === 'delivered').reduce((sum: number, o: any) => sum + o.amount, 0),
+          ordersCount: sellerOrders.length,
           productsCount: sellerProducts.length
         }
         setMyShopStats(stats)
