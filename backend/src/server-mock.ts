@@ -148,7 +148,8 @@ async function start() {
       max: 300, // Increased from 100 to accommodate admin operations + OPTIONS preflight
       timeWindow: '1 minute',
       keyGenerator: (request) => request.ip || 'unknown',
-      skip: (request) => {
+      // Use allowList (not 'skip') - official @fastify/rate-limit v8 API
+      allowList: (request, key) => {
         // Skip OPTIONS preflight requests (CORS check, not real API calls)
         if (request.method === 'OPTIONS') return true
 
