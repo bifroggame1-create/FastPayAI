@@ -909,17 +909,24 @@ export default function MyShopPage() {
 
   const handleToggleProduct = async (productId: string, currentState: boolean) => {
     try {
+      console.log(`[MyShop] Toggling product ${productId}, current: ${currentState}, new: ${!currentState}`)
       const result = await adminApi.toggleProduct(productId, !currentState)
+      console.log(`[MyShop] Toggle result:`, result)
+
       if (result.success) {
         setProducts(products.map(p => p._id === productId ? { ...p, isEnabled: !currentState } : p))
         setStats(prev => ({
           ...prev,
           activeProducts: !currentState ? prev.activeProducts + 1 : prev.activeProducts - 1
         }))
+      } else {
+        // Backend returned success:false
+        alert(`Ошибка: ${result.error || 'Не удалось изменить статус товара'}`)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling product:', error)
-      alert('Ошибка при изменении статуса товара')
+      const errorMsg = error.response?.data?.error || error.message || 'Неизвестная ошибка'
+      alert(`Ошибка при изменении статуса товара: ${errorMsg}`)
     }
   }
 
