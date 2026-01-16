@@ -365,7 +365,7 @@ export interface User extends TenantScoped {
   referralCode?: string
   referralCount?: number
   bonusBalance?: number
-  createdAt: string
+  createdAt?: string  // Optional: set automatically by upsertUser via $setOnInsert
   lastSeen?: string
   isBlocked?: boolean
   blockReason?: string
