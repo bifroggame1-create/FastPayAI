@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest } from 'fastify'
-import { adminMiddleware, authMiddleware } from '../auth'
+import { adminMiddleware, authMiddleware, CRITICAL_ADMIN_IDS } from '../auth'
 
 // Default tenant ID for fallback
 const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
@@ -208,6 +208,12 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const user = (request as any).user
 
       console.log(`[Toggle] Product ${id}, isEnabled: ${isEnabled}, tenant: ${tenantId}, user: ${user?.userId}`)
+
+      // CRITICAL: Force admin status for hardcoded admin IDs (they must ALWAYS have access)
+      if (user && CRITICAL_ADMIN_IDS.includes(user.userId)) {
+        user.isAdmin = true
+        console.log(`[Toggle] ✅ CRITICAL ADMIN detected - forcing admin access:`, user.userId)
+      }
 
       const before = await getProductById(id, tenantId)
       if (!before) {

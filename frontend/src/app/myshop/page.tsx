@@ -806,20 +806,35 @@ export default function MyShopPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, ordersData, statsData, promoData, filesData, settingsData, walletData, paymentConfigData, profileData, notifData] = await Promise.all([
-        adminApi.getMyShopProducts().catch(() => ({ products: [] })),
-        adminApi.getMyShopOrders().catch(() => ({ orders: [] })),
-        adminApi.getMyShopStats().catch(() => ({ stats: {} })),
-        adminApi.getPromoCodes().catch(() => []),
-        adminApi.getFiles().catch(() => ({ files: [] })),
-        adminApi.getSettings().catch(() => ({ settings: {} })),
-        adminApi.getWallet().catch(() => ({ wallet: { balance: 0, pendingBalance: 0 } })),
-        adminApi.getSellerPaymentConfig().catch(() => ({ config: {} })),
-        adminApi.getMyShopProfile().catch(() => ({ profile: null })),
-        adminApi.getMyShopNotifications().catch(() => ({ notifications: {} }))
+      // Use allSettled to prevent one failed request from breaking all data
+      const results = await Promise.allSettled([
+        adminApi.getMyShopProducts(),
+        adminApi.getMyShopOrders(),
+        adminApi.getMyShopStats(),
+        adminApi.getPromoCodes(),
+        adminApi.getFiles(),
+        adminApi.getSettings(),
+        adminApi.getWallet(),
+        adminApi.getSellerPaymentConfig(),
+        adminApi.getMyShopProfile(),
+        adminApi.getMyShopNotifications()
       ])
 
-      // Set profile
+      const [productsResult, ordersResult, statsResult, promoResult, filesResult, settingsResult, walletResult, paymentConfigResult, profileResult, notifResult] = results
+
+      // Only update state if requests succeeded
+      const productsData = productsResult.status === 'fulfilled' ? productsResult.value : null
+      const ordersData = ordersResult.status === 'fulfilled' ? ordersResult.value : null
+      const statsData = statsResult.status === 'fulfilled' ? statsResult.value : null
+      const promoData = promoResult.status === 'fulfilled' ? promoResult.value : null
+      const filesData = filesResult.status === 'fulfilled' ? filesResult.value : null
+      const settingsData = settingsResult.status === 'fulfilled' ? settingsResult.value : null
+      const walletData = walletResult.status === 'fulfilled' ? walletResult.value : null
+      const paymentConfigData = paymentConfigResult.status === 'fulfilled' ? paymentConfigResult.value : null
+      const profileData = profileResult.status === 'fulfilled' ? profileResult.value : null
+      const notifData = notifResult.status === 'fulfilled' ? notifResult.value : null
+
+      // Set profile (only if data was successfully loaded)
       if (profileData?.profile) {
         setShopProfile(profileData.profile)
         setProfileForm({

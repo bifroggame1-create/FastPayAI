@@ -434,19 +434,28 @@ export default function AdminPage() {
 
         console.log(`[Admin] Loaded seller ${selectedSellerId} data: ${sellerProducts.length} products, ${sellerOrders.length} orders`)
       } else {
-        // Load all data (all sellers)
-        const [allProducts, allOrdersData, myShopStatsData] = await Promise.all([
+        // Load all data (all sellers) - use allSettled to preserve data on errors
+        const results = await Promise.allSettled([
           productsApi.getAll({ showAll: true }),
-          adminApi.getOrders().catch(() => ({ orders: [] })),
-          adminApi.getMyShopStats().catch(() => ({ stats: null }))
+          adminApi.getOrders(),
+          adminApi.getMyShopStats()
         ])
 
-        // Set both main and my shop data
-        setProducts(allProducts)
-        setOrders(allOrdersData.orders || [])
-        setMyShopProducts(allProducts)
-        setMyShopOrders(allOrdersData.orders || [])
-        setMyShopStats(myShopStatsData?.stats || null)
+        // Only update state if requests succeeded
+        if (results[0].status === 'fulfilled') {
+          const allProducts = results[0].value
+          setProducts(allProducts)
+          setMyShopProducts(allProducts)
+        }
+        if (results[1].status === 'fulfilled') {
+          const allOrdersData = results[1].value
+          setOrders(allOrdersData.orders || [])
+          setMyShopOrders(allOrdersData.orders || [])
+        }
+        if (results[2].status === 'fulfilled') {
+          const myShopStatsData = results[2].value
+          setMyShopStats(myShopStatsData?.stats || null)
+        }
 
         console.log('[Admin] Loaded all sellers data')
       }
@@ -457,63 +466,79 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [productsData, promoData, ordersData, statsData, sellersData, adminsData, filesData, reviewsData, applicationsData, usersData, myShopProductsData, myShopOrdersData, myShopStatsData, settingsData] = await Promise.all([
+      // Use allSettled to prevent one failed request from breaking all data
+      const results = await Promise.allSettled([
         productsApi.getAll({ showAll: true }),
-        adminApi.getPromoCodes().catch(() => []),
-        adminApi.getOrders().catch(() => ({ orders: [], total: 0 })),
-        adminApi.getOrdersStats().catch(() => ({ stats: {} })),
-        adminApi.getSellers().catch(() => []),
-        adminApi.getAdmins().catch(() => []),
-        adminApi.getFiles().catch(() => ({ files: [] })),
-        adminApi.getReviews().catch(() => ({ reviews: [] })),
-        sellerApplicationsApi.getAll().catch(() => ({ applications: [] })),
-        adminApi.getUsers().catch(() => ({ users: [] })),
+        adminApi.getPromoCodes(),
+        adminApi.getOrders(),
+        adminApi.getOrdersStats(),
+        adminApi.getSellers(),
+        adminApi.getAdmins(),
+        adminApi.getFiles(),
+        adminApi.getReviews(),
+        sellerApplicationsApi.getAll(),
+        adminApi.getUsers(),
         // My Shop specific data (seller-specific)
-        adminApi.getMyShopProducts().catch(() => ({ products: [] })),
-        adminApi.getMyShopOrders().catch(() => ({ orders: [] })),
-        adminApi.getMyShopStats().catch(() => ({ stats: null })),
+        adminApi.getMyShopProducts(),
+        adminApi.getMyShopOrders(),
+        adminApi.getMyShopStats(),
         // Load settings (including payment methods)
-        adminApi.getSettings().catch(() => ({ settings: {} }))
+        adminApi.getSettings()
       ])
-      setProducts(productsData)
-      setPromoCodes(promoData?.promoCodes || promoData || [])
-      setOrders(ordersData.orders || [])
-      setOrdersStats(statsData.stats || {})
-      setSellers(sellersData?.sellers || sellersData || [])
-      setAdmins(adminsData?.admins || adminsData || [])
-      setUploadedFiles(filesData?.files || [])
-      setReviews(reviewsData?.reviews || [])
-      setApplications(applicationsData?.applications || [])
-      setUsers(usersData?.users || [])
-      setUsersTotal(usersData?.total || 0)
+
+      // Only update state if request succeeded (don't clear data on errors)
+      const [productsResult, promoResult, ordersResult, statsResult, sellersResult, adminsResult, filesResult, reviewsResult, applicationsResult, usersResult, myShopProductsResult, myShopOrdersResult, myShopStatsResult, settingsResult] = results
+
+      if (productsResult.status === 'fulfilled') setProducts(productsResult.value)
+      if (promoResult.status === 'fulfilled') setPromoCodes(promoResult.value?.promoCodes || promoResult.value || [])
+      if (ordersResult.status === 'fulfilled') setOrders(ordersResult.value.orders || [])
+      if (statsResult.status === 'fulfilled') setOrdersStats(statsResult.value.stats || {})
+      if (sellersResult.status === 'fulfilled') setSellers(sellersResult.value?.sellers || sellersResult.value || [])
+      if (adminsResult.status === 'fulfilled') setAdmins(adminsResult.value?.admins || adminsResult.value || [])
+      if (filesResult.status === 'fulfilled') setUploadedFiles(filesResult.value?.files || [])
+      if (reviewsResult.status === 'fulfilled') setReviews(reviewsResult.value?.reviews || [])
+      if (applicationsResult.status === 'fulfilled') setApplications(applicationsResult.value?.applications || [])
+      if (usersResult.status === 'fulfilled') {
+        setUsers(usersResult.value?.users || [])
+        setUsersTotal(usersResult.value?.total || 0)
+      }
       // Set My Shop data
-      setMyShopProducts(myShopProductsData?.products || [])
-      setMyShopOrders(myShopOrdersData?.orders || [])
-      setMyShopStats(myShopStatsData?.stats || null)
+      if (myShopProductsResult.status === 'fulfilled') setMyShopProducts(myShopProductsResult.value?.products || [])
+      if (myShopOrdersResult.status === 'fulfilled') setMyShopOrders(myShopOrdersResult.value?.orders || [])
+      if (myShopStatsResult.status === 'fulfilled') setMyShopStats(myShopStatsResult.value?.stats || null)
       // Set settings
-      if (settingsData?.settings?.paymentConfig?.enabledMethods) {
-        setPaymentMethods(settingsData.settings.paymentConfig.enabledMethods)
-      } else if (settingsData?.paymentConfig?.enabledMethods) {
-        setPaymentMethods(settingsData.paymentConfig.enabledMethods)
-      }
-      if (settingsData?.settings?.branding) {
-        setShopBranding(settingsData.settings.branding)
-      } else if (settingsData?.branding) {
-        setShopBranding(settingsData.branding)
-      }
-      // Set commission
-      if (settingsData?.settings?.commissionRules?.platformFeePercent !== undefined) {
-        setPlatformFeePercent(settingsData.settings.commissionRules.platformFeePercent)
-      } else if (settingsData?.commissionRules?.platformFeePercent !== undefined) {
-        setPlatformFeePercent(settingsData.commissionRules.platformFeePercent)
-      }
-      // Set pricing
-      if (settingsData?.settings?.settings) {
-        const s = settingsData.settings.settings
-        if (s.starsMarkupPerStar) setStarsMarkupPerStar(s.starsMarkupPerStar)
-        if (s.premium3MonthsPrice) setPremium3MonthsPrice(s.premium3MonthsPrice)
-        if (s.premium6MonthsPrice) setPremium6MonthsPrice(s.premium6MonthsPrice)
-        if (s.premium12MonthsPrice) setPremium12MonthsPrice(s.premium12MonthsPrice)
+      if (settingsResult.status === 'fulfilled') {
+        const settings = settingsResult.value
+
+        // Payment methods
+        if (settings?.settings?.paymentConfig?.enabledMethods) {
+          setPaymentMethods(settings.settings.paymentConfig.enabledMethods)
+        } else if (settings?.paymentConfig?.enabledMethods) {
+          setPaymentMethods(settings.paymentConfig.enabledMethods)
+        }
+
+        // Branding
+        if (settings?.settings?.branding) {
+          setShopBranding(settings.settings.branding)
+        } else if (settings?.branding) {
+          setShopBranding(settings.branding)
+        }
+
+        // Commission
+        if (settings?.settings?.commissionRules?.platformFeePercent !== undefined) {
+          setPlatformFeePercent(settings.settings.commissionRules.platformFeePercent)
+        } else if (settings?.commissionRules?.platformFeePercent !== undefined) {
+          setPlatformFeePercent(settings.commissionRules.platformFeePercent)
+        }
+
+        // Pricing
+        if (settings?.settings?.settings) {
+          const s = settings.settings.settings
+          if (s.starsMarkupPerStar) setStarsMarkupPerStar(s.starsMarkupPerStar)
+          if (s.premium3MonthsPrice) setPremium3MonthsPrice(s.premium3MonthsPrice)
+          if (s.premium6MonthsPrice) setPremium6MonthsPrice(s.premium6MonthsPrice)
+          if (s.premium12MonthsPrice) setPremium12MonthsPrice(s.premium12MonthsPrice)
+        }
       }
     } catch (error) {
       // Error loading data
@@ -764,10 +789,15 @@ export default function AdminPage() {
   const handleDeletePromo = async (code: string) => {
     if (confirm('Удалить промокод?')) {
       try {
-        await adminApi.deletePromoCode(code)
-        setPromoCodes(promoCodes.filter(p => p.code !== code))
-      } catch (error) {
+        const result = await adminApi.deletePromoCode(code)
+        if (result.success) {
+          setPromoCodes(promoCodes.filter(p => p.code !== code))
+        } else {
+          alert(`Ошибка удаления промокода: ${result.error || 'Неизвестная ошибка'}`)
+        }
+      } catch (error: any) {
         console.error('Error deleting promo:', error)
+        alert(`Ошибка удаления промокода: ${error.response?.data?.error || error.message || 'Неизвестная ошибка'}`)
       }
     }
   }
@@ -2482,15 +2512,15 @@ export default function AdminPage() {
 
                         // Reload shop data for selected seller
                         try {
-                          const params = sellerId ? `?sellerId=${sellerId}` : ''
-                          const [productsRes, ordersRes, statsRes] = await Promise.all([
+                          const results = await Promise.allSettled([
                             adminApi.getMyShopProducts(sellerId),
                             adminApi.getMyShopOrders(sellerId),
                             adminApi.getMyShopStats(sellerId)
                           ])
-                          setMyShopProducts(productsRes?.products || [])
-                          setMyShopOrders(ordersRes?.orders || [])
-                          setMyShopStats(statsRes?.stats || null)
+                          // Only update data that loaded successfully
+                          if (results[0].status === 'fulfilled') setMyShopProducts(results[0].value?.products || [])
+                          if (results[1].status === 'fulfilled') setMyShopOrders(results[1].value?.orders || [])
+                          if (results[2].status === 'fulfilled') setMyShopStats(results[2].value?.stats || null)
                         } catch (err) {
                           console.error('Failed to load seller data:', err)
                         }

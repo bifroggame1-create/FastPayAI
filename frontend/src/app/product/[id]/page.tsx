@@ -39,12 +39,13 @@ export default function ProductDetailPage() {
       }
 
       try {
-        const [reviewsData, statsData] = await Promise.all([
+        const results = await Promise.allSettled([
           reviewsApi.getByProduct(params.id as string),
           reviewsApi.getStats(params.id as string)
         ])
-        setReviews(reviewsData.slice(0, 3))
-        setReviewStats(statsData)
+        // Only update data that loaded successfully
+        if (results[0].status === 'fulfilled') setReviews(results[0].value.slice(0, 3))
+        if (results[1].status === 'fulfilled') setReviewStats(results[1].value)
       } catch {
         // Reviews might not exist
       }

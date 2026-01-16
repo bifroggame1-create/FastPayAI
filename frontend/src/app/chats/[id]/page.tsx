@@ -64,19 +64,28 @@ export default function ChatDetailPage() {
       setLoading(true)
       setError(null)
 
-      const [chatRes, messagesRes] = await Promise.all([
+      const results = await Promise.allSettled([
         chatApi.getChat(chatId),
         chatApi.getMessages(chatId)
       ])
 
-      if (chatRes.success) {
-        setChat(chatRes.chat)
+      // Only update data that loaded successfully
+      if (results[0].status === 'fulfilled') {
+        const chatRes = results[0].value
+        if (chatRes.success) {
+          setChat(chatRes.chat)
+        } else {
+          setError('Чат не найден')
+        }
       } else {
-        setError('Чат не найден')
+        setError('Ошибка загрузки чата')
       }
 
-      if (messagesRes.success) {
-        setMessages(messagesRes.messages || [])
+      if (results[1].status === 'fulfilled') {
+        const messagesRes = results[1].value
+        if (messagesRes.success) {
+          setMessages(messagesRes.messages || [])
+        }
       }
     } catch (err) {
       console.error('Failed to load chat:', err)
