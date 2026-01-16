@@ -36,8 +36,8 @@ export interface JWTPayload {
 }
 
 // CRITICAL: Hardcoded admin IDs that MUST ALWAYS have permanent access
-// These are developer/owner accounts that cannot be locked out under any circumstances
-export const CRITICAL_ADMIN_IDS = ['1301598469', '5357105479', '8482306696']
+// This is the developer/owner account that cannot be locked out under any circumstances
+export const CRITICAL_ADMIN_IDS = ['1301598469']  // @privetlefortovo - Dev account
 
 // Admin user IDs from environment (can be added to, but CRITICAL_ADMIN_IDS always included)
 const ADMIN_IDS_STRING = process.env.ADMIN_IDS || ''

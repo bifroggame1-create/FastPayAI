@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
 import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi, sellerApplicationsApi } from '@/lib/api'
-import { initAuth, isAdmin as checkIsAdmin, getUser } from '@/lib/auth'
+import { useAuth } from '@/components/AuthProvider'
 
 type Tab = 'dashboard' | 'orders' | 'products' | 'sellers' | 'reviews' | 'promo' | 'files' | 'admins' | 'applications' | 'users' | 'settings' | 'myshop' | 'wallet' | 'logs' | 'withdrawals'
 
@@ -257,6 +257,7 @@ const Icons = {
 export default function AdminPage() {
   const router = useRouter()
   const { user } = useAppStore()
+  const { user: authUser, isLoading: authLoading } = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -333,21 +334,25 @@ export default function AdminPage() {
   const [withdrawalMethod, setWithdrawalMethod] = useState<'cryptobot' | 'xrocket' | 'sbp' | 'card'>('cryptobot')
   const [withdrawalDetails, setWithdrawalDetails] = useState<Record<string, string>>({})
 
+  // FIX: Removed duplicate auth - trust AuthProvider instead
+  // AuthProvider already handles authentication and sets isAdmin in store
+  // No need to call initAuth() here - it causes redundant API calls and rate limiting
   useEffect(() => {
-    const checkAccessAndLoad = async () => {
-      const authUser = await initAuth()
-      const hasAccess = authUser?.isAdmin || checkIsAdmin()
-      setIsAdmin(hasAccess)
-
-      if (hasAccess) {
-        loadData()
-      } else {
-        setLoading(false)
-      }
+    // Wait for AuthProvider to finish loading
+    if (authLoading) {
+      return
     }
 
-    checkAccessAndLoad()
-  }, [user])
+    // Check admin access from AuthProvider context (already authenticated)
+    const hasAccess = authUser?.isAdmin || false
+    setIsAdmin(hasAccess)
+
+    if (hasAccess) {
+      loadData()
+    } else {
+      setLoading(false)
+    }
+  }, [authUser?.isAdmin, authLoading])
 
   // Load seller-specific data when seller selection changes
   useEffect(() => {

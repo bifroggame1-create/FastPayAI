@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
 import { Product, ProductVariant } from '@/types'
 import { productsApi, adminApi } from '@/lib/api'
-import { initAuth, getUser } from '@/lib/auth'
 import { formatPrice } from '@/lib/currency'
 import BottomNav from '@/components/BottomNav'
+import { useAuth } from '@/components/AuthProvider'
 
 type Tab = 'dashboard' | 'analytics' | 'orders' | 'products' | 'inventory' | 'reviews' | 'promo' | 'files' | 'settings' | 'profile' | 'wallet'
 type OrderStatus = 'pending' | 'paid' | 'processing' | 'delivered' | 'cancelled' | 'refunded'
@@ -668,6 +668,7 @@ function DeliveryKeysManager({ productId }: { productId: string }) {
 export default function MyShopPage() {
   const router = useRouter()
   const { currency, theme, toggleTheme } = useAppStore()
+  const { user: authUser, isLoading: authLoading } = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
   const [loading, setLoading] = useState(true)
   const [isSeller, setIsSeller] = useState(false)
@@ -779,26 +780,29 @@ export default function MyShopPage() {
   const [creatingPromo, setCreatingPromo] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
 
+  // FIX: Removed duplicate auth - trust AuthProvider instead
+  // AuthProvider already handles authentication
+  // No need to call initAuth() here - it causes redundant API calls and rate limiting
   useEffect(() => {
-    checkAccessAndLoad()
-  }, [])
+    // Wait for AuthProvider to finish loading
+    if (authLoading) {
+      return
+    }
 
-  const checkAccessAndLoad = async () => {
-    const user = await initAuth()
-    if (user) {
+    if (authUser) {
       setIsSeller(true)
-      // Get seller info from user
+      // Get seller info from authUser
       setCurrentSeller({
-        id: user.id || String(user.id),
-        name: user.name || user.username || 'Продавец',
-        avatar: user.avatar,
+        id: authUser.id || String(authUser.id),
+        name: authUser.name || authUser.username || 'Продавец',
+        avatar: authUser.avatar,
         rating: 5
       })
       loadData()
     } else {
       setLoading(false)
     }
-  }
+  }, [authUser, authLoading])
 
   const loadData = async () => {
     try {
