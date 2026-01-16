@@ -3491,6 +3491,167 @@ export async function adminRoutes(fastify: FastifyInstance) {
   })
 
   // ============================================
+  // BOT WEBHOOK MANAGEMENT
+  // ============================================
+
+  // Get webhook status for current tenant
+  fastify.get('/admin/bot/webhook-status', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const tenantId = reqTenantId(request)
+      const { getTenantsCollection } = await import('../database')
+
+      const tenant = await getTenantsCollection().findOne({ id: tenantId })
+
+      if (!tenant) {
+        reply.code(404)
+        return { success: false, error: 'Tenant not found' }
+      }
+
+      if (!tenant.botToken) {
+        return {
+          success: true,
+          configured: false,
+          message: 'Bot token not configured. Set BOT_TOKEN in environment and restart the server.'
+        }
+      }
+
+      // Get webhook info from Telegram
+      const response = await fetch(`https://api.telegram.org/bot${tenant.botToken}/getWebhookInfo`)
+      const result = await response.json() as { ok: boolean; result?: any; description?: string }
+
+      if (result.ok && result.result) {
+        const webhookInfo = result.result
+        return {
+          success: true,
+          configured: true,
+          webhookInfo: {
+            url: webhookInfo.url,
+            hasCustomCertificate: webhookInfo.has_custom_certificate,
+            pendingUpdateCount: webhookInfo.pending_update_count,
+            lastErrorDate: webhookInfo.last_error_date,
+            lastErrorMessage: webhookInfo.last_error_message,
+            maxConnections: webhookInfo.max_connections,
+            allowedUpdates: webhookInfo.allowed_updates
+          }
+        }
+      }
+
+      return {
+        success: true,
+        configured: false,
+        message: 'Webhook not configured in Telegram API'
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Setup webhook for current tenant
+  fastify.post('/admin/bot/setup-webhook', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const tenantId = reqTenantId(request)
+      const { getTenantsCollection } = await import('../database')
+      const crypto = await import('crypto')
+
+      const tenant = await getTenantsCollection().findOne({ id: tenantId })
+
+      if (!tenant) {
+        reply.code(404)
+        return { success: false, error: 'Tenant not found' }
+      }
+
+      if (!tenant.botToken) {
+        reply.code(400)
+        return { success: false, error: 'Bot token not configured for tenant' }
+      }
+
+      // Generate webhook URL and secret
+      const webhookBaseUrl = process.env.WEBHOOK_BASE_URL || 'https://fastpayai.onrender.com'
+      const fullWebhookUrl = `${webhookBaseUrl}/bot/${tenant.botToken}/webhook`
+      const secretToken = crypto.randomBytes(32).toString('hex')
+
+      // Set webhook with Telegram
+      const response = await fetch(`https://api.telegram.org/bot${tenant.botToken}/setWebhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: fullWebhookUrl,
+          secret_token: secretToken,
+          allowed_updates: ['message', 'callback_query', 'pre_checkout_query', 'successful_payment'],
+          drop_pending_updates: false
+        })
+      })
+
+      const result = await response.json() as { ok: boolean; description?: string }
+
+      if (!result.ok) {
+        reply.code(500)
+        return { success: false, error: result.description || 'Failed to set webhook' }
+      }
+
+      // Store secret token in tenant config
+      await getTenantsCollection().updateOne(
+        { id: tenantId },
+        { $set: { 'paymentConfig.webhookSecret': secretToken } }
+      )
+
+      return {
+        success: true,
+        message: 'Webhook configured successfully',
+        webhookUrl: fullWebhookUrl,
+        secretTokenPreview: secretToken.substring(0, 16) + '...'
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Delete webhook for current tenant
+  fastify.delete('/admin/bot/webhook', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const tenantId = reqTenantId(request)
+      const { getTenantsCollection } = await import('../database')
+
+      const tenant = await getTenantsCollection().findOne({ id: tenantId })
+
+      if (!tenant) {
+        reply.code(404)
+        return { success: false, error: 'Tenant not found' }
+      }
+
+      if (!tenant.botToken) {
+        reply.code(400)
+        return { success: false, error: 'Bot token not configured' }
+      }
+
+      // Delete webhook
+      const response = await fetch(`https://api.telegram.org/bot${tenant.botToken}/deleteWebhook`)
+      const result = await response.json() as { ok: boolean; description?: string }
+
+      if (!result.ok) {
+        reply.code(500)
+        return { success: false, error: result.description || 'Failed to delete webhook' }
+      }
+
+      // Clear secret token from database
+      await getTenantsCollection().updateOne(
+        { id: tenantId },
+        { $unset: { 'paymentConfig.webhookSecret': 1 } }
+      )
+
+      return {
+        success: true,
+        message: 'Webhook deleted successfully'
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
+  // ============================================
   // PUBLIC PRICING ENDPOINT (NO AUTH REQUIRED)
   // ============================================
 

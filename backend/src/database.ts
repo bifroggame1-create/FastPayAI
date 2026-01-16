@@ -888,6 +888,8 @@ export async function ensureDefaultTenant(): Promise<void> {
       paymentConfig: {
         enabledMethods: ['cryptobot', 'cactuspay-sbp', 'cactuspay-card']
       },
+      botToken: process.env.BOT_TOKEN || undefined,
+      webAppUrl: process.env.FRONTEND_URL || 'https://fast-pay-ai.vercel.app',
       createdAt: new Date().toISOString(),
       activatedAt: new Date().toISOString()
     }
@@ -896,6 +898,15 @@ export async function ensureDefaultTenant(): Promise<void> {
     console.log(`✅ Default tenant '${DEFAULT_TENANT_ID}' created`)
   } else {
     console.log(`✅ Default tenant '${DEFAULT_TENANT_ID}' exists`)
+
+    // Update botToken if provided and not already set
+    if (process.env.BOT_TOKEN && !existingTenant.botToken) {
+      await getTenantsCollection().updateOne(
+        { id: DEFAULT_TENANT_ID },
+        { $set: { botToken: process.env.BOT_TOKEN } }
+      )
+      console.log(`✅ Bot token configured for tenant '${DEFAULT_TENANT_ID}'`)
+    }
   }
 
   // Also ensure existing products have tenantId
