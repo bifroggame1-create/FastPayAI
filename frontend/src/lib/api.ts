@@ -138,10 +138,15 @@ const adminApiInstance = axios.create({
 // Admin API uses JWT token (localStorage mode) or cookies (cookie mode)
 adminApiInstance.interceptors.request.use((config) => {
   // In localStorage mode, add Authorization header
+  console.log('[adminApiInstance] AUTH_MODE:', AUTH_MODE, 'URL:', config.url)
+
   if (AUTH_MODE === 'localStorage') {
     const token = getToken()
+    console.log('[adminApiInstance] Token:', token ? `${token.substring(0, 20)}...` : 'null')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    } else {
+      console.warn('[adminApiInstance] No token found in localStorage!')
     }
   }
   // In cookie mode, credentials are sent automatically via withCredentials: true

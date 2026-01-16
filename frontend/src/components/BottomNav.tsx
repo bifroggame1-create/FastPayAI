@@ -14,12 +14,16 @@ export default function BottomNav() {
 
   useEffect(() => {
     const init = async () => {
+      console.log('[BottomNav] Init auth...')
       const user = await initAuth()
+      console.log('[BottomNav] User:', user)
       if (user) {
+        console.log('[BottomNav] Setting isAdmin:', user.isAdmin)
         setLocalIsAdmin(user.isAdmin)
         setIsAdmin(user.isAdmin)
       } else {
         const adminStatus = checkIsAdmin()
+        console.log('[BottomNav] checkIsAdmin:', adminStatus)
         setLocalIsAdmin(adminStatus)
         setIsAdmin(adminStatus)
       }
