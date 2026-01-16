@@ -136,7 +136,7 @@ export async function authRoutes(fastify: FastifyInstance) {
             id: 123456789,
             first_name: 'Dev',
             username: 'devuser'
-          }, tenantId)
+          }, tenantId, false)
 
           // Create dev user in database
           await upsertUser({
@@ -171,13 +171,21 @@ export async function authRoutes(fastify: FastifyInstance) {
       // At this point user is guaranteed to be non-null
       const validUser = user!
       const tenantId = (request as any).tenantId
-      const token = await generateToken(validUser, tenantId)
 
-      // Check if user is admin (bootstrap IDs or in database)
+      console.log('[AUTH] Step 1: Validated user:', validUser.id, validUser.username)
+
+      // Check if user is admin BEFORE generating token (to avoid duplicate checks)
       const isAdmin = await checkIsAdmin(String(validUser.id), validUser.username, tenantId)
+      console.log('[AUTH] Step 2: Admin check complete:', isAdmin)
+
+      // Pass isAdmin to generateToken to avoid duplicate check
+      const token = await generateToken(validUser, tenantId, isAdmin)
+      console.log('[AUTH] Step 3: Token generated')
 
       // Create or update user in database
       const userName = `${validUser.first_name}${validUser.last_name ? ' ' + validUser.last_name : ''}`
+      console.log('[AUTH] Step 4: Upserting user:', userName)
+
       await upsertUser({
         id: String(validUser.id),
         tenantId: tenantId,
@@ -191,6 +199,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         createdAt: new Date().toISOString(),
         lastSeen: new Date().toISOString()
       })
+
+      console.log('[AUTH] Step 5: User upserted successfully')
 
       console.log('========================================')
       console.log('🔐 AUTH LOGIN:', {
@@ -214,6 +224,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         }
       }
     } catch (error: any) {
+      console.error('❌ [AUTH] Error in /auth/telegram:', error)
+      console.error('Error stack:', error.stack)
       reply.code(error.statusCode || 500)
       return { success: false, error: error.error || error.message, details: error.details }
     }

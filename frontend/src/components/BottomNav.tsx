@@ -16,11 +16,19 @@ export default function BottomNav() {
     const init = async () => {
       console.log('[BottomNav] Init auth...')
       const user = await initAuth()
-      console.log('[BottomNav] User:', user)
+      console.log('[BottomNav] User:', JSON.stringify(user))
+
       if (user) {
         console.log('[BottomNav] Setting isAdmin:', user.isAdmin)
         setLocalIsAdmin(user.isAdmin)
         setIsAdmin(user.isAdmin)
+
+        // ВРЕМЕННЫЙ ДЕБАГ - покажет статус админа
+        if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
+          setTimeout(() => {
+            alert(`DEBUG: isAdmin=${user.isAdmin}, username=${user.username}, id=${user.id}`)
+          }, 1000)
+        }
       } else {
         const adminStatus = checkIsAdmin()
         console.log('[BottomNav] checkIsAdmin:', adminStatus)

@@ -127,11 +127,14 @@ export function validateTelegramWebAppData(initData: string): TelegramUser | nul
  * Note: isAdmin flag in JWT is set at login time.
  * For real-time admin status, always check with isAdmin() function or use adminMiddleware.
  */
-export async function generateToken(user: TelegramUser, tenantId?: string): Promise<string> {
+export async function generateToken(user: TelegramUser, tenantId?: string, userIsAdmin?: boolean): Promise<string> {
+  // If isAdmin is provided, use it; otherwise check dynamically
+  const adminStatus = userIsAdmin !== undefined ? userIsAdmin : await isAdmin(String(user.id), user.username, tenantId)
+
   const payload: JWTPayload = {
     userId: String(user.id),
     username: user.username,
-    isAdmin: await isAdmin(String(user.id), user.username, tenantId)
+    isAdmin: adminStatus
   }
 
   const secret = module.exports.JWT_SECRET || JWT_SECRET
