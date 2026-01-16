@@ -66,14 +66,18 @@ async function rateLimitMiddleware(request: FastifyRequest, reply: FastifyReply)
 
 // Check if user is admin (bootstrap IDs or in database)
 async function checkIsAdmin(userId: string, username?: string, tenantId?: string): Promise<boolean> {
+  console.log('[checkIsAdmin] Checking:', { userId, username, tenantId, BOOTSTRAP_ADMIN_IDS })
+
   // Check bootstrap admin IDs first
   if (BOOTSTRAP_ADMIN_IDS.includes(userId)) {
+    console.log('[checkIsAdmin] ✅ Admin via BOOTSTRAP_ADMIN_IDS')
     return true
   }
 
   // Check database for admin by userId
   const adminByUserId = await getAdminByUserId(userId, tenantId)
   if (adminByUserId) {
+    console.log('[checkIsAdmin] ✅ Admin via database userId')
     return true
   }
 
@@ -81,10 +85,13 @@ async function checkIsAdmin(userId: string, username?: string, tenantId?: string
   if (username) {
     const adminByUsername = await getAdminByUsername(username.toLowerCase(), tenantId)
     if (adminByUsername) {
+      console.log('[checkIsAdmin] ✅ Admin via database username')
+
       return true
     }
   }
 
+  console.log('[checkIsAdmin] ❌ Not admin')
   return false
 }
 
