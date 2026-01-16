@@ -146,9 +146,7 @@ export async function authRoutes(fastify: FastifyInstance) {
             username: 'devuser',
             referralCode: 'ref_123456789',
             referralCount: 0,
-            bonusBalance: 0,
-            createdAt: new Date().toISOString(),
-            lastSeen: new Date().toISOString()
+            bonusBalance: 0
           })
 
           return {
@@ -195,9 +193,9 @@ export async function authRoutes(fastify: FastifyInstance) {
         isPremium: validUser.is_premium || false,
         referralCode: `ref_${validUser.id}`,
         referralCount: 0,
-        bonusBalance: 0,
-        createdAt: new Date().toISOString(),
-        lastSeen: new Date().toISOString()
+        bonusBalance: 0
+        // Note: createdAt is set by upsertUser() via $setOnInsert
+        // lastSeen is set by upsertUser() automatically
       })
 
       console.log('[AUTH] Step 5: User upserted successfully')
