@@ -34,14 +34,14 @@ export async function starsOrderRoutes(fastify: FastifyInstance) {
         return { success: false, error: 'Minimum amount is 50 stars' }
       }
 
-      // Check if Fragment API is configured
-      if (!isFragmentApiConfigured()) {
-        reply.code(503)
-        return {
-          success: false,
-          error: 'Stars service is temporarily unavailable. Please contact support.'
-        }
-      }
+      // Fragment API is optional - orders can be fulfilled manually or via other payment methods
+      // if (!isFragmentApiConfigured()) {
+      //   reply.code(503)
+      //   return {
+      //     success: false,
+      //     error: 'Stars service is temporarily unavailable. Please contact support.'
+      //   }
+      // }
 
       // Generate order ID
       const orderId = `STARS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -113,23 +113,25 @@ export async function starsOrderRoutes(fastify: FastifyInstance) {
         }
       }
 
-      // Check if Fragment API is configured
-      if (!isFragmentApiConfigured()) {
-        reply.code(503)
-        return {
-          success: false,
-          error: 'Premium service is temporarily unavailable. Please contact support.'
-        }
-      }
+      // Fragment API is optional - orders can be fulfilled manually or via other payment methods
+      // if (!isFragmentApiConfigured()) {
+      //   reply.code(503)
+      //   return {
+      //     success: false,
+      //     error: 'Premium service is temporarily unavailable. Please contact support.'
+      //   }
+      // }
 
-      // Validate username exists
+      // Validate username exists (optional - skip if Fragment API not configured)
       const cleanUsername = username.startsWith('@') ? username.substring(1) : username
-      const validation = await validateUsername(cleanUsername)
-      if (!validation.exists) {
-        reply.code(400)
-        return {
-          success: false,
-          error: `Username @${cleanUsername} not found on Telegram`
+      if (isFragmentApiConfigured()) {
+        const validation = await validateUsername(cleanUsername)
+        if (!validation.exists) {
+          reply.code(400)
+          return {
+            success: false,
+            error: `Username @${cleanUsername} not found on Telegram`
+          }
         }
       }
 
