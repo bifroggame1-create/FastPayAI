@@ -205,7 +205,7 @@ export const updatePromoSchema = createPromoSchema.partial()
 // Seller schemas
 // ============================================
 
-export const sellerBadgeSchema = z.enum(['new', 'trusted', 'verified', 'top_seller', 'high_volume', 'risky', 'vip', 'busy', 'offline', 'on_hold'])
+export const sellerBadgeSchema = z.enum(['new', 'trusted', 'verified', 'top_seller', 'high_volume', 'risky'])
 
 export const createSellerSchema = z.object({
   id: z.string().min(1).max(50),

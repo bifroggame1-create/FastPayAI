@@ -16,8 +16,8 @@ import duckHeroAnimation from '../../../public/duck-stickers/duck-10.json'
 import duckSuccessAnimation from '../../../public/duck-stickers/duck-5.json'
 
 // Import status icons (анимированные иконки)
-import telegramStarsIcon from '../../../public/badge-icons/star-simple.json'
-import telegramPremiumIcon from '../../../public/badge-icons/box-red.json'
+import telegramStarsIcon from '../../../public/badge-icons/stars-icon.json'
+import telegramPremiumIcon from '../../../public/badge-icons/premium-icon.json'
 import successIcon from '../../../public/status-icons/status-3.json'
 import duckButtonIcon from '../../../public/duck-stickers/duck-42.json'
 

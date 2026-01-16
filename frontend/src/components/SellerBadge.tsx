@@ -14,13 +14,8 @@ import topSellerIcon from '../../public/status-icons/status-1.json'
 import highVolumeIcon from '../../public/status-icons/status-6.json'
 import riskyIcon from '../../public/status-icons/status-7.json'
 
-// Import additional badge icons
-import vipIcon from '../../public/badge-icons/badge-vip.json'
-import busyIcon from '../../public/badge-icons/badge-busy.json'
-import offlineIcon from '../../public/badge-icons/badge-offline.json'
-import onHoldIcon from '../../public/badge-icons/badge-hold.json'
 
-export type SellerBadgeType = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky' | 'vip' | 'busy' | 'offline' | 'on_hold'
+export type SellerBadgeType = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky'
 
 interface SellerBadgeProps {
   badge: SellerBadgeType
@@ -82,38 +77,6 @@ const badgeConfig: Record<SellerBadgeType, {
     color: 'text-red-500',
     bgColor: 'bg-red-500/10',
     description: { ru: 'Проблемы с заказами', en: 'Order issues' },
-    animation: ''
-  },
-  vip: {
-    iconData: vipIcon,
-    label: { ru: 'VIP', en: 'VIP' },
-    color: 'text-yellow-500',
-    bgColor: 'bg-yellow-500/10',
-    description: { ru: 'VIP продавец', en: 'VIP seller' },
-    animation: ''
-  },
-  busy: {
-    iconData: busyIcon,
-    label: { ru: 'Занят', en: 'Busy' },
-    color: 'text-orange-500',
-    bgColor: 'bg-orange-500/10',
-    description: { ru: 'Продавец занят', en: 'Seller is busy' },
-    animation: ''
-  },
-  offline: {
-    iconData: offlineIcon,
-    label: { ru: 'Офлайн', en: 'Offline' },
-    color: 'text-gray-500',
-    bgColor: 'bg-gray-500/10',
-    description: { ru: 'Продавец не в сети', en: 'Seller is offline' },
-    animation: ''
-  },
-  on_hold: {
-    iconData: onHoldIcon,
-    label: { ru: 'На удержании', en: 'On Hold' },
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-600/10',
-    description: { ru: 'Заказы на удержании', en: 'Orders on hold' },
     animation: ''
   }
 }
