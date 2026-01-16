@@ -4,12 +4,15 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Header from '@/components/Header'
 import { Product, ProductVariant } from '@/types'
-import { productsApi, promoApi, paymentApi } from '@/lib/api'
+import { productsApi, promoApi, paymentApi, getTenantId } from '@/lib/api'
 import { useAppStore, CartItem } from '@/lib/store'
 import { formatPrice } from '@/lib/currency'
 import { formatCryptoAmount } from '@/lib/cryptoConverter'
 import { t } from '@/lib/i18n'
 import { EscrowExplainer } from '@/components/TrustBanner'
+
+// API URL for backend requests
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
 
 interface CheckoutItem {
   productId: string
@@ -182,10 +185,15 @@ function CheckoutContent() {
     // Helper to process Stars order after payment
     const processStarsOrder = async (orderId: string, paymentId: string) => {
       try {
-        const response = await fetch('/api/stars/process-payment', {
+        const tenantId = getTenantId()
+        const response = await fetch(`${API_URL}/api/stars/process-payment`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Tenant-ID': tenantId
+          },
           body: JSON.stringify({
+            tenant: tenantId,
             orderId,
             paymentId,
             paymentMethod

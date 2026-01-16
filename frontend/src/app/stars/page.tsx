@@ -6,6 +6,7 @@ import Header from '@/components/Header'
 import { useAppStore } from '@/lib/store'
 import { hapticImpact } from '@/lib/telegram'
 import { formatPrice } from '@/lib/currency'
+import { getTenantId } from '@/lib/api'
 import dynamic from 'next/dynamic'
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
@@ -86,8 +87,11 @@ export default function StarsPage() {
         ? `${API_URL}/api/stars/create-order`
         : `${API_URL}/api/stars/create-premium-order`
 
+      const tenantId = getTenantId()
+
       const orderBody = activeTab === 'stars'
         ? {
+            tenant: tenantId,
             username: username.startsWith('@') ? username : `@${username}`,
             stars: starsAmount,
             price: calculateStarsPrice(starsAmount),
@@ -96,6 +100,7 @@ export default function StarsPage() {
             userUsername: user?.username
           }
         : {
+            tenant: tenantId,
             username: username.startsWith('@') ? username : `@${username}`,
             months: selectedPremium.months,
             price: selectedPremium.price,
@@ -106,7 +111,10 @@ export default function StarsPage() {
 
       const orderResponse = await fetch(createOrderEndpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant-ID': tenantId
+        },
         body: JSON.stringify(orderBody)
       })
 
@@ -375,7 +383,7 @@ export default function StarsPage() {
                   {language === 'ru' ? 'Оплатите' : 'Pay'}
                 </p>
                 <p className="text-xs text-tg-hint">
-                  {language === 'ru' ? 'Через Telegram Bot Payments' : 'Via Telegram Bot Payments'}
+                  {language === 'ru' ? 'Через FastPay Bot' : 'Via FastPay Bot'}
                 </p>
               </div>
             </div>

@@ -6,7 +6,7 @@ import {
   JWTPayload
 } from '../auth'
 import { validateBody, telegramAuthSchema } from '../validation'
-import { getAdminByUserId, getAdminByUsername } from '../dataStore'
+import { getAdminByUserId, getAdminByUsername, upsertUser } from '../dataStore'
 
 // Bootstrap admin IDs - can authenticate even without BOT_TOKEN
 const BOOTSTRAP_ADMIN_IDS = (process.env.ADMIN_IDS || '1301598469').split(',').map(id => id.trim())
@@ -130,6 +130,20 @@ export async function authRoutes(fastify: FastifyInstance) {
             first_name: 'Dev',
             username: 'devuser'
           }, tenantId)
+
+          // Create dev user in database
+          await upsertUser({
+            id: '123456789',
+            tenantId: tenantId,
+            name: 'Dev User',
+            username: 'devuser',
+            referralCode: 'ref_123456789',
+            referralCount: 0,
+            bonusBalance: 0,
+            createdAt: new Date().toISOString(),
+            lastSeen: new Date().toISOString()
+          })
+
           return {
             success: true,
             token: mockToken,
@@ -155,6 +169,22 @@ export async function authRoutes(fastify: FastifyInstance) {
       // Check if user is admin (bootstrap IDs or in database)
       const isAdmin = await checkIsAdmin(String(validUser.id), validUser.username, tenantId)
 
+      // Create or update user in database
+      const userName = `${validUser.first_name}${validUser.last_name ? ' ' + validUser.last_name : ''}`
+      await upsertUser({
+        id: String(validUser.id),
+        tenantId: tenantId,
+        name: userName,
+        username: validUser.username,
+        avatar: (validUser as any).photo_url,
+        isPremium: validUser.is_premium || false,
+        referralCode: `ref_${validUser.id}`,
+        referralCount: 0,
+        bonusBalance: 0,
+        createdAt: new Date().toISOString(),
+        lastSeen: new Date().toISOString()
+      })
+
       console.log('========================================')
       console.log('🔐 AUTH LOGIN:', {
         userId: validUser.id,
@@ -170,7 +200,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         token,
         user: {
           id: String(validUser.id),
-          name: `${validUser.first_name}${validUser.last_name ? ' ' + validUser.last_name : ''}`,
+          name: userName,
           username: validUser.username,
           avatar: (validUser as any).photo_url,
           isAdmin

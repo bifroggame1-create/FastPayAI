@@ -615,6 +615,206 @@ export async function marketplaceRoutes(fastify: FastifyInstance) {
   })
 
   // ============================================
+  // INVENTORY/STOCK MANAGEMENT
+  // ============================================
+
+  // Get all seller's products with stock counts (for inventory page)
+  fastify.get('/inventory', async (request, reply) => {
+    const user = (request as any).user
+    if (!user?.userId) {
+      reply.code(401)
+      return { error: 'Authentication required' }
+    }
+
+    try {
+      const products = await getProductsCollection()
+        .find({
+          tenantId: reqTenantId(request),
+          'seller.id': user.userId
+        })
+        .toArray()
+
+      // Map products with stock information
+      const inventory = products.map(product => ({
+        _id: product._id,
+        name: product.name,
+        images: product.images,
+        price: product.price,
+        category: product.category,
+        deliveryKeys: product.deliveryKeys || [],
+        totalKeys: (product.deliveryKeys || []).length,
+        availableKeys: (product.deliveryKeys || []).filter(k => !k.isUsed).length,
+        usedKeys: (product.deliveryKeys || []).filter(k => k.isUsed).length
+      }))
+
+      return { inventory }
+    } catch (error: any) {
+      console.error('Error fetching inventory:', error)
+      reply.code(500)
+      return { error: 'Failed to fetch inventory' }
+    }
+  })
+
+  // Get specific product's keys (for detailed view)
+  fastify.get('/inventory/:productId/keys', async (request, reply) => {
+    const { productId } = request.params as { productId: string }
+    const user = (request as any).user
+    if (!user?.userId) {
+      reply.code(401)
+      return { error: 'Authentication required' }
+    }
+
+    try {
+      const { ObjectId } = await import('mongodb')
+      const product = await getProductsCollection().findOne({
+        _id: new ObjectId(productId),
+        tenantId: reqTenantId(request),
+        'seller.id': user.userId
+      })
+
+      if (!product) {
+        reply.code(404)
+        return { error: 'Product not found or access denied' }
+      }
+
+      return {
+        productId: product._id,
+        productName: product.name,
+        keys: product.deliveryKeys || [],
+        stats: {
+          total: (product.deliveryKeys || []).length,
+          available: (product.deliveryKeys || []).filter(k => !k.isUsed).length,
+          used: (product.deliveryKeys || []).filter(k => k.isUsed).length
+        }
+      }
+    } catch (error: any) {
+      console.error('Error fetching product keys:', error)
+      reply.code(500)
+      return { error: 'Failed to fetch product keys' }
+    }
+  })
+
+  // Add keys to product inventory
+  fastify.post('/inventory/:productId/keys', async (request, reply) => {
+    const { productId } = request.params as { productId: string }
+    const { keys, variantId } = request.body as { keys: string[] | any[], variantId?: string }
+    const user = (request as any).user
+
+    if (!user?.userId) {
+      reply.code(401)
+      return { error: 'Authentication required' }
+    }
+
+    if (!keys || !Array.isArray(keys) || keys.length === 0) {
+      reply.code(400)
+      return { error: 'Keys array is required' }
+    }
+
+    try {
+      const { ObjectId } = await import('mongodb')
+      const { addDeliveryKeys } = await import('../delivery')
+
+      // Verify product belongs to seller
+      const product = await getProductsCollection().findOne({
+        _id: new ObjectId(productId),
+        tenantId: reqTenantId(request),
+        'seller.id': user.userId
+      })
+
+      if (!product) {
+        reply.code(404)
+        return { error: 'Product not found or access denied' }
+      }
+
+      // Add keys to product
+      const addedKeys = await addDeliveryKeys(new ObjectId(productId), keys as any, variantId)
+
+      console.log(`✅ Added ${addedKeys.length} keys to product ${product.name} by seller ${user.userId}`)
+
+      // Log action
+      await logAdminAction({
+        adminId: user.userId,
+        adminName: user.username || user.name,
+        action: 'add_keys',
+        entityType: 'product',
+        entityId: productId,
+        metadata: { keysCount: addedKeys.length, variantId }
+      })
+
+      return {
+        success: true,
+        keysAdded: addedKeys.length,
+        keys: addedKeys
+      }
+    } catch (error: any) {
+      console.error('Error adding keys to inventory:', error)
+      reply.code(500)
+      return { error: 'Failed to add keys to inventory' }
+    }
+  })
+
+  // Delete key from product inventory
+  fastify.delete('/inventory/:productId/keys/:keyId', async (request, reply) => {
+    const { productId, keyId } = request.params as { productId: string; keyId: string }
+    const user = (request as any).user
+
+    if (!user?.userId) {
+      reply.code(401)
+      return { error: 'Authentication required' }
+    }
+
+    try {
+      const { ObjectId } = await import('mongodb')
+      const { removeDeliveryKey } = await import('../delivery')
+
+      // Verify product belongs to seller
+      const product = await getProductsCollection().findOne({
+        _id: new ObjectId(productId),
+        tenantId: reqTenantId(request),
+        'seller.id': user.userId
+      })
+
+      if (!product) {
+        reply.code(404)
+        return { error: 'Product not found or access denied' }
+      }
+
+      // Check if key is already used
+      const key = product.deliveryKeys?.find(k => k.id === keyId)
+      if (key?.isUsed) {
+        reply.code(400)
+        return { error: 'Cannot delete a key that has been used' }
+      }
+
+      // Remove key
+      const deleted = await removeDeliveryKey(new ObjectId(productId), keyId)
+
+      if (!deleted) {
+        reply.code(404)
+        return { error: 'Key not found' }
+      }
+
+      console.log(`🗑️ Deleted key ${keyId} from product ${product.name} by seller ${user.userId}`)
+
+      // Log action
+      await logAdminAction({
+        adminId: user.userId,
+        adminName: user.username || user.name,
+        action: 'remove_key',
+        entityType: 'product',
+        entityId: productId,
+        metadata: { keyId }
+      })
+
+      return { success: true }
+    } catch (error: any) {
+      console.error('Error removing key from inventory:', error)
+      reply.code(500)
+      return { error: 'Failed to remove key from inventory' }
+    }
+  })
+
+  // ============================================
   // SELLER DASHBOARD (placeholder)
   // ============================================
 

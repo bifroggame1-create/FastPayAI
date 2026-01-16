@@ -917,6 +917,34 @@ export const adminApi = {
     const { data } = await adminApiInstance.post(`/admin/my-shop/products/${productId}/keys/bulk`, { keys })
     return data
   },
+
+  // ============================================
+  // SELLER INVENTORY MANAGEMENT
+  // ============================================
+
+  // Get all seller's products with stock counts
+  getInventory: async () => {
+    const { data } = await adminApiInstance.get('/inventory')
+    return data
+  },
+
+  // Get specific product's keys
+  getProductKeys: async (productId: string) => {
+    const { data } = await adminApiInstance.get(`/inventory/${productId}/keys`)
+    return data
+  },
+
+  // Add keys to product inventory
+  addProductKeys: async (productId: string, keys: Array<string | { key: string; type?: 'text' | 'file' | 'image'; fileUrl?: string; fileName?: string }>, variantId?: string) => {
+    const { data } = await adminApiInstance.post(`/inventory/${productId}/keys`, { keys, variantId })
+    return data
+  },
+
+  // Delete key from product inventory
+  deleteProductKey: async (productId: string, keyId: string) => {
+    const { data } = await adminApiInstance.delete(`/inventory/${productId}/keys/${keyId}`)
+    return data
+  },
 }
 
 export const chatApi = {

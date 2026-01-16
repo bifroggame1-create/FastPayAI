@@ -9,8 +9,201 @@ import { initAuth, getUser } from '@/lib/auth'
 import { formatPrice } from '@/lib/currency'
 import BottomNav from '@/components/BottomNav'
 
-type Tab = 'dashboard' | 'analytics' | 'orders' | 'products' | 'reviews' | 'promo' | 'files' | 'settings' | 'profile' | 'wallet'
+type Tab = 'dashboard' | 'analytics' | 'orders' | 'products' | 'inventory' | 'reviews' | 'promo' | 'files' | 'settings' | 'profile' | 'wallet'
 type OrderStatus = 'pending' | 'paid' | 'processing' | 'delivered' | 'cancelled' | 'refunded'
+
+// Inventory Product Card Component
+const InventoryProductCard = ({ product, onUpdate }: { product: Product; onUpdate: () => void }) => {
+  const totalKeys = product.deliveryKeys?.length || 0
+  const availableKeys = product.deliveryKeys?.filter((k: any) => !k.isUsed).length || 0
+  const usedKeys = totalKeys - availableKeys
+  const stockPercentage = totalKeys > 0 ? (availableKeys / totalKeys) * 100 : 0
+  const stockColor = stockPercentage > 50 ? 'text-emerald-400' : stockPercentage > 20 ? 'text-yellow-400' : 'text-red-400'
+
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [newKeys, setNewKeys] = useState('')
+  const [isAddingKeys, setIsAddingKeys] = useState(false)
+
+  const handleAddKeys = async () => {
+    if (!newKeys.trim()) return
+
+    setIsAddingKeys(true)
+    try {
+      const keysList = newKeys.split('\n').filter(k => k.trim())
+      await adminApi.addProductKeys(product._id, keysList)
+
+      setNewKeys('')
+      alert(`Добавлено ${keysList.length} ключей`)
+      onUpdate()
+    } catch (error) {
+      console.error('Error adding keys:', error)
+      alert('Ошибка при добавлении ключей')
+    } finally {
+      setIsAddingKeys(false)
+    }
+  }
+
+  const handleDeleteKey = async (keyId: string) => {
+    if (!confirm('Удалить этот ключ?')) return
+
+    try {
+      await adminApi.deleteProductKey(product._id, keyId)
+      alert('Ключ удален')
+      onUpdate()
+    } catch (error: any) {
+      console.error('Error deleting key:', error)
+      alert(error.response?.data?.error || 'Ошибка при удалении ключа')
+    }
+  }
+
+  return (
+    <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37]">
+      {/* Product Header */}
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <img
+            src={product.images[0]}
+            alt={product.name}
+            className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-white mb-1 truncate">{product.name}</h3>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-1.5">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                <span className={`text-sm font-semibold ${stockColor}`}>
+                  {availableKeys} / {totalKeys}
+                </span>
+              </div>
+              <span className="text-xs text-gray-500">
+                ({usedKeys} использовано)
+              </span>
+            </div>
+
+            {/* Stock progress bar */}
+            {totalKeys > 0 && (
+              <div className="w-full bg-[#0f1117] rounded-full h-1.5 mb-3">
+                <div
+                  className={`h-1.5 rounded-full transition-all ${
+                    stockPercentage > 50 ? 'bg-emerald-500' :
+                    stockPercentage > 20 ? 'bg-yellow-500' :
+                    'bg-red-500'
+                  }`}
+                  style={{ width: `${stockPercentage}%` }}
+                />
+              </div>
+            )}
+
+            {/* Warning for low stock */}
+            {totalKeys > 0 && availableKeys < 5 && (
+              <div className="flex items-center gap-1.5 mb-2">
+                <svg className="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span className="text-xs text-yellow-500">Мало ключей! Пополните склад</span>
+              </div>
+            )}
+
+            {totalKeys === 0 && (
+              <div className="flex items-center gap-1.5 mb-2">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-xs text-gray-500">Нет ключей для автодоставки</span>
+              </div>
+            )}
+
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              {isExpanded ? 'Скрыть управление' : 'Управление ключами'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded Key Management */}
+      {isExpanded && (
+        <div className="border-t border-[#2a2d37] p-4 space-y-4">
+          {/* Add Keys Section */}
+          <div className="bg-[#0f1117] rounded-lg p-3">
+            <h4 className="text-sm font-medium text-white mb-2">Добавить ключи</h4>
+            <textarea
+              value={newKeys}
+              onChange={(e) => setNewKeys(e.target.value)}
+              placeholder="Вставьте ключи, каждый с новой строки"
+              rows={4}
+              className="w-full px-3 py-2 bg-[#1a1d27] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 mb-2"
+            />
+            <button
+              onClick={handleAddKeys}
+              disabled={isAddingKeys || !newKeys.trim()}
+              className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium transition-colors"
+            >
+              {isAddingKeys ? 'Добавление...' : 'Добавить ключи'}
+            </button>
+          </div>
+
+          {/* Keys List */}
+          <div>
+            <h4 className="text-sm font-medium text-white mb-2">Список ключей</h4>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {product.deliveryKeys && product.deliveryKeys.length > 0 ? (
+                product.deliveryKeys.map((key: any) => (
+                  <div
+                    key={key.id}
+                    className={`flex items-center justify-between p-3 rounded-lg ${
+                      key.isUsed ? 'bg-[#0f1117] opacity-60' : 'bg-[#0f1117]'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0 mr-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-xs font-mono ${key.isUsed ? 'text-gray-500' : 'text-white'}`}>
+                          {key.isUsed ? '***используется***' : key.key}
+                        </span>
+                        {key.isUsed && (
+                          <span className="px-1.5 py-0.5 bg-gray-700 text-gray-400 text-[10px] rounded">
+                            Использован
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-gray-500">
+                        Добавлен: {new Date(key.addedAt).toLocaleDateString('ru-RU')}
+                        {key.usedAt && ` • Использован: ${new Date(key.usedAt).toLocaleDateString('ru-RU')}`}
+                        {key.usedByOrderId && ` • Заказ: ${key.usedByOrderId}`}
+                      </div>
+                    </div>
+                    {!key.isUsed && (
+                      <button
+                        onClick={() => handleDeleteKey(key.id)}
+                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0"
+                        title="Удалить ключ"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  Нет ключей
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface Order {
   id: string
@@ -198,6 +391,16 @@ const Icons = {
   profile: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+    </svg>
+  ),
+  inventory: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+    </svg>
+  ),
+  wallet: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
     </svg>
   ),
 }
@@ -1147,9 +1350,10 @@ export default function MyShopPage() {
   const navItems = [
     { id: 'dashboard', label: 'Дашборд', icon: Icons.dashboard },
     { id: 'analytics', label: 'Аналитика', icon: Icons.analytics },
-    { id: 'wallet', label: 'Кошелёк', icon: Icons.promo },
+    { id: 'wallet', label: 'Кошелёк', icon: Icons.wallet },
     { id: 'orders', label: 'Заказы', icon: Icons.orders, count: stats.pendingOrders },
     { id: 'products', label: 'Товары', icon: Icons.products, count: stats.totalProducts },
+    { id: 'inventory', label: 'Склад', icon: Icons.inventory },
     { id: 'reviews', label: 'Отзывы', icon: Icons.reviews },
     { id: 'promo', label: 'Промо', icon: Icons.promo },
     { id: 'files', label: 'Файлы', icon: Icons.files },
@@ -1740,6 +1944,36 @@ export default function MyShopPage() {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Inventory/Stock */}
+        {activeTab === 'inventory' && (
+          <div className="space-y-3">
+            <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37] mb-3">
+              <h2 className="text-lg font-semibold text-white mb-1">Склад товаров</h2>
+              <p className="text-xs text-gray-400">Управление ключами и кодами для автоматической доставки</p>
+            </div>
+
+            {products.length === 0 ? (
+              <div className="bg-[#1a1d27] rounded-xl p-8 text-center border border-[#2a2d37]">
+                <p className="text-gray-400 mb-2">У вас пока нет товаров</p>
+                <p className="text-xs text-gray-500">Создайте товары на вкладке "Товары"</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {products.map(product => (
+                  <InventoryProductCard
+                    key={product._id}
+                    product={product}
+                    onUpdate={async () => {
+                      const updatedProducts = await adminApi.getMyShopProducts()
+                      setProducts(updatedProducts)
+                    }}
+                  />
+                ))}
+              </div>
             )}
           </div>
         )}

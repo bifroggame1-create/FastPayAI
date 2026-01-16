@@ -7,6 +7,19 @@ export interface ProductVariant {
   features?: string[] // дополнительные особенности
 }
 
+export interface DeliveryKey {
+  id: string
+  key: string // Текстовый ключ/код или описание
+  type?: 'text' | 'file' | 'image' // Тип доставки
+  fileUrl?: string // URL файла или изображения (если type = 'file' | 'image')
+  fileName?: string // Имя файла для скачивания
+  variantId?: string
+  isUsed: boolean
+  usedByOrderId?: string
+  usedAt?: string
+  addedAt: string
+}
+
 export interface Product {
   _id: string
   name: string
@@ -27,6 +40,7 @@ export interface Product {
   badges?: ('sale' | 'hit' | 'new')[] // бейджи товара
   tags?: string[] // теги товара (массив ID тегов)
   deliveryType?: 'auto' | 'manual' // тип доставки
+  deliveryKeys?: DeliveryKey[] // ключи для автоматической доставки
 }
 
 // Tag for product categorization
