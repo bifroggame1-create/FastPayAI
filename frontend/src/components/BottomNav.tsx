@@ -10,7 +10,7 @@ import { useAuth } from './AuthProvider'
 
 export default function BottomNav() {
   const pathname = usePathname()
-  const { isAdmin, setIsAdmin } = useAppStore()
+  const { isAdmin, setIsAdmin, getCartItemCount } = useAppStore()
   const { user: authContextUser } = useAuth()
 
   // Synchronize isAdmin from AuthProvider when it becomes available
