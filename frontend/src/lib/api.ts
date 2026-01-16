@@ -798,6 +798,16 @@ export const adminApi = {
     return data
   },
 
+  updatePricing: async (pricing: {
+    starsMarkupPerStar?: number
+    premium3MonthsPrice?: number
+    premium6MonthsPrice?: number
+    premium12MonthsPrice?: number
+  }) => {
+    const { data } = await adminApiInstance.patch('/admin/settings/pricing', pricing)
+    return data
+  },
+
   // My Shop (Seller Dashboard)
   getMyShopProducts: async (sellerId?: string) => {
     const params = sellerId ? { sellerId } : {}

@@ -48,6 +48,12 @@ export interface TenantSettings {
   notifyAdminsOnNewOrder: boolean
   notifyOnPayment: boolean
   notifyOnDelivery: boolean
+  // Stars pricing (RUB per star)
+  starsMarkupPerStar?: number  // Default: 1.8
+  // Premium pricing (RUB per month)
+  premium3MonthsPrice?: number  // Default: 540
+  premium6MonthsPrice?: number  // Default: 900
+  premium12MonthsPrice?: number // Default: 1620
 }
 
 // Tenant commission rules

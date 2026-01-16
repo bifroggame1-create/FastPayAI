@@ -11,10 +11,10 @@ const trackProductAction = async (productId: string, action: 'view' | 'favorite'
     if (!tgUser) return
 
     await productsApi.track(productId, {
-      userId: tgUser.id.toString(),
-      userName: tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : ''),
+      userId: tgUser.id,
+      userName: tgUser.name,
       userUsername: tgUser.username || '',
-      userAvatar: tgUser.photo_url,
+      userAvatar: tgUser.avatar,
       action
     })
   } catch (error) {

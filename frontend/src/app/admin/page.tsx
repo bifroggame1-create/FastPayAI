@@ -307,8 +307,10 @@ export default function AdminPage() {
   const [paymentMethods, setPaymentMethods] = useState<string[]>(['cryptobot'])
   const [shopBranding, setShopBranding] = useState<any>({})
   const [platformFeePercent, setPlatformFeePercent] = useState<number>(5)
-  const [starsMarkup, setStarsMarkup] = useState<number>(20)
-  const [premiumMarkup, setPremiumMarkup] = useState<number>(20)
+  const [starsMarkupPerStar, setStarsMarkupPerStar] = useState<number>(1.8)
+  const [premium3MonthsPrice, setPremium3MonthsPrice] = useState<number>(540)
+  const [premium6MonthsPrice, setPremium6MonthsPrice] = useState<number>(900)
+  const [premium12MonthsPrice, setPremium12MonthsPrice] = useState<number>(1620)
 
   // My Shop state
   const [myShopStats, setMyShopStats] = useState<any>(null)
@@ -499,6 +501,14 @@ export default function AdminPage() {
         setPlatformFeePercent(settingsData.settings.commissionRules.platformFeePercent)
       } else if (settingsData?.commissionRules?.platformFeePercent !== undefined) {
         setPlatformFeePercent(settingsData.commissionRules.platformFeePercent)
+      }
+      // Set pricing
+      if (settingsData?.settings?.settings) {
+        const s = settingsData.settings.settings
+        if (s.starsMarkupPerStar) setStarsMarkupPerStar(s.starsMarkupPerStar)
+        if (s.premium3MonthsPrice) setPremium3MonthsPrice(s.premium3MonthsPrice)
+        if (s.premium6MonthsPrice) setPremium6MonthsPrice(s.premium6MonthsPrice)
+        if (s.premium12MonthsPrice) setPremium12MonthsPrice(s.premium12MonthsPrice)
       }
     } catch (error) {
       // Error loading data
@@ -2247,78 +2257,148 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Fragment Stars/Premium Markup */}
+              {/* Stars/Premium Pricing */}
               <div className="bg-[#1a1d27] rounded-lg p-5 border border-[#2a2d37]">
-                <h2 className="text-lg font-medium text-white mb-4">Наценка на Stars/Premium</h2>
-                <p className="text-sm text-gray-400 mb-4">Процент наценки при перепродаже Telegram Stars и Premium подписок через Fragment API</p>
+                <h2 className="text-lg font-medium text-white mb-4">💰 Цены на Stars/Premium</h2>
+                <p className="text-sm text-gray-400 mb-4">Управление ценами на Telegram Stars и Premium подписки</p>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  {/* Stars Markup */}
-                  <div className="space-y-2">
-                    <label className="block text-sm text-gray-400">Наценка на Stars</label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={starsMarkup}
-                        className="w-32 px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
-                        onChange={(e) => {
-                          const value = parseFloat(e.target.value) || 0
-                          if (value >= 0 && value <= 100) {
-                            setStarsMarkup(value)
-                            // TODO: Save to backend
-                            console.log('Stars markup updated:', value)
-                          }
-                        }}
-                      />
-                      <span className="text-sm text-gray-400">%</span>
+                <div className="space-y-6">
+                  {/* Stars Price */}
+                  <div>
+                    <h3 className="text-sm font-medium text-white mb-3">⭐ Telegram Stars</h3>
+                    <div className="space-y-2">
+                      <label className="block text-sm text-gray-400">Цена за 1 Star</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={starsMarkupPerStar}
+                          className="w-32 px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                          onChange={async (e) => {
+                            const value = parseFloat(e.target.value) || 0
+                            if (value > 0) {
+                              setStarsMarkupPerStar(value)
+                              try {
+                                await adminApi.updatePricing({ starsMarkupPerStar: value })
+                                console.log('Stars price updated:', value)
+                              } catch (err) {
+                                console.error('Failed to update Stars price:', err)
+                                alert('Ошибка сохранения цены Stars')
+                              }
+                            }
+                          }}
+                        />
+                        <span className="text-sm text-gray-400">₽</span>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Пример: 100 Stars = {(100 * starsMarkupPerStar).toFixed(0)}₽
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-500">
-                      Пример: 100 Stars × 1.5₽ × (1 + {starsMarkup}%) = {Math.ceil(100 * 1.5 * (1 + starsMarkup / 100))}₽
-                    </p>
                   </div>
 
-                  {/* Premium Markup */}
-                  <div className="space-y-2">
-                    <label className="block text-sm text-gray-400">Наценка на Premium</label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={premiumMarkup}
-                        className="w-32 px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
-                        onChange={(e) => {
-                          const value = parseFloat(e.target.value) || 0
-                          if (value >= 0 && value <= 100) {
-                            setPremiumMarkup(value)
-                            // TODO: Save to backend
-                            console.log('Premium markup updated:', value)
-                          }
-                        }}
-                      />
-                      <span className="text-sm text-gray-400">%</span>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Пример: 3 мес. × 450₽ × (1 + {premiumMarkup}%) = {Math.ceil(450 * (1 + premiumMarkup / 100))}₽
-                    </p>
-                  </div>
-                </div>
+                  {/* Premium Prices */}
+                  <div>
+                    <h3 className="text-sm font-medium text-white mb-3">⭐ Telegram Premium</h3>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      {/* 3 months */}
+                      <div className="space-y-2">
+                        <label className="block text-sm text-gray-400">3 месяца</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={premium3MonthsPrice}
+                            className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                            onChange={async (e) => {
+                              const value = parseFloat(e.target.value) || 0
+                              if (value > 0) {
+                                setPremium3MonthsPrice(value)
+                                try {
+                                  await adminApi.updatePricing({ premium3MonthsPrice: value })
+                                  console.log('Premium 3mo price updated:', value)
+                                } catch (err) {
+                                  console.error('Failed to update Premium price:', err)
+                                  alert('Ошибка сохранения')
+                                }
+                              }
+                            }}
+                          />
+                          <span className="text-sm text-gray-400">₽</span>
+                        </div>
+                      </div>
 
-                <div className="mt-4 bg-[#0f1117] rounded-lg p-4 border border-[#2a2d37]">
-                  <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                    <span>ℹ️</span>
-                    <span>Как это работает</span>
-                  </h3>
-                  <ul className="space-y-1 text-xs text-gray-400">
-                    <li>• Вы покупаете Stars/Premium на Fragment по базовой цене</li>
-                    <li>• Продаёте пользователям с наценкой (базовая цена + {starsMarkup}%)</li>
-                    <li>• Разница — ваша прибыль</li>
-                    <li>• Рекомендуемая наценка: 15-30%</li>
-                  </ul>
+                      {/* 6 months */}
+                      <div className="space-y-2">
+                        <label className="block text-sm text-gray-400">6 месяцев</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={premium6MonthsPrice}
+                            className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                            onChange={async (e) => {
+                              const value = parseFloat(e.target.value) || 0
+                              if (value > 0) {
+                                setPremium6MonthsPrice(value)
+                                try {
+                                  await adminApi.updatePricing({ premium6MonthsPrice: value })
+                                  console.log('Premium 6mo price updated:', value)
+                                } catch (err) {
+                                  console.error('Failed to update Premium price:', err)
+                                  alert('Ошибка сохранения')
+                                }
+                              }
+                            }}
+                          />
+                          <span className="text-sm text-gray-400">₽</span>
+                        </div>
+                      </div>
+
+                      {/* 12 months */}
+                      <div className="space-y-2">
+                        <label className="block text-sm text-gray-400">12 месяцев</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={premium12MonthsPrice}
+                            className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                            onChange={async (e) => {
+                              const value = parseFloat(e.target.value) || 0
+                              if (value > 0) {
+                                setPremium12MonthsPrice(value)
+                                try {
+                                  await adminApi.updatePricing({ premium12MonthsPrice: value })
+                                  console.log('Premium 12mo price updated:', value)
+                                } catch (err) {
+                                  console.error('Failed to update Premium price:', err)
+                                  alert('Ошибка сохранения')
+                                }
+                              }
+                            }}
+                          />
+                          <span className="text-sm text-gray-400">₽</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#0f1117] rounded-lg p-4 border border-[#2a2d37]">
+                    <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                      <span>💡</span>
+                      <span>Рекомендации</span>
+                    </h3>
+                    <ul className="space-y-1 text-xs text-gray-400">
+                      <li>• Stars: Fragment базовая цена ~1.5₽/star, рекомендуется 1.6-2₽</li>
+                      <li>• Premium 3 мес: Fragment ~450₽, рекомендуется 500-600₽</li>
+                      <li>• Premium 6 мес: Fragment ~800₽, рекомендуется 850-1000₽</li>
+                      <li>• Premium 12 мес: Fragment ~1500₽, рекомендуется 1600-1800₽</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
 

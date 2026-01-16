@@ -2182,6 +2182,103 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   })
 
+  // Update Stars/Premium pricing
+  fastify.patch('/admin/settings/pricing', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const {
+        starsMarkupPerStar,
+        premium3MonthsPrice,
+        premium6MonthsPrice,
+        premium12MonthsPrice
+      } = request.body as {
+        starsMarkupPerStar?: number
+        premium3MonthsPrice?: number
+        premium6MonthsPrice?: number
+        premium12MonthsPrice?: number
+      }
+
+      const tenantId = reqTenantId(request)
+
+      fastify.log.info({ tenantId, pricing: request.body }, 'Updating Stars/Premium pricing')
+
+      // Validate pricing values
+      const updateFields: any = {}
+
+      if (starsMarkupPerStar !== undefined) {
+        if (typeof starsMarkupPerStar !== 'number' || starsMarkupPerStar <= 0) {
+          reply.code(400)
+          return { success: false, error: 'Stars markup must be a positive number' }
+        }
+        updateFields['settings.starsMarkupPerStar'] = starsMarkupPerStar
+      }
+
+      if (premium3MonthsPrice !== undefined) {
+        if (typeof premium3MonthsPrice !== 'number' || premium3MonthsPrice <= 0) {
+          reply.code(400)
+          return { success: false, error: 'Premium 3 months price must be a positive number' }
+        }
+        updateFields['settings.premium3MonthsPrice'] = premium3MonthsPrice
+      }
+
+      if (premium6MonthsPrice !== undefined) {
+        if (typeof premium6MonthsPrice !== 'number' || premium6MonthsPrice <= 0) {
+          reply.code(400)
+          return { success: false, error: 'Premium 6 months price must be a positive number' }
+        }
+        updateFields['settings.premium6MonthsPrice'] = premium6MonthsPrice
+      }
+
+      if (premium12MonthsPrice !== undefined) {
+        if (typeof premium12MonthsPrice !== 'number' || premium12MonthsPrice <= 0) {
+          reply.code(400)
+          return { success: false, error: 'Premium 12 months price must be a positive number' }
+        }
+        updateFields['settings.premium12MonthsPrice'] = premium12MonthsPrice
+      }
+
+      if (Object.keys(updateFields).length === 0) {
+        reply.code(400)
+        return { success: false, error: 'No pricing fields provided' }
+      }
+
+      const { getTenantsCollection } = await import('../database')
+
+      // Update pricing
+      const updateResult = await getTenantsCollection().updateOne(
+        { id: tenantId },
+        { $set: updateFields }
+      )
+
+      fastify.log.info({
+        tenantId,
+        matchedCount: updateResult.matchedCount,
+        modifiedCount: updateResult.modifiedCount
+      }, 'Pricing update result')
+
+      if (updateResult.matchedCount === 0) {
+        reply.code(500)
+        return { success: false, error: 'Failed to update pricing - tenant not found' }
+      }
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'settings',
+        entityId: 'pricing',
+        changes: { after: updateFields }
+      })
+
+      fastify.log.info({ tenantId, pricing: updateFields }, 'Pricing updated successfully')
+      return { success: true, pricing: updateFields }
+    } catch (error: any) {
+      fastify.log.error({ err: error }, 'Error updating pricing')
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
+
   // Update platform commission
   fastify.patch('/admin/settings/commission', { preHandler: adminMiddleware }, async (request, reply) => {
     try {

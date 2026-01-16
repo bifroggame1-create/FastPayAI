@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import { useAppStore } from '@/lib/store'
 import { hapticImpact } from '@/lib/telegram'
 import { formatPrice } from '@/lib/currency'
-import { getTenantId } from '@/lib/api'
+import { getTenantId, adminApi } from '@/lib/api'
 import dynamic from 'next/dynamic'
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
@@ -36,12 +36,6 @@ interface PremiumPackage {
   popular?: boolean
 }
 
-const premiumPackages: PremiumPackage[] = [
-  { id: 'premium-3', months: 3, price: 540 },
-  { id: 'premium-6', months: 6, price: 900, popular: true },
-  { id: 'premium-12', months: 12, price: 1620 }
-]
-
 // Constants for Stars
 const MIN_STARS = 50
 const MAX_STARS = 20000
@@ -51,9 +45,42 @@ export default function StarsPage() {
   const { user, language } = useAppStore()
   const [activeTab, setActiveTab] = useState<'stars' | 'premium'>('stars')
   const [starsAmount, setStarsAmount] = useState<number>(100)
-  const [selectedPremium, setSelectedPremium] = useState<PremiumPackage>(premiumPackages[1])
   const [username, setUsername] = useState(user?.username || '')
   const [processing, setProcessing] = useState(false)
+
+  // Dynamic pricing loaded from backend
+  const [starsMarkupPerStar, setStarsMarkupPerStar] = useState<number>(1.8)
+  const [premium3MonthsPrice, setPremium3MonthsPrice] = useState<number>(540)
+  const [premium6MonthsPrice, setPremium6MonthsPrice] = useState<number>(900)
+  const [premium12MonthsPrice, setPremium12MonthsPrice] = useState<number>(1620)
+
+  const premiumPackages: PremiumPackage[] = [
+    { id: 'premium-3', months: 3, price: premium3MonthsPrice },
+    { id: 'premium-6', months: 6, price: premium6MonthsPrice, popular: true },
+    { id: 'premium-12', months: 12, price: premium12MonthsPrice }
+  ]
+
+  const [selectedPremium, setSelectedPremium] = useState<PremiumPackage>(premiumPackages[1])
+
+  // Load pricing from backend
+  useEffect(() => {
+    const loadPricing = async () => {
+      try {
+        const settings = await adminApi.getSettings()
+        const s = settings?.settings?.settings
+        if (s) {
+          if (s.starsMarkupPerStar) setStarsMarkupPerStar(s.starsMarkupPerStar)
+          if (s.premium3MonthsPrice) setPremium3MonthsPrice(s.premium3MonthsPrice)
+          if (s.premium6MonthsPrice) setPremium6MonthsPrice(s.premium6MonthsPrice)
+          if (s.premium12MonthsPrice) setPremium12MonthsPrice(s.premium12MonthsPrice)
+        }
+      } catch (error) {
+        console.error('Failed to load pricing:', error)
+        // Use default prices if loading fails
+      }
+    }
+    loadPricing()
+  }, [])
 
   const handleStarsAmountChange = (value: number) => {
     // Clamp value between min and max
@@ -67,9 +94,9 @@ export default function StarsPage() {
     hapticImpact('light')
   }
 
-  // Calculate price dynamically (1.8 RUB per star with markup)
+  // Calculate price dynamically based on backend pricing
   const calculateStarsPrice = (amount: number): number => {
-    return Math.ceil(amount * 1.8)
+    return Math.ceil(amount * starsMarkupPerStar)
   }
 
   const handlePurchase = async () => {
@@ -367,12 +394,14 @@ export default function StarsPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-tg-text">
-                  {language === 'ru' ? 'Выберите пакет' : 'Choose package'}
-                </p>
-                <p className="text-xs text-tg-hint">
                   {activeTab === 'premium'
                     ? (language === 'ru' ? 'Выберите нужную подписку' : 'Select subscription period')
                     : (language === 'ru' ? 'Выберите количество Stars' : 'Select Stars amount')}
+                </p>
+                <p className="text-xs text-tg-hint">
+                  {activeTab === 'premium'
+                    ? (language === 'ru' ? 'Период подписки Premium' : 'Premium subscription period')
+                    : (language === 'ru' ? 'От 1 до 2500 Stars' : 'From 1 to 2500 Stars')}
                 </p>
               </div>
             </div>
