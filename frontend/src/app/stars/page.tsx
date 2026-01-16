@@ -265,11 +265,19 @@ export default function StarsPage() {
               </label>
               <div className="relative">
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={starsAmount}
-                  onChange={(e) => handleStarsAmountChange(parseInt(e.target.value) || MIN_STARS)}
-                  min={MIN_STARS}
-                  max={MAX_STARS}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '')
+                    if (value) {
+                      handleStarsAmountChange(parseInt(value))
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const value = parseInt(e.target.value) || MIN_STARS
+                    handleStarsAmountChange(value)
+                  }}
                   className="w-full px-4 py-3.5 rounded-xl bg-tg-secondary-bg border border-tg-separator text-tg-text text-lg font-semibold focus:outline-none focus:border-accent-cyan transition-colors"
                   placeholder={MIN_STARS.toString()}
                 />
