@@ -234,14 +234,16 @@ export async function authRoutes(fastify: FastifyInstance) {
   // All authentication must now go through /auth/telegram with proper Telegram validation
 
   // Verify token and return fresh admin status
-  fastify.get('/auth/verify', { preHandler: authMiddleware }, async (request) => {
-    const user = (request as any).user as JWTPayload
-    const tenantId = (request as any).tenantId
+  // FIX: Added rate limiting to prevent abuse
+  // FIX: Support both GET (backward compat) and POST (preferred)
+  const verifyHandler = async (request: any) => {
+    const user = request.user as JWTPayload
+    const tenantId = request.tenantId
 
     // Check current admin status from database (may have changed since token was issued)
     const isAdmin = await checkIsAdmin(user.userId, user.username, tenantId)
 
-    console.log('🔐 Token verify:', { userId: user.userId, username: user.username, isAdmin })
+    console.log('🔐 Token verify:', { userId: user.userId, username: user.username, isAdmin, tenantId })
 
     return {
       success: true,
@@ -252,16 +254,20 @@ export async function authRoutes(fastify: FastifyInstance) {
         isAdmin
       }
     }
-  })
+  }
+
+  fastify.get('/auth/verify', { preHandler: [rateLimitMiddleware, authMiddleware] }, verifyHandler)
+  fastify.post('/auth/verify', { preHandler: [rateLimitMiddleware, authMiddleware] }, verifyHandler)
 
   // Force refresh authentication - SECURED: requires valid JWT token
   // Only returns admin status for the authenticated user (prevents enumeration)
   fastify.post('/auth/refresh', { preHandler: authMiddleware }, async (request) => {
     const user = (request as any).user as JWTPayload
+    const tenantId = (request as any).tenantId
 
-    // Only check admin status for the authenticated user
-    const isAdmin = await checkIsAdmin(user.userId, user.username)
-    console.log('🔐 Auth refresh:', { userId: user.userId, username: user.username, isAdmin })
+    // FIX: Include tenantId in admin check to prevent cross-tenant confusion
+    const isAdmin = await checkIsAdmin(user.userId, user.username, tenantId)
+    console.log('🔐 Auth refresh:', { userId: user.userId, username: user.username, isAdmin, tenantId })
 
     return {
       success: true,

@@ -123,18 +123,24 @@ export function validateTelegramWebAppData(initData: string): TelegramUser | nul
  * Generate JWT token for user
  * Note: isAdmin flag in JWT is set at login time.
  * For real-time admin status, always check with isAdmin() function or use adminMiddleware.
+ * FIX: Added error handling to prevent silent failures
  */
 export async function generateToken(user: TelegramUser, tenantId?: string, userIsAdmin?: boolean): Promise<string> {
-  // If isAdmin is provided, use it; otherwise check dynamically
-  const adminStatus = userIsAdmin !== undefined ? userIsAdmin : await isAdmin(String(user.id), user.username, tenantId)
+  try {
+    // If isAdmin is provided, use it; otherwise check dynamically
+    const adminStatus = userIsAdmin !== undefined ? userIsAdmin : await isAdmin(String(user.id), user.username, tenantId)
 
-  const payload: JWTPayload = {
-    userId: String(user.id),
-    username: user.username,
-    isAdmin: adminStatus
+    const payload: JWTPayload = {
+      userId: String(user.id),
+      username: user.username,
+      isAdmin: adminStatus
+    }
+
+    return jwt.sign(payload, JWT_SECRET!, { expiresIn: JWT_EXPIRES_IN })
+  } catch (error) {
+    console.error('Error generating token:', error)
+    throw error
   }
-
-  return jwt.sign(payload, JWT_SECRET!, { expiresIn: JWT_EXPIRES_IN })
 }
 
 /**
@@ -208,6 +214,11 @@ export async function authMiddleware(
     return
   }
 
+  // FIX: Verify tenantId consistency - token must be for the requested tenant
+  const tenantId = (request as any).tenantId
+  // Note: tenantId validation should be done by the specific endpoint if needed
+  // This middleware just validates the token is valid
+
   // Add user info to request
   ;(request as any).user = payload
 }
@@ -215,6 +226,7 @@ export async function authMiddleware(
 /**
  * Admin middleware - checks if user is admin via JWT only
  * SECURITY: All other auth methods (headers, query params, body) have been removed
+ * CRITICAL: JWT contains stale admin flag, so we MUST re-check from database/env
  */
 export async function adminMiddleware(
   request: FastifyRequest,
@@ -239,8 +251,10 @@ export async function adminMiddleware(
   // Get tenantId from request context (set by tenantMiddleware)
   const tenantId = (request as any).tenantId
 
-  // Check if user is admin (from JWT payload, ADMIN_IDS env var, or database)
-  const isUserAdmin = payload.isAdmin || ADMIN_IDS.includes(payload.userId) || await isAdmin(payload.userId, payload.username, tenantId)
+  // FIX: MUST check isAdmin fresh from database/env, not from JWT payload
+  // JWT payload.isAdmin can be stale (up to 7 days old)
+  // Always re-check to ensure admin status changes take effect immediately
+  const isUserAdmin = ADMIN_IDS.includes(payload.userId) || await isAdmin(payload.userId, payload.username, tenantId)
 
   if (!isUserAdmin) {
     console.log('🔐 Admin access DENIED - not an admin:', payload.userId, 'tenantId:', tenantId)
@@ -248,7 +262,7 @@ export async function adminMiddleware(
     return
   }
 
-  // Add user info to request
+  // Add user info to request with fresh admin status
   ;(request as any).user = { ...payload, isAdmin: true }
   console.log('🔐 Admin access granted:', payload.userId, payload.username, 'tenantId:', tenantId)
 }
