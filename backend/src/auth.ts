@@ -3,17 +3,14 @@ import jwt from 'jsonwebtoken'
 import { FastifyRequest, FastifyReply } from 'fastify'
 
 // JWT secret - REQUIRED in production
-const JWT_SECRET = process.env.JWT_SECRET
+let JWT_SECRET = process.env.JWT_SECRET
 if (!JWT_SECRET) {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('❌ JWT_SECRET environment variable is REQUIRED in production')
   }
   // In development, use a consistent dev secret (not random to preserve sessions)
   console.warn('⚠️ JWT_SECRET not set, using development default. SET IT IN PRODUCTION!')
-  const DEV_SECRET = 'dev-secret-do-not-use-in-production-' + crypto.createHash('sha256').update(__dirname).digest('hex')
-  module.exports.JWT_SECRET = DEV_SECRET
-} else {
-  module.exports.JWT_SECRET = JWT_SECRET
+  JWT_SECRET = 'dev-secret-do-not-use-in-production-' + crypto.createHash('sha256').update(__dirname).digest('hex')
 }
 const JWT_EXPIRES_IN = '7d'
 
@@ -137,8 +134,7 @@ export async function generateToken(user: TelegramUser, tenantId?: string, userI
     isAdmin: adminStatus
   }
 
-  const secret = module.exports.JWT_SECRET || JWT_SECRET
-  return jwt.sign(payload, secret, { expiresIn: JWT_EXPIRES_IN })
+  return jwt.sign(payload, JWT_SECRET!, { expiresIn: JWT_EXPIRES_IN })
 }
 
 /**
@@ -146,8 +142,7 @@ export async function generateToken(user: TelegramUser, tenantId?: string, userI
  */
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    const secret = module.exports.JWT_SECRET || JWT_SECRET
-    return jwt.verify(token, secret) as JWTPayload
+    return jwt.verify(token, JWT_SECRET!) as JWTPayload
   } catch (error) {
     return null
   }
