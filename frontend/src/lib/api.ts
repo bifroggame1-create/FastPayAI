@@ -418,8 +418,8 @@ export const adminApi = {
   },
 
   // Users - using adminApiInstance with X-Admin-Id header
-  getUsers: async () => {
-    const { data } = await adminApiInstance.get('/admin/users')
+  getUsers: async (params?: { limit?: number; offset?: number; search?: string }) => {
+    const { data } = await adminApiInstance.get('/admin/users', { params })
     return data
   },
 

@@ -299,6 +299,8 @@ export default function AdminPage() {
 
   // Users state
   const [users, setUsers] = useState<UserProfile[]>([])
+  const [usersTotal, setUsersTotal] = useState(0)
+  const [usersSearch, setUsersSearch] = useState('')
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
 
   // Settings state
@@ -476,6 +478,7 @@ export default function AdminPage() {
       setReviews(reviewsData?.reviews || [])
       setApplications(applicationsData?.applications || [])
       setUsers(usersData?.users || [])
+      setUsersTotal(usersData?.total || 0)
       // Set My Shop data
       setMyShopProducts(myShopProductsData?.products || [])
       setMyShopOrders(myShopOrdersData?.orders || [])

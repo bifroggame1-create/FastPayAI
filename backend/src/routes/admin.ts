@@ -3316,5 +3316,43 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return { success: false, error: error.message }
     }
   })
+
+  // ============================================
+  // USERS MANAGEMENT
+  // ============================================
+
+  // Get all users (admin only)
+  fastify.get('/admin/users', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const tenantId = requireTenantId(request)
+      const { limit = 100, offset = 0, search = '' } = request.query as { limit?: number; offset?: number; search?: string }
+
+      // Build filter with optional search
+      const filter: any = { tenantId }
+      if (search) {
+        filter.$or = [
+          { name: { $regex: search, $options: 'i' } },
+          { username: { $regex: search, $options: 'i' } },
+          { id: { $regex: search, $options: 'i' } }
+        ]
+      }
+
+      // Query users with pagination
+      const [users, total] = await Promise.all([
+        getUsersCollection()
+          .find(filter)
+          .sort({ createdAt: -1 })
+          .skip(Number(offset))
+          .limit(Number(limit))
+          .toArray(),
+        getUsersCollection().countDocuments(filter)
+      ])
+
+      return { success: true, users, total, limit, offset }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
 }
 

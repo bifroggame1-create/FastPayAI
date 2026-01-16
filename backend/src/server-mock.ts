@@ -29,6 +29,7 @@ import { registerTenantPlugin } from './tenant'
 const ALLOWED_ORIGINS = [
   'https://fast-pay-ai.vercel.app',
   'https://fast-pay-ai-rgk8.vercel.app',
+  'https://fastpayai.onrender.com',
   process.env.FRONTEND_URL,
   'http://localhost:3000',
   'http://localhost:3001',
