@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Header from '@/components/Header'
+import BannerCarousel from '@/components/BannerCarousel'
 import SearchBar from '@/components/SearchBar'
 import ProductCard from '@/components/ProductCard'
 import BottomNav from '@/components/BottomNav'
@@ -52,6 +53,7 @@ export default function MarketPage() {
   return (
     <div className="min-h-screen bg-tg-bg pb-16">
       <Header />
+      <BannerCarousel />
       <SearchBar />
       <PopularServices />
 

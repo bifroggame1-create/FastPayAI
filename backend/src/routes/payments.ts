@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest } from 'fastify'
 import { cryptoBot, CryptoBotAPI } from '../cryptobot'
 import { xRocket, XRocketAPI } from '../xrocket'
 import { telegramStars, rubToStars } from '../telegram-stars'
+import { fragmentAPI, getStarsPackagePrice } from '../fragment'
 import { getSellerById } from '../dataStore'
 
 // Default tenant ID for fallback
@@ -1792,6 +1793,194 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         success: false,
         error: error.message || 'Failed to cancel payment'
       }
+    }
+  })
+
+  // ============================================
+  // FRAGMENT STARS RESELLING
+  // ============================================
+
+  // Check Fragment API status
+  fastify.get('/payment/fragment/status', async (request, reply) => {
+    const status = fragmentAPI.getConfigStatus()
+    return {
+      success: true,
+      ...status
+    }
+  })
+
+  // Create invoice for buying Stars via Fragment
+  // User pays with Telegram Bot Payments, we buy from Fragment and send to them
+  fastify.post('/api/stars/create-invoice', async (request, reply) => {
+    try {
+      const { username, stars, price, userId } = request.body as any
+
+      if (!username || !stars || !price) {
+        reply.code(400)
+        return { success: false, error: 'Missing required fields: username, stars, price' }
+      }
+
+      if (stars < 50) {
+        reply.code(400)
+        return { success: false, error: 'Minimum amount is 50 stars' }
+      }
+
+      // Check if Fragment API is configured
+      if (!fragmentAPI.isConfigured()) {
+        reply.code(503)
+        return {
+          success: false,
+          error: 'Fragment API is not configured. Please contact administrator.'
+        }
+      }
+
+      // Check if Telegram Bot is configured
+      if (!telegramStars.isConfigured()) {
+        reply.code(503)
+        return {
+          success: false,
+          error: 'Telegram Bot is not configured. Please contact administrator.'
+        }
+      }
+
+      // Create Telegram Stars invoice for user to pay
+      const invoiceLink = await telegramStars.createInvoiceLink({
+        title: `${stars} Telegram Stars`,
+        description: `Purchase ${stars} ⭐ Stars for @${username.replace('@', '')}`,
+        payload: JSON.stringify({
+          type: 'stars_resell',
+          username: username.replace('@', ''),
+          stars,
+          userId,
+          timestamp: Date.now()
+        }),
+        prices: [{ label: 'Stars', amount: rubToStars(price) }] // Convert RUB to Stars for payment
+      })
+
+      return {
+        success: true,
+        invoiceUrl: invoiceLink,
+        stars,
+        price
+      }
+    } catch (error: any) {
+      console.error('Fragment Stars invoice creation error:', error)
+      reply.code(500)
+      return {
+        success: false,
+        error: error.message || 'Failed to create invoice'
+      }
+    }
+  })
+
+  // Webhook handler for Fragment Stars reselling
+  // This is called after user pays the Stars invoice
+  fastify.post('/api/stars/webhook', async (request, reply) => {
+    try {
+      const update = request.body as any
+      console.log('Fragment Stars webhook received:', update)
+
+      // Handle successful payment
+      if (update.message && update.message.successful_payment) {
+        const payment = update.message.successful_payment
+        const payload = JSON.parse(payment.invoice_payload)
+
+        if (payload.type === 'stars_resell') {
+          const { username, stars } = payload
+
+          console.log(`Processing Fragment Stars purchase: ${stars} stars for @${username}`)
+
+          // Buy Stars from Fragment and send to user
+          const result = await fragmentAPI.buyStars({
+            username: username.startsWith('@') ? username : `@${username}`,
+            amount: stars
+          })
+
+          if (result.success) {
+            console.log(`✅ Successfully sent ${stars} stars to @${username}`)
+
+            // Send confirmation message to user
+            const chatId = update.message.chat.id
+            try {
+              await telegramStars['makeRequest']('sendMessage', {
+                chat_id: chatId,
+                text: `✅ ${stars} ⭐ Stars delivered to @${username}!\n\nTransaction ID: ${result.transactionId || 'N/A'}`,
+                parse_mode: 'HTML'
+              })
+            } catch (msgError) {
+              console.error('Failed to send confirmation message:', msgError)
+            }
+
+            return { success: true, message: 'Stars delivered successfully' }
+          } else {
+            console.error(`❌ Failed to send stars: ${result.error}`)
+
+            // Refund the payment
+            try {
+              await telegramStars.refundStarPayment(
+                update.message.from.id,
+                payment.telegram_payment_charge_id
+              )
+              console.log('✅ Payment refunded')
+            } catch (refundError) {
+              console.error('Failed to refund payment:', refundError)
+            }
+
+            return {
+              success: false,
+              error: result.error || 'Failed to deliver stars'
+            }
+          }
+        }
+      }
+
+      // Handle pre-checkout query
+      if (update.pre_checkout_query) {
+        const preCheckoutQuery = update.pre_checkout_query
+        const payload = JSON.parse(preCheckoutQuery.invoice_payload)
+
+        if (payload.type === 'stars_resell') {
+          // Validate before accepting payment
+          if (!fragmentAPI.isConfigured()) {
+            await telegramStars.answerPreCheckoutQuery(
+              preCheckoutQuery.id,
+              false,
+              'Service temporarily unavailable'
+            )
+            return { success: false, error: 'Fragment API not configured' }
+          }
+
+          // Accept the payment
+          await telegramStars.answerPreCheckoutQuery(preCheckoutQuery.id, true)
+          return { success: true, message: 'Pre-checkout accepted' }
+        }
+      }
+
+      return { success: true, message: 'Webhook processed' }
+    } catch (error: any) {
+      console.error('Fragment Stars webhook error:', error)
+      reply.code(500)
+      return {
+        success: false,
+        error: error.message || 'Webhook processing failed'
+      }
+    }
+  })
+
+  // Get Stars package prices
+  fastify.get('/api/stars/packages', async (request, reply) => {
+    const packages = [
+      { id: '50', amount: 50, price: getStarsPackagePrice(50) },
+      { id: '100', amount: 100, price: getStarsPackagePrice(100) },
+      { id: '500', amount: 500, price: getStarsPackagePrice(500) },
+      { id: '1000', amount: 1000, price: getStarsPackagePrice(1000) },
+      { id: '2500', amount: 2500, price: getStarsPackagePrice(2500) }
+    ]
+
+    return {
+      success: true,
+      packages,
+      configured: fragmentAPI.isConfigured()
     }
   })
 }
