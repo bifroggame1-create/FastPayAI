@@ -284,8 +284,7 @@ export async function authenticate(): Promise<boolean> {
 /**
  * Verify existing token/session
  */
-export async function verifyToken(): Promise<boolean> {
-  // In cookie mode, check session validity
+export async function verifyToken(): Promise<boolean | 'rate_limit'> {
   // In localStorage mode, verify JWT
   if (AUTH_MODE === 'localStorage') {
     const { token } = loadAuth()
@@ -312,6 +311,13 @@ export async function verifyToken(): Promise<boolean> {
     }
 
     const response = await fetch(`${API_URL}/auth/verify`, fetchOptions)
+
+    // Don't invalidate token on rate limit - it's temporary
+    if (response.status === 429) {
+      log('⚠️ Rate limited on token verify - assuming token still valid')
+      return 'rate_limit'
+    }
+
     const data = await response.json()
 
     if (data.success && data.user) {
@@ -346,10 +352,18 @@ export async function initAuth(): Promise<AuthUser | null> {
   if (user || AUTH_MODE === 'cookie') {
     log('🔐 Verifying existing session...')
     const valid = await verifyToken()
-    if (valid) {
+
+    if (valid === true) {
       log('✅ Session valid, user:', getUser()?.name)
       return getUser()
     }
+
+    // If rate limited, assume token is still valid
+    if (valid === 'rate_limit') {
+      log('⚠️ Rate limited - using cached session')
+      return user
+    }
+
     log('🔐 Session invalid, re-authenticating...')
     if (AUTH_MODE === 'localStorage') {
       clearAuth()
