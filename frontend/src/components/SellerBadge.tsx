@@ -1,6 +1,18 @@
 'use client'
 
 import { useAppStore } from '@/lib/store'
+import dynamic from 'next/dynamic'
+
+// Dynamically import Lottie to avoid SSR issues
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+
+// Import status icons for badges
+import newSellerIcon from '../../public/status-icons/status-5.json'
+import trustedIcon from '../../public/status-icons/status-4.json'
+import verifiedIcon from '../../public/status-icons/status-3.json'
+import topSellerIcon from '../../public/status-icons/status-1.json'
+import highVolumeIcon from '../../public/status-icons/status-6.json'
+import riskyIcon from '../../public/status-icons/status-7.json'
 
 export type SellerBadgeType = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky'
 
@@ -11,7 +23,7 @@ interface SellerBadgeProps {
 }
 
 const badgeConfig: Record<SellerBadgeType, {
-  icon: React.ReactNode
+  iconData: any // Lottie animation data
   label: { ru: string; en: string }
   color: string
   bgColor: string
@@ -19,77 +31,52 @@ const badgeConfig: Record<SellerBadgeType, {
   animation?: string
 }> = {
   new: {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-      </svg>
-    ),
+    iconData: newSellerIcon,
     label: { ru: 'Новичок', en: 'New' },
     color: 'text-emerald-500',
     bgColor: 'bg-emerald-500/10',
     description: { ru: 'Новый продавец', en: 'New seller' },
-    animation: 'animate-pulse'
+    animation: ''
   },
   trusted: {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
-      </svg>
-    ),
+    iconData: trustedIcon,
     label: { ru: 'Надежный', en: 'Trusted' },
     color: 'text-blue-500',
     bgColor: 'bg-blue-500/10',
     description: { ru: 'Проверенный продавец', en: 'Trusted seller' },
-    animation: 'animate-badge-glow-blue'
+    animation: ''
   },
   verified: {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307z"/>
-        <path fill="white" d="M15.61 10.186a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"/>
-      </svg>
-    ),
+    iconData: verifiedIcon,
     label: { ru: 'Верифицирован', en: 'Verified' },
     color: 'text-cyan-500',
     bgColor: 'bg-cyan-500/10',
     description: { ru: 'Личность подтверждена', en: 'Identity verified' },
-    animation: 'animate-badge-glow-cyan'
+    animation: ''
   },
   top_seller: {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-      </svg>
-    ),
+    iconData: topSellerIcon,
     label: { ru: 'Топ', en: 'Top' },
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
     description: { ru: 'Топ-продавец', en: 'Top seller' },
-    animation: 'animate-badge-glow-amber'
+    animation: ''
   },
   high_volume: {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
-      </svg>
-    ),
+    iconData: highVolumeIcon,
     label: { ru: '100+', en: '100+' },
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
     description: { ru: '100+ продаж', en: '100+ sales' },
-    animation: 'animate-badge-glow-purple'
+    animation: ''
   },
   risky: {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-      </svg>
-    ),
+    iconData: riskyIcon,
     label: { ru: 'Риск', en: 'Risky' },
     color: 'text-red-500',
     bgColor: 'bg-red-500/10',
     description: { ru: 'Проблемы с заказами', en: 'Order issues' },
-    animation: 'animate-badge-pulse-red'
+    animation: ''
   }
 }
 
@@ -123,8 +110,12 @@ export default function SellerBadge({ badge, size = 'md', showLabel = false }: S
         className={`inline-flex items-center ${config.bgColor} ${paddingClasses[size]} rounded-full ${config.animation || ''}`}
         title={config.description[language]}
       >
-        <span className={`${sizeClasses[size]} ${config.color}`}>
-          {config.icon}
+        <span className={`${sizeClasses[size]}`}>
+          <Lottie
+            animationData={config.iconData}
+            loop={true}
+            style={{ width: '100%', height: '100%' }}
+          />
         </span>
         <span className={`${labelSizeClasses[size]} ${config.color} font-medium`}>
           {config.label[language]}
@@ -135,10 +126,14 @@ export default function SellerBadge({ badge, size = 'md', showLabel = false }: S
 
   return (
     <span
-      className={`${sizeClasses[size]} ${config.color} inline-flex ${config.animation || ''}`}
+      className={`${sizeClasses[size]} inline-flex ${config.animation || ''}`}
       title={`${config.label[language]}: ${config.description[language]}`}
     >
-      {config.icon}
+      <Lottie
+        animationData={config.iconData}
+        loop={true}
+        style={{ width: '100%', height: '100%' }}
+      />
     </span>
   )
 }

@@ -15,6 +15,11 @@ const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 import duckHeroAnimation from '../../../public/duck-stickers/duck-10.json'
 import duckSuccessAnimation from '../../../public/duck-stickers/duck-5.json'
 
+// Import status icons (анимированные иконки)
+import starIcon from '../../../public/status-icons/status-1.json'
+import premiumIcon from '../../../public/status-icons/status-2.json'
+import successIcon from '../../../public/status-icons/status-3.json'
+
 interface PremiumPackage {
   id: string
   months: number
@@ -132,7 +137,13 @@ export default function StarsPage() {
             }`}
           >
             <div className="flex items-center justify-center gap-2">
-              <span>⭐</span>
+              <div className="w-5 h-5">
+                <Lottie
+                  animationData={starIcon}
+                  loop={true}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
               <span>{language === 'ru' ? 'Stars' : 'Stars'}</span>
             </div>
           </button>
@@ -148,7 +159,13 @@ export default function StarsPage() {
             }`}
           >
             <div className="flex items-center justify-center gap-2">
-              <span>👑</span>
+              <div className="w-5 h-5">
+                <Lottie
+                  animationData={premiumIcon}
+                  loop={true}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
               <span>{language === 'ru' ? 'Premium' : 'Premium'}</span>
             </div>
           </button>
@@ -182,7 +199,13 @@ export default function StarsPage() {
             {/* Amount Input */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-tg-text px-1 flex items-center gap-2">
-                <span>⭐</span>
+                <div className="w-4 h-4">
+                  <Lottie
+                    animationData={starIcon}
+                    loop={true}
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                </div>
                 <span>{language === 'ru' ? `Введите сумму (${MIN_STARS} - ${MAX_STARS.toLocaleString()})` : `Enter amount (${MIN_STARS} - ${MAX_STARS.toLocaleString()})`}</span>
               </label>
               <div className="relative">
@@ -217,11 +240,23 @@ export default function StarsPage() {
               />
               <div className="flex items-center justify-between mt-2 text-xs text-tg-hint">
                 <span className="flex items-center gap-1">
-                  <span>⭐</span>
+                  <div className="w-3 h-3">
+                    <Lottie
+                      animationData={starIcon}
+                      loop={true}
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                  </div>
                   <span>{MIN_STARS}</span>
                 </span>
                 <span className="flex items-center gap-1">
-                  <span>⭐</span>
+                  <div className="w-3 h-3">
+                    <Lottie
+                      animationData={starIcon}
+                      loop={true}
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                  </div>
                   <span>{MAX_STARS.toLocaleString()}</span>
                 </span>
               </div>
@@ -266,7 +301,13 @@ export default function StarsPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="text-3xl">👑</div>
+                      <div className="w-10 h-10">
+                        <Lottie
+                          animationData={premiumIcon}
+                          loop={true}
+                          style={{ width: '100%', height: '100%' }}
+                        />
+                      </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-lg font-bold text-tg-text">
@@ -395,7 +436,13 @@ export default function StarsPage() {
             </>
           ) : activeTab === 'stars' ? (
             <>
-              <span>⭐</span>
+              <div className="w-5 h-5">
+                <Lottie
+                  animationData={starIcon}
+                  loop={true}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
               <span>
                 {language === 'ru' ? 'Купить' : 'Buy'} {starsAmount.toLocaleString()} Stars
               </span>
@@ -405,7 +452,13 @@ export default function StarsPage() {
             </>
           ) : (
             <>
-              <span>👑</span>
+              <div className="w-5 h-5">
+                <Lottie
+                  animationData={premiumIcon}
+                  loop={true}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
               <span>
                 {language === 'ru' ? 'Купить Premium' : 'Buy Premium'} {selectedPremium.months} {language === 'ru' ? 'мес' : 'mo'}
               </span>
