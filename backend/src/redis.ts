@@ -42,7 +42,8 @@ class RedisCache {
     }
 
     try {
-      this.client = new Redis(REDIS_URL, {
+      // Configure TLS for Upstash (rediss://) or regular Redis
+      const redisOptions: any = {
         maxRetriesPerRequest: 3,
         retryStrategy: (times) => {
           if (times > 3) {
@@ -52,7 +53,16 @@ class RedisCache {
           return Math.min(times * 100, 2000)
         },
         lazyConnect: true,
-      })
+      }
+
+      // Enable TLS for rediss:// URLs (Upstash)
+      if (REDIS_URL.startsWith('rediss://')) {
+        redisOptions.tls = {
+          rejectUnauthorized: false // Upstash uses self-signed certs
+        }
+      }
+
+      this.client = new Redis(REDIS_URL, redisOptions)
 
       this.client.on('error', (err) => {
         console.error('Redis error:', err.message)
