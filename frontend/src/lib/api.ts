@@ -998,6 +998,12 @@ export const adminApi = {
     const { data } = await adminApiInstance.get(`/admin/products/${productId}/analytics`, { params })
     return data
   },
+
+  // Bot Webhook Setup
+  setupBotWebhook: async (tenantId: string, webhookUrl?: string) => {
+    const { data } = await adminApiInstance.post(`/bot/setup-webhook/${tenantId}`, { webhookUrl })
+    return data
+  },
 }
 
 export const chatApi = {

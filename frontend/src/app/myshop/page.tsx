@@ -21,40 +21,6 @@ const InventoryProductCard = ({ product, onUpdate }: { product: Product; onUpdat
   const stockColor = stockPercentage > 50 ? 'text-emerald-400' : stockPercentage > 20 ? 'text-yellow-400' : 'text-red-400'
 
   const [isExpanded, setIsExpanded] = useState(false)
-  const [newKeys, setNewKeys] = useState('')
-  const [isAddingKeys, setIsAddingKeys] = useState(false)
-
-  const handleAddKeys = async () => {
-    if (!newKeys.trim()) return
-
-    setIsAddingKeys(true)
-    try {
-      const keysList = newKeys.split('\n').filter(k => k.trim())
-      await adminApi.addProductKeys(product._id, keysList)
-
-      setNewKeys('')
-      alert(`Добавлено ${keysList.length} ключей`)
-      onUpdate()
-    } catch (error) {
-      console.error('Error adding keys:', error)
-      alert('Ошибка при добавлении ключей')
-    } finally {
-      setIsAddingKeys(false)
-    }
-  }
-
-  const handleDeleteKey = async (keyId: string) => {
-    if (!confirm('Удалить этот ключ?')) return
-
-    try {
-      await adminApi.deleteProductKey(product._id, keyId)
-      alert('Ключ удален')
-      onUpdate()
-    } catch (error: any) {
-      console.error('Error deleting key:', error)
-      alert(error.response?.data?.error || 'Ошибка при удалении ключа')
-    }
-  }
 
   return (
     <div className="bg-[#1a1d27] rounded-xl border border-[#2a2d37]">
@@ -128,108 +94,10 @@ const InventoryProductCard = ({ product, onUpdate }: { product: Product; onUpdat
         </div>
       </div>
 
-      {/* Expanded Key Management */}
+      {/* Expanded Key Management with DeliveryKeysManager */}
       {isExpanded && (
-        <div className="border-t border-[#2a2d37] p-4 space-y-4">
-          {/* Add Keys Section */}
-          <div className="bg-[#0f1117] rounded-lg p-3">
-            <h4 className="text-sm font-medium text-white mb-2">Добавить ключи</h4>
-            <textarea
-              value={newKeys}
-              onChange={(e) => setNewKeys(e.target.value)}
-              placeholder="Вставьте ключи, каждый с новой строки"
-              rows={4}
-              className="w-full px-3 py-2 bg-[#1a1d27] border border-[#2a2d37] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 mb-2"
-            />
-            <button
-              onClick={handleAddKeys}
-              disabled={isAddingKeys || !newKeys.trim()}
-              className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium transition-colors"
-            >
-              {isAddingKeys ? 'Добавление...' : 'Добавить ключи'}
-            </button>
-          </div>
-
-          {/* Keys List */}
-          <div>
-            <h4 className="text-sm font-medium text-white mb-2">Список ключей</h4>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {product.deliveryKeys && product.deliveryKeys.length > 0 ? (
-                product.deliveryKeys.map((key: any) => (
-                  <div
-                    key={key.id}
-                    className={`flex items-start gap-3 p-3 rounded-lg ${
-                      key.isUsed ? 'bg-[#0f1117] opacity-60' : 'bg-[#0f1117]'
-                    }`}
-                  >
-                    {/* Image preview for image type */}
-                    {key.type === 'image' && key.fileUrl && (
-                      <img
-                        src={key.fileUrl}
-                        alt={key.fileName || 'Image'}
-                        className="w-12 h-12 rounded object-cover flex-shrink-0"
-                      />
-                    )}
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        {/* Type badge */}
-                        {key.type && (
-                          <span className={`px-1.5 py-0.5 text-[10px] rounded ${
-                            key.type === 'text' ? 'bg-blue-500/20 text-blue-400' :
-                            key.type === 'file' ? 'bg-purple-500/20 text-purple-400' :
-                            'bg-green-500/20 text-green-400'
-                          }`}>
-                            {key.type === 'text' ? '📝 Текст' :
-                             key.type === 'file' ? '📁 Файл' :
-                             '🖼️ Фото'}
-                          </span>
-                        )}
-
-                        {key.isUsed && (
-                          <span className="px-1.5 py-0.5 bg-gray-700 text-gray-400 text-[10px] rounded">
-                            Использован
-                          </span>
-                        )}
-                      </div>
-
-                      <div className={`text-xs mb-1 ${key.isUsed ? 'text-gray-500' : 'text-white'}`}>
-                        {key.isUsed ? (
-                          <span className="font-mono">***используется***</span>
-                        ) : key.type === 'file' || key.type === 'image' ? (
-                          <span>{key.fileName || key.key}</span>
-                        ) : (
-                          <span className="font-mono break-all">{key.key}</span>
-                        )}
-                      </div>
-
-                      <div className="text-[10px] text-gray-500">
-                        Добавлен: {new Date(key.addedAt).toLocaleDateString('ru-RU')}
-                        {key.usedAt && ` • Использован: ${new Date(key.usedAt).toLocaleDateString('ru-RU')}`}
-                        {key.usedByOrderId && ` • Заказ: ${key.usedByOrderId}`}
-                      </div>
-                    </div>
-
-                    {!key.isUsed && (
-                      <button
-                        onClick={() => handleDeleteKey(key.id)}
-                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0"
-                        title="Удалить ключ"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500 text-sm">
-                  Нет ключей
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="border-t border-[#2a2d37] p-4">
+          <DeliveryKeysManager productId={product._id} />
         </div>
       )}
     </div>
@@ -870,6 +738,10 @@ export default function MyShopPage() {
     emailNotifications: false
   })
 
+  // Bot Webhook
+  const [settingUpWebhook, setSettingUpWebhook] = useState(false)
+  const [webhookStatus, setWebhookStatus] = useState<'idle' | 'success' | 'error'>('idle')
+
   // Stats
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -1476,6 +1348,34 @@ export default function MyShopPage() {
       alert('Ошибка: ' + (error?.response?.data?.error || error.message || 'Не удалось создать заявку'))
     } finally {
       setWithdrawing(false)
+    }
+  }
+
+  const handleSetupWebhook = async () => {
+    try {
+      setSettingUpWebhook(true)
+      setWebhookStatus('idle')
+
+      const { getTenantId } = await import('@/lib/api')
+      const tenantId = getTenantId()
+
+      const result = await adminApi.setupBotWebhook(tenantId)
+
+      if (result.ok || result.success) {
+        setWebhookStatus('success')
+        alert('Вебхук успешно настроен! Бот теперь будет отвечать на команды.')
+        // Reset status after 5 seconds
+        setTimeout(() => setWebhookStatus('idle'), 5000)
+      } else {
+        setWebhookStatus('error')
+        alert('Ошибка: ' + (result.error || result.description || 'Не удалось настроить вебхук'))
+      }
+    } catch (error: any) {
+      console.error('Webhook setup failed:', error)
+      setWebhookStatus('error')
+      alert('Ошибка: ' + (error?.response?.data?.error || error.message || 'Не удалось настроить вебхук'))
+    } finally {
+      setSettingUpWebhook(false)
     }
   }
 
@@ -2295,6 +2195,34 @@ export default function MyShopPage() {
                     </svg>
                   </div>
                   <p className="text-xs text-white text-center">Тёмная</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Bot Webhook Setup Card */}
+            <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+              <h3 className="text-sm font-medium text-white mb-1">Настройка Telegram бота</h3>
+              <p className="text-xs text-gray-500 mb-4">Включите вебхук для получения команд /start и других обновлений</p>
+
+              <div className="space-y-3">
+                {webhookStatus === 'success' && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
+                    <p className="text-xs text-emerald-400">Вебхук успешно настроен!</p>
+                  </div>
+                )}
+
+                {webhookStatus === 'error' && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                    <p className="text-xs text-red-400">Ошибка при настройке вебхука</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSetupWebhook}
+                  disabled={settingUpWebhook}
+                  className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  {settingUpWebhook ? 'Настройка...' : 'Настроить вебхук'}
                 </button>
               </div>
             </div>
