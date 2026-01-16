@@ -1,45 +1,37 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
-import { initAuth, isAdmin as checkIsAdmin } from '@/lib/auth'
+import { getUser } from '@/lib/auth'
 import { hapticImpact } from '@/lib/telegram'
+import { useAuth } from './AuthProvider'
 
 export default function BottomNav() {
   const pathname = usePathname()
-  const { isAdmin: storeIsAdmin, setIsAdmin, cart, getCartItemCount } = useAppStore()
-  const [localIsAdmin, setLocalIsAdmin] = useState(false)
+  const { isAdmin, setIsAdmin } = useAppStore()
+  const { user: authContextUser } = useAuth()
 
+  // Synchronize isAdmin from AuthProvider when it becomes available
+  // This runs once when authContextUser is set by AuthProvider
   useEffect(() => {
-    const init = async () => {
-      console.log('[BottomNav] Init auth...')
-      const user = await initAuth()
-      console.log('[BottomNav] User:', JSON.stringify(user))
-
-      if (user) {
-        console.log('[BottomNav] Setting isAdmin:', user.isAdmin)
-        setLocalIsAdmin(user.isAdmin)
-        setIsAdmin(user.isAdmin)
-
-        // ВРЕМЕННЫЙ ДЕБАГ - покажет статус админа
-        if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
-          setTimeout(() => {
-            alert(`DEBUG: isAdmin=${user.isAdmin}, username=${user.username}, id=${user.id}`)
-          }, 1000)
-        }
-      } else {
-        const adminStatus = checkIsAdmin()
-        console.log('[BottomNav] checkIsAdmin:', adminStatus)
-        setLocalIsAdmin(adminStatus)
-        setIsAdmin(adminStatus)
-      }
+    if (authContextUser?.isAdmin !== undefined) {
+      console.log('[BottomNav] Syncing isAdmin from AuthProvider:', authContextUser.isAdmin)
+      setIsAdmin(authContextUser.isAdmin)
     }
-    init()
-  }, [setIsAdmin, pathname])
+  }, [authContextUser?.isAdmin, setIsAdmin])
 
-  const isAdmin = localIsAdmin || storeIsAdmin
+  // Fallback: If AuthProvider didn't set user, try to get from localStorage
+  // This only runs once on mount with empty dependency array
+  useEffect(() => {
+    const cachedUser = getUser()
+    if (cachedUser && !authContextUser) {
+      console.log('[BottomNav] Using cached user:', cachedUser.isAdmin)
+      setIsAdmin(cachedUser.isAdmin)
+    }
+  }, [])
+
   const cartCount = getCartItemCount()
 
   const navItems = [

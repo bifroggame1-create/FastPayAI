@@ -86,7 +86,8 @@ function getTelegramInitData(): string | null {
  * In localStorage mode: saves both to localStorage
  */
 function saveAuth(token: string | null, user: AuthUser): void {
-  cachedUser = user
+  // Create a defensive copy to prevent external mutations
+  cachedUser = { ...user }
 
   if (AUTH_MODE === 'cookie') {
     // In cookie mode, token is managed by backend via httpOnly cookie
@@ -103,26 +104,30 @@ function saveAuth(token: string | null, user: AuthUser): void {
 }
 
 /**
- * Load auth data
+ * Load auth data - uses in-memory cache when available, falls back to localStorage
  */
 function loadAuth(): { token: string | null; user: AuthUser | null } {
+  // Return from in-memory cache if available
   if (cachedUser) {
     return { token: cachedToken, user: cachedUser }
   }
 
+  // Only access localStorage if in localStorage mode and cache is empty
   if (AUTH_MODE === 'localStorage' && isBrowser()) {
-    const token = localStorage.getItem(STORAGE.TOKEN)
-    const userStr = localStorage.getItem(STORAGE.USER)
+    try {
+      const token = localStorage.getItem(STORAGE.TOKEN)
+      const userStr = localStorage.getItem(STORAGE.USER)
 
-    if (token && userStr) {
-      try {
+      if (token && userStr) {
         const user = JSON.parse(userStr) as AuthUser
+        // Update in-memory cache
         cachedToken = token
         cachedUser = user
         return { token, user }
-      } catch {
-        // Invalid data
       }
+    } catch (e) {
+      // Invalid data in localStorage
+      logError('Failed to load auth from localStorage:', e)
     }
   }
 
@@ -175,19 +180,30 @@ export function getUser(): AuthUser | null {
 /**
  * Check if current user is admin (local check only, for UI purposes)
  * SECURITY: This is only for UI display. Backend ALWAYS verifies admin status via JWT.
+ *
+ * IMPORTANT: This function uses in-memory cache first (updated by authenticate/verifyToken).
+ * Fallback to localStorage is minimal and only checks once.
  */
 export function isAdmin(): boolean {
+  // Primary source: in-memory cache (updated by authenticate/verifyToken)
   if (cachedUser?.isAdmin) return true
 
-  if (isBrowser()) {
+  // Fallback: check localStorage only if in localStorage mode
+  if (isBrowser() && AUTH_MODE === 'localStorage') {
     const userStr = localStorage.getItem(STORAGE.USER)
     if (userStr) {
       try {
         const user = JSON.parse(userStr) as AuthUser
-        if (user.isAdmin && (AUTH_MODE === 'cookie' || localStorage.getItem(STORAGE.TOKEN))) {
+        const hasToken = !!localStorage.getItem(STORAGE.TOKEN)
+
+        if (user.isAdmin && hasToken) {
+          // Update cache from localStorage for future calls
+          cachedUser = user
           return true
         }
-      } catch {}
+      } catch {
+        // Invalid JSON - ignore
+      }
     }
   }
 
@@ -310,7 +326,11 @@ export async function verifyToken(): Promise<boolean | 'rate_limit'> {
       }
     }
 
-    const response = await fetch(`${API_URL}/auth/verify`, fetchOptions)
+    // FIX: Changed to POST method (verification is not idempotent due to server-side state updates)
+    const response = await fetch(`${API_URL}/auth/verify`, {
+      ...fetchOptions,
+      method: 'POST'
+    })
 
     // Don't invalidate token on rate limit - it's temporary
     if (response.status === 429) {
@@ -323,9 +343,13 @@ export async function verifyToken(): Promise<boolean | 'rate_limit'> {
     if (data.success && data.user) {
       const currentUser = getUser()
       if (currentUser) {
-        currentUser.isAdmin = data.user.isAdmin === true
-        currentUser.bonusBalance = data.user.bonusBalance
-        saveAuth(AUTH_MODE === 'localStorage' ? getToken() : null, currentUser)
+        // FIX: Create a new object instead of mutating the cached one
+        const updatedUser: AuthUser = {
+          ...currentUser,
+          isAdmin: data.user.isAdmin === true,
+          bonusBalance: data.user.bonusBalance
+        }
+        saveAuth(AUTH_MODE === 'localStorage' ? getToken() : null, updatedUser)
       }
       return true
     }

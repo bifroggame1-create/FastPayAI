@@ -34,7 +34,7 @@ const parseReferrerId = (startParam: string | null): string | null => {
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const { setUser, addNotification } = useAppStore()
+  const { setUser, setIsAdmin, addNotification } = useAppStore()
 
   useEffect(() => {
     const init = async () => {
@@ -46,11 +46,19 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       useAppStore.getState().setTheme(detectedTheme)
 
       // Authenticate with backend
+      // This is the SINGLE SOURCE OF TRUTH for authentication
+      // All other components (like BottomNav) will sync with this
       try {
         const success = await authenticate()
         if (success) {
           const user = getAuthUser()
           setAuthUser(user)
+          // CRITICAL: Sync isAdmin to store immediately so BottomNav can show admin tabs
+          // This ensures BottomNav doesn't have to re-authenticate
+          if (user?.isAdmin !== undefined) {
+            setIsAdmin(user.isAdmin)
+            console.log('[AuthProvider] Synced isAdmin to store:', user.isAdmin)
+          }
         }
       } catch (e) {
         console.error('Auth initialization error:', e)
