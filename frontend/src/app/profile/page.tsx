@@ -1,12 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import BottomNav from '@/components/BottomNav'
 import BecomeSellerModal from '@/components/BecomeSellerModal'
 import { useRouter } from 'next/navigation'
 import { getTelegramUser } from '@/lib/telegram'
 import { userApi } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
+
+// Dynamic import для Lottie (избегаем SSR)
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+
+// Импортируем матричную утку
+import matrixDuckAnimation from '../../../public/duck-stickers/duck-69.json'
 
 interface UserProfile {
   id: string
@@ -354,7 +361,13 @@ export default function ProfilePage() {
           <p className="text-[12px] text-tg-hint flex items-center justify-center gap-1">
             <span>by</span>
             <a href="https://t.me/cheffofgang" target="_blank" rel="noopener noreferrer" className="text-tg-accent font-medium hover:underline">@cheffofgang</a>
-            <span className="text-green-400" style={{ fontSize: '10px' }}>🦆</span>
+            <span className="inline-block w-4 h-4 ml-0.5">
+              <Lottie
+                animationData={matrixDuckAnimation}
+                loop={true}
+                style={{ width: '100%', height: '100%' }}
+              />
+            </span>
           </p>
         </div>
       </div>

@@ -15,14 +15,6 @@ const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 import duckHeroAnimation from '../../../public/duck-stickers/duck-10.json'
 import duckSuccessAnimation from '../../../public/duck-stickers/duck-5.json'
 
-interface StarPackage {
-  id: string
-  amount: number
-  price: number
-  popular?: boolean
-  bonus?: number
-}
-
 interface PremiumPackage {
   id: string
   months: number
@@ -30,37 +22,40 @@ interface PremiumPackage {
   popular?: boolean
 }
 
-const starPackages: StarPackage[] = [
-  { id: '50', amount: 50, price: 90 },
-  { id: '100', amount: 100, price: 180, popular: true },
-  { id: '500', amount: 500, price: 900, bonus: 50 },
-  { id: '1000', amount: 1000, price: 1800, bonus: 150 },
-  { id: '2500', amount: 2500, price: 4500, bonus: 500 }
-]
-
 const premiumPackages: PremiumPackage[] = [
   { id: 'premium-3', months: 3, price: 540 },
   { id: 'premium-6', months: 6, price: 900, popular: true },
   { id: 'premium-12', months: 12, price: 1620 }
 ]
 
+// Constants for Stars
+const MIN_STARS = 50
+const MAX_STARS = 20000
+
 export default function StarsPage() {
   const router = useRouter()
   const { user, language } = useAppStore()
   const [activeTab, setActiveTab] = useState<'stars' | 'premium'>('stars')
-  const [selectedPackage, setSelectedPackage] = useState<StarPackage>(starPackages[1])
+  const [starsAmount, setStarsAmount] = useState<number>(100)
   const [selectedPremium, setSelectedPremium] = useState<PremiumPackage>(premiumPackages[1])
   const [username, setUsername] = useState(user?.username || '')
   const [processing, setProcessing] = useState(false)
 
-  const handlePackageSelect = (pkg: StarPackage) => {
-    setSelectedPackage(pkg)
+  const handleStarsAmountChange = (value: number) => {
+    // Clamp value between min and max
+    const clampedValue = Math.max(MIN_STARS, Math.min(MAX_STARS, value))
+    setStarsAmount(clampedValue)
     hapticImpact('light')
   }
 
   const handlePremiumSelect = (pkg: PremiumPackage) => {
     setSelectedPremium(pkg)
     hapticImpact('light')
+  }
+
+  // Calculate price dynamically (1.8 RUB per star with markup)
+  const calculateStarsPrice = (amount: number): number => {
+    return Math.ceil(amount * 1.8)
   }
 
   const handlePurchase = async () => {
@@ -79,8 +74,8 @@ export default function StarsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: username.startsWith('@') ? username : `@${username}`,
-          stars: selectedPackage.amount,
-          price: selectedPackage.price,
+          stars: starsAmount,
+          price: calculateStarsPrice(starsAmount),
           userId: user?.id
         })
       })
@@ -93,8 +88,8 @@ export default function StarsPage() {
           window.Telegram.WebApp.openInvoice(data.invoiceUrl, (status) => {
             if (status === 'paid') {
               alert(language === 'ru'
-                ? `${selectedPackage.amount} ⭐ Stars доставлены!`
-                : `${selectedPackage.amount} ⭐ Stars delivered!`)
+                ? `${starsAmount} ⭐ Stars доставлены!`
+                : `${starsAmount} ⭐ Stars delivered!`)
               router.push('/')
             }
           })
@@ -181,62 +176,71 @@ export default function StarsPage() {
           </p>
         </div>
 
-        {/* Packages - Stars */}
+        {/* Amount Input - Stars */}
         {activeTab === 'stars' && (
-          <div className="space-y-3">
-            <h2 className="text-base font-semibold text-tg-text px-1">
-              {language === 'ru' ? 'Выберите количество' : 'Choose amount'}
-            </h2>
-
+          <div className="space-y-4">
+            {/* Amount Input */}
             <div className="space-y-2">
-              {starPackages.map((pkg) => (
-              <button
-                key={pkg.id}
-                onClick={() => handlePackageSelect(pkg)}
-                className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                  selectedPackage.id === pkg.id
-                    ? 'border-accent-cyan bg-accent-cyan/5'
-                    : 'border-tg-separator bg-tg-secondary-bg'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-3xl">⭐</div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-tg-text">
-                          {pkg.amount.toLocaleString()}
-                        </span>
-                        {pkg.popular && (
-                          <span className="text-xs px-2 py-0.5 bg-accent-cyan text-white rounded-full">
-                            {language === 'ru' ? 'Популярно' : 'Popular'}
-                          </span>
-                        )}
-                        {pkg.bonus && (
-                          <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-600 dark:text-green-400 rounded-full">
-                            +{pkg.bonus} {language === 'ru' ? 'бонус' : 'bonus'}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-tg-hint">
-                        {formatPrice(pkg.price, 'RUB')}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                    selectedPackage.id === pkg.id
-                      ? 'border-accent-cyan bg-accent-cyan'
-                      : 'border-tg-separator'
-                  }`}>
-                    {selectedPackage.id === pkg.id && (
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
+              <label className="text-sm font-medium text-tg-text px-1 flex items-center gap-2">
+                <span>⭐</span>
+                <span>{language === 'ru' ? `Введите сумму (${MIN_STARS} - ${MAX_STARS.toLocaleString()})` : `Enter amount (${MIN_STARS} - ${MAX_STARS.toLocaleString()})`}</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={starsAmount}
+                  onChange={(e) => handleStarsAmountChange(parseInt(e.target.value) || MIN_STARS)}
+                  min={MIN_STARS}
+                  max={MAX_STARS}
+                  className="w-full px-4 py-3.5 rounded-xl bg-tg-secondary-bg border border-tg-separator text-tg-text text-lg font-semibold focus:outline-none focus:border-accent-cyan transition-colors"
+                  placeholder={MIN_STARS.toString()}
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-tg-hint">
+                  ≈ {formatPrice(calculateStarsPrice(starsAmount), 'RUB')}
                 </div>
-              </button>
+              </div>
+            </div>
+
+            {/* Range Slider */}
+            <div className="relative px-1">
+              <input
+                type="range"
+                value={starsAmount}
+                onChange={(e) => handleStarsAmountChange(parseInt(e.target.value))}
+                min={MIN_STARS}
+                max={MAX_STARS}
+                step={10}
+                className="w-full h-2 bg-tg-separator rounded-lg appearance-none cursor-pointer accent-accent-cyan slider"
+                style={{
+                  background: `linear-gradient(to right, rgb(6 182 212) 0%, rgb(6 182 212) ${((starsAmount - MIN_STARS) / (MAX_STARS - MIN_STARS)) * 100}%, rgb(42 45 55) ${((starsAmount - MIN_STARS) / (MAX_STARS - MIN_STARS)) * 100}%, rgb(42 45 55) 100%)`
+                }}
+              />
+              <div className="flex items-center justify-between mt-2 text-xs text-tg-hint">
+                <span className="flex items-center gap-1">
+                  <span>⭐</span>
+                  <span>{MIN_STARS}</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span>⭐</span>
+                  <span>{MAX_STARS.toLocaleString()}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Quick amounts */}
+            <div className="grid grid-cols-4 gap-2">
+              {[100, 500, 1000, 5000].map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => handleStarsAmountChange(amount)}
+                  className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                    starsAmount === amount
+                      ? 'bg-accent-cyan text-white'
+                      : 'bg-tg-secondary-bg text-tg-text border border-tg-separator hover:border-accent-cyan'
+                  }`}
+                >
+                  {amount.toLocaleString()}
+                </button>
               ))}
             </div>
           </div>
@@ -393,10 +397,10 @@ export default function StarsPage() {
             <>
               <span>⭐</span>
               <span>
-                {language === 'ru' ? 'Купить' : 'Buy'} {selectedPackage.amount} Stars
+                {language === 'ru' ? 'Купить' : 'Buy'} {starsAmount.toLocaleString()} Stars
               </span>
               <span className="text-sm font-normal opacity-90">
-                • {formatPrice(selectedPackage.price, 'RUB')}
+                • {formatPrice(calculateStarsPrice(starsAmount), 'RUB')}
               </span>
             </>
           ) : (
