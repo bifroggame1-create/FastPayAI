@@ -485,6 +485,80 @@ export async function paymentRoutes(fastify: FastifyInstance) {
           order = allOrders.find(o => o.paymentId === paymentId) || null
         }
 
+        // Check if this is a Stars/Premium order
+        const { getStarsOrdersCollection } = await import('../database')
+        let starsOrder = await getStarsOrdersCollection().findOne({ paymentId })
+
+        if (!order && !starsOrder) {
+          logger.warn({ paymentId }, 'Order not found for payment')
+          return { success: true }
+        }
+
+        // Handle Stars/Premium order
+        if (starsOrder && !order) {
+          logger.info({ orderId: starsOrder.orderId, type: starsOrder.type }, 'Processing Stars/Premium order payment')
+
+          // Check if already processed
+          if (starsOrder.status === 'completed') {
+            logger.info({ orderId: starsOrder.orderId }, 'Stars order already processed')
+            await redis.setex(`webhook:${webhookId}`, 86400, 'completed')
+            return { success: true, status: 'already_processed' }
+          }
+
+          // Update order status to paid
+          await getStarsOrdersCollection().updateOne(
+            { orderId: starsOrder.orderId },
+            {
+              $set: {
+                status: 'paid',
+                paymentId,
+                paymentMethod: 'cryptobot',
+                paidAt: new Date().toISOString()
+              }
+            }
+          )
+
+          // Process the Stars/Premium delivery
+          const { sendStars, activatePremium } = await import('../fragment-api')
+
+          let result
+          if (starsOrder.type === 'stars') {
+            result = await sendStars(starsOrder.username, starsOrder.amount!)
+          } else {
+            result = await activatePremium(starsOrder.username, starsOrder.months!)
+          }
+
+          if (result.success) {
+            await getStarsOrdersCollection().updateOne(
+              { orderId: starsOrder.orderId },
+              {
+                $set: {
+                  status: 'completed',
+                  completedAt: new Date().toISOString(),
+                  fragmentOrderId: result.data?.orderId,
+                  fragmentTransactionHash: result.data?.transactionHash
+                }
+              }
+            )
+            logger.info({ orderId: starsOrder.orderId, type: starsOrder.type }, 'Stars/Premium order completed')
+          } else {
+            await getStarsOrdersCollection().updateOne(
+              { orderId: starsOrder.orderId },
+              {
+                $set: {
+                  status: 'failed',
+                  failedAt: new Date().toISOString(),
+                  errorMessage: result.error
+                }
+              }
+            )
+            logger.error({ orderId: starsOrder.orderId, error: result.error }, 'Stars/Premium order failed')
+          }
+
+          await redis.setex(`webhook:${webhookId}`, 86400, 'completed')
+          return { success: true }
+        }
+
         if (!order) {
           logger.warn({ paymentId }, 'Order not found for payment')
           return { success: true }

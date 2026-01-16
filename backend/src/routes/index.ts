@@ -17,6 +17,7 @@ import { marketplaceRoutes } from './marketplace'
 import platformRoutes from './platform'
 import billingRoutes from './billing'
 import { tenantRoutes } from './tenant'
+import { starsOrderRoutes } from './stars-orders'
 import { registerBotWebhookRoutes } from '../botWebhookHandler'
 
 export async function registerRoutes(fastify: FastifyInstance) {
@@ -37,6 +38,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(productRoutes)
   await fastify.register(adminRoutes)
   await fastify.register(paymentRoutes)
+  await fastify.register(starsOrderRoutes)
   await fastify.register(userRoutes)
   await fastify.register(promoRoutes)
   await fastify.register(chatRoutes)
@@ -57,6 +59,7 @@ export {
   productRoutes,
   adminRoutes,
   paymentRoutes,
+  starsOrderRoutes,
   userRoutes,
   promoRoutes,
   chatRoutes,

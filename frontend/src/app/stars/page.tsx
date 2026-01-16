@@ -79,52 +79,56 @@ export default function StarsPage() {
     hapticImpact('medium')
 
     try {
-      // Choose endpoint based on active tab
-      const endpoint = activeTab === 'stars' ? '/api/stars/create-invoice' : '/api/premium/create-invoice'
+      // Create order in database first
+      const createOrderEndpoint = activeTab === 'stars'
+        ? '/api/stars/create-order'
+        : '/api/stars/create-premium-order'
 
-      // Prepare request body based on tab
-      const requestBody = activeTab === 'stars'
+      const orderBody = activeTab === 'stars'
         ? {
             username: username.startsWith('@') ? username : `@${username}`,
             stars: starsAmount,
             price: calculateStarsPrice(starsAmount),
-            userId: user?.id
+            userId: user?.id,
+            userName: user?.name,
+            userUsername: user?.username
           }
         : {
             username: username.startsWith('@') ? username : `@${username}`,
             months: selectedPremium.months,
             price: selectedPremium.price,
-            userId: user?.id
+            userId: user?.id,
+            userName: user?.name,
+            userUsername: user?.username
           }
 
-      const response = await fetch(endpoint, {
+      const orderResponse = await fetch(createOrderEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(orderBody)
       })
 
-      const data = await response.json()
+      const orderData = await orderResponse.json()
 
-      if (data.success && data.invoiceUrl) {
-        // Open Telegram payment
-        if (window.Telegram?.WebApp?.openInvoice) {
-          window.Telegram.WebApp.openInvoice(data.invoiceUrl, (status) => {
-            if (status === 'paid') {
-              const successMessage = activeTab === 'stars'
-                ? (language === 'ru' ? `${starsAmount} ⭐ Stars доставлены!` : `${starsAmount} ⭐ Stars delivered!`)
-                : (language === 'ru' ? `Premium ${selectedPremium.months} мес. активирован!` : `Premium ${selectedPremium.months} mo activated!`)
-
-              alert(successMessage)
-              router.push('/')
-            }
-          })
-        } else {
-          window.open(data.invoiceUrl, '_blank')
-        }
-      } else {
-        const errorMessage = data.error || (language === 'ru' ? 'Ошибка создания платежа' : 'Payment creation error')
-        alert(errorMessage)
+      if (!orderData.success) {
+        alert(orderData.error || (language === 'ru' ? 'Ошибка создания заказа' : 'Order creation error'))
+        return
       }
+
+      // Save order data in localStorage for checkout
+      const checkoutData = {
+        type: activeTab,
+        orderId: orderData.orderId,
+        username: username.startsWith('@') ? username : `@${username}`,
+        amount: activeTab === 'stars' ? starsAmount : undefined,
+        months: activeTab === 'premium' ? selectedPremium.months : undefined,
+        price: activeTab === 'stars' ? calculateStarsPrice(starsAmount) : selectedPremium.price
+      }
+
+      localStorage.setItem('starsCheckoutData', JSON.stringify(checkoutData))
+
+      // Redirect to checkout with type parameter
+      router.push(`/checkout?type=${activeTab}`)
     } catch (error) {
       console.error('Purchase error:', error)
       alert(language === 'ru' ? 'Произошла ошибка' : 'An error occurred')

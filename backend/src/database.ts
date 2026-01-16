@@ -636,6 +636,39 @@ export interface ActivityLog extends TenantScoped {
 }
 
 // ============================================
+// STARS & PREMIUM ORDERS
+// ============================================
+
+export type StarsOrderType = 'stars' | 'premium'
+export type StarsOrderStatus = 'pending' | 'paid' | 'processing' | 'completed' | 'failed' | 'refunded'
+
+export interface StarsOrder extends TenantScoped {
+  _id?: string | ObjectId
+  orderId: string
+  userId: string
+  userName?: string
+  userUsername?: string
+  type: StarsOrderType
+  // For Stars orders
+  amount?: number // количество Stars
+  // For Premium orders
+  months?: number // количество месяцев Premium
+  price: number // цена в рублях
+  status: StarsOrderStatus
+  username: string // Telegram username получателя
+  paymentMethod: 'telegram-stars' | 'cryptobot' | 'xrocket' | 'cactuspay-sbp' | 'cactuspay-card'
+  paymentId?: string
+  createdAt: string
+  paidAt?: string
+  completedAt?: string
+  failedAt?: string
+  errorMessage?: string
+  // Fragment API response
+  fragmentOrderId?: string
+  fragmentTransactionHash?: string
+}
+
+// ============================================
 // DATABASE CONNECTION
 // ============================================
 
@@ -764,6 +797,12 @@ async function createIndexes(database: Db): Promise<void> {
 
     // Files
     await database.collection('files').createIndex({ tenantId: 1, id: 1 }, { unique: true })
+
+    // Stars Orders
+    await database.collection('stars_orders').createIndex({ tenantId: 1, orderId: 1 }, { unique: true })
+    await database.collection('stars_orders').createIndex({ tenantId: 1, userId: 1 })
+    await database.collection('stars_orders').createIndex({ tenantId: 1, status: 1 })
+    await database.collection('stars_orders').createIndex({ paymentId: 1 }) // For webhook lookup
 
     console.log('Database indexes created')
   } catch (error) {
@@ -947,6 +986,10 @@ export function getSellerApplicationsCollection(): Collection<SellerApplication>
 
 export function getActivityLogsCollection(): Collection<ActivityLog> {
   return getDB().collection<ActivityLog>('activity_logs')
+}
+
+export function getStarsOrdersCollection(): Collection<StarsOrder> {
+  return getDB().collection<StarsOrder>('stars_orders')
 }
 
 // ============================================

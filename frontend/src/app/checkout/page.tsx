@@ -48,8 +48,38 @@ function CheckoutContent() {
       const fromCart = searchParams.get('fromCart') === 'true'
       const productId = searchParams.get('productId')
       const variantId = searchParams.get('variantId')
+      const type = searchParams.get('type') // 'stars' or 'premium'
 
-      if (fromCart) {
+      if (type === 'stars' || type === 'premium') {
+        // Stars/Premium checkout mode
+        const checkoutData = localStorage.getItem('starsCheckoutData')
+        if (!checkoutData) {
+          router.push('/stars')
+          return
+        }
+
+        try {
+          const data = JSON.parse(checkoutData)
+
+          // Create checkout item from Stars/Premium data
+          setCheckoutItems([{
+            productId: data.orderId,
+            productName: type === 'stars'
+              ? `${data.amount} ⭐ Telegram Stars`
+              : `Telegram Premium ${data.months} ${language === 'ru' ? 'мес' : 'mo'}`,
+            productImage: type === 'stars' ? '/stars.png' : '/premium.png',
+            variantName: `для @${data.username.replace('@', '')}`,
+            price: data.price,
+            quantity: 1
+          }])
+
+          setIsCartCheckout(false)
+        } catch (e) {
+          console.error('Failed to parse Stars checkout data:', e)
+          router.push('/stars')
+          return
+        }
+      } else if (fromCart) {
         // Cart checkout mode
         if (cart.length === 0) {
           router.push('/cart')
@@ -124,6 +154,9 @@ function CheckoutContent() {
   const handleCheckout = async () => {
     if (checkoutItems.length === 0) return
 
+    const type = searchParams.get('type')
+    const isStarsOrder = type === 'stars' || type === 'premium'
+
     // Generate description based on items
     const getDescription = () => {
       if (checkoutItems.length === 1) {
@@ -146,15 +179,54 @@ function CheckoutContent() {
       // Users can return and retry payment if it fails
     }
 
+    // Helper to process Stars order after payment
+    const processStarsOrder = async (orderId: string, paymentId: string) => {
+      try {
+        const response = await fetch('/api/stars/process-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId,
+            paymentId,
+            paymentMethod
+          })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          // Clear localStorage
+          localStorage.removeItem('starsCheckoutData')
+
+          alert(data.message || (language === 'ru' ? 'Заказ выполнен!' : 'Order completed!'))
+          router.push('/')
+        } else {
+          alert(data.error || (language === 'ru' ? 'Ошибка обработки заказа' : 'Order processing error'))
+        }
+      } catch (error) {
+        console.error('Error processing Stars order:', error)
+        alert(language === 'ru' ? 'Ошибка обработки заказа' : 'Order processing error')
+      }
+    }
+
     // Для CryptoBot используем крипту
     if (paymentMethod === 'cryptobot') {
       try {
         setProcessing(true)
 
+        // For Stars orders, use the orderId from localStorage
+        let starsOrderData
+        if (isStarsOrder) {
+          const data = localStorage.getItem('starsCheckoutData')
+          if (data) {
+            starsOrderData = JSON.parse(data)
+          }
+        }
+
         const invoiceParams = {
           amount: finalPrice,
           description: getDescription(),
-          productId: checkoutItems[0].productId,
+          productId: isStarsOrder ? starsOrderData?.orderId : checkoutItems[0].productId,
           variantId: checkoutItems[0].variantId,
           asset: selectedCrypto,
           // Pass user data
@@ -168,7 +240,20 @@ function CheckoutContent() {
         const response = await paymentApi.createInvoice(invoiceParams)
 
         if (response.success && response.invoice) {
+          // For Stars orders, we need to wait for payment and then process
+          if (isStarsOrder && starsOrderData) {
+            // Store payment info for processing
+            localStorage.setItem('starsPaymentInfo', JSON.stringify({
+              orderId: starsOrderData.orderId,
+              paymentId: response.invoice.id,
+              paymentMethod: 'cryptobot'
+            }))
+          }
+
           openPaymentUrl(response.invoice.payUrl)
+
+          // TODO: Add webhook handler or polling to detect payment completion
+          // For now, user needs to manually trigger processing
         } else {
           const errorMsg = response.error || 'Неизвестная ошибка'
           const details = response.details ? `\n\nДетали: ${JSON.stringify(response.details)}` : ''
