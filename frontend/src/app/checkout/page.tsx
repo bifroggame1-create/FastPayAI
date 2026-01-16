@@ -160,6 +160,17 @@ function CheckoutContent() {
     const type = searchParams.get('type')
     const isStarsOrder = type === 'stars' || type === 'premium'
 
+    // Track purchase attempt for all products in checkout
+    checkoutItems.forEach(item => {
+      productsApi.track(item.productId, {
+        userId: user?.id?.toString() || '',
+        userName: user?.name || '',
+        userUsername: user?.username || '',
+        userAvatar: user?.avatar,
+        action: 'purchase_attempt'
+      })
+    })
+
     // Generate description based on items
     const getDescription = () => {
       if (checkoutItems.length === 1) {

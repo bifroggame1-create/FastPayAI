@@ -3316,5 +3316,81 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return { success: false, error: error.message }
     }
   })
+
+  // ============================================
+  // PRODUCT ANALYTICS
+  // ============================================
+
+  // Get product analytics for a specific product (seller only - sees their own products)
+  fastify.get('/admin/products/:id/analytics', { preHandler: authMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as any
+      const { limit = 100, offset = 0, action } = request.query as any
+      const tenantId = reqTenantId(request)
+
+      // Get authenticated user
+      const user = (request as any).user
+      if (!user) {
+        reply.code(401)
+        return { success: false, error: 'Unauthorized' }
+      }
+
+      // Check if user is admin or seller
+      const isAdmin = user.isAdmin
+      const sellerId = user.userId
+
+      // Get product to verify seller ownership
+      const product = await getProductById(id, tenantId)
+      if (!product) {
+        reply.code(404)
+        return { success: false, error: 'Product not found' }
+      }
+
+      // Verify seller owns this product (admins can see all)
+      if (!isAdmin && product.seller?.id !== sellerId) {
+        reply.code(403)
+        return { success: false, error: 'Access denied' }
+      }
+
+      // Get analytics from database
+      const db = await import('../database')
+      const analyticsCollection = db.getProductAnalyticsCollection()
+
+      const query: any = { tenantId, productId: id }
+      if (action) query.action = action
+
+      const analytics = await analyticsCollection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(parseInt(offset))
+        .limit(parseInt(limit))
+        .toArray()
+
+      // Get stats by action
+      const stats = await analyticsCollection.aggregate([
+        { $match: { tenantId, productId: id } },
+        { $group: { _id: '$action', count: { $sum: 1 } } }
+      ]).toArray()
+
+      const statsByAction = stats.reduce((acc, { _id, count }) => {
+        acc[_id] = count
+        return acc
+      }, {} as Record<string, number>)
+
+      return {
+        success: true,
+        analytics: analytics.map(a => ({
+          ...a,
+          _id: a._id?.toString()
+        })),
+        total: await analyticsCollection.countDocuments(query),
+        stats: statsByAction
+      }
+    } catch (error: any) {
+      console.error('Error fetching product analytics:', error)
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
+  })
 }
 

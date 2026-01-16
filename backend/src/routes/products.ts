@@ -1,8 +1,15 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { validateQuery, productQuerySchema, favoriteIdsSchema } from '../validation'
 import { searchProducts, getSearchSuggestions } from '../searchUtils'
 import { loadProducts, getProductById } from '../dataStore'
 import { optionalAuthMiddleware } from '../auth'
+import { getProductAnalyticsCollection, ProductAnalytics, ProductAnalyticsAction } from '../database'
+
+const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
+
+function reqTenantId(request: FastifyRequest): string {
+  return request.tenantId || DEFAULT_TENANT_ID
+}
 
 // Products decorator for backward compatibility with admin routes
 declare module 'fastify' {
@@ -83,5 +90,59 @@ export async function productRoutes(fastify: FastifyInstance) {
     if (!favoriteIds || favoriteIds.length === 0) return []
     const products = await loadProducts(request.tenantId)
     return products.filter(p => favoriteIds.includes(p._id))
+  })
+
+  // Track product analytics (view, favorite, cart, purchase_attempt)
+  fastify.post('/products/:id/track', async (request, reply) => {
+    try {
+      const { id } = request.params as any
+      const {
+        userId,
+        userName,
+        userUsername,
+        userAvatar,
+        action
+      } = request.body as {
+        userId: string
+        userName: string
+        userUsername: string
+        userAvatar?: string
+        action: ProductAnalyticsAction
+      }
+
+      // Validate action
+      const validActions: ProductAnalyticsAction[] = ['view', 'favorite', 'cart', 'purchase_attempt']
+      if (!validActions.includes(action)) {
+        return reply.code(400).send({ error: 'Invalid action' })
+      }
+
+      // Get product to extract seller info
+      const product = await getProductById(id, request.tenantId)
+      if (!product) {
+        return reply.code(404).send({ error: 'Product not found' })
+      }
+
+      // Create analytics record
+      const analytics: ProductAnalytics = {
+        tenantId: reqTenantId(request),
+        id: `analytics-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        productId: id,
+        productName: product.name,
+        sellerId: product.seller.id,
+        userId,
+        userName,
+        userUsername,
+        userAvatar,
+        action,
+        createdAt: new Date().toISOString()
+      }
+
+      await getProductAnalyticsCollection().insertOne(analytics as any)
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error tracking product analytics:', error)
+      return reply.code(500).send({ error: 'Failed to track analytics' })
+    }
   })
 }

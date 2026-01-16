@@ -24,6 +24,7 @@ import { registerWebSocket } from './websocket'
 import { initExchangeRates } from './cryptoConverter'
 import { initEmail } from './email'
 import { registerTenantPlugin } from './tenant'
+import { initOrderCleanup } from './marketplace'
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
@@ -123,6 +124,9 @@ async function start() {
 
     // Initialize exchange rates with auto-update
     await initExchangeRates()
+
+    // Initialize automatic cleanup of old pending orders
+    initOrderCleanup()
 
     // Initialize email (optional - works without configuration)
     await initEmail()

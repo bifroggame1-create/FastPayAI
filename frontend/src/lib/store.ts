@@ -1,6 +1,27 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Product, User, SortType } from '@/types'
+import { productsApi } from './api'
+import { getTelegramUser } from './telegram'
+
+// Helper to track product analytics (non-blocking)
+const trackProductAction = async (productId: string, action: 'view' | 'favorite' | 'cart' | 'purchase_attempt') => {
+  try {
+    const tgUser = getTelegramUser()
+    if (!tgUser) return
+
+    await productsApi.track(productId, {
+      userId: tgUser.id.toString(),
+      userName: tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : ''),
+      userUsername: tgUser.username || '',
+      userAvatar: tgUser.photo_url,
+      action
+    })
+  } catch (error) {
+    // Silent fail - tracking should not block user actions
+    console.error('Analytics tracking failed:', error)
+  }
+}
 
 export interface CartItem {
   productId: string
@@ -105,11 +126,21 @@ export const useAppStore = create<AppState>()(
       setUser: (user) => set({ user }),
       setIsAdmin: (isAdmin) => set({ isAdmin }),
 
-      toggleFavorite: (productId) => set((state) => ({
-        favorites: state.favorites.includes(productId)
-          ? state.favorites.filter(id => id !== productId)
-          : [...state.favorites, productId]
-      })),
+      toggleFavorite: (productId) => {
+        const state = get()
+        const isAdding = !state.favorites.includes(productId)
+
+        // Track favorite action (only when adding)
+        if (isAdding) {
+          trackProductAction(productId, 'favorite')
+        }
+
+        set({
+          favorites: isAdding
+            ? [...state.favorites, productId]
+            : state.favorites.filter(id => id !== productId)
+        })
+      },
 
       setSelectedCategory: (category) => set({ selectedCategory: category }),
 
@@ -221,25 +252,30 @@ export const useAppStore = create<AppState>()(
       },
 
       // Cart actions
-      addToCart: (item) => set((state) => {
-        const existingIndex = state.cart.findIndex(
-          i => i.productId === item.productId && i.variantId === item.variantId
-        )
+      addToCart: (item) => {
+        // Track cart action
+        trackProductAction(item.productId, 'cart')
 
-        let newCart: CartItem[]
-        if (existingIndex >= 0) {
-          newCart = [...state.cart]
-          newCart[existingIndex] = {
-            ...newCart[existingIndex],
-            quantity: newCart[existingIndex].quantity + item.quantity
+        set((state) => {
+          const existingIndex = state.cart.findIndex(
+            i => i.productId === item.productId && i.variantId === item.variantId
+          )
+
+          let newCart: CartItem[]
+          if (existingIndex >= 0) {
+            newCart = [...state.cart]
+            newCart[existingIndex] = {
+              ...newCart[existingIndex],
+              quantity: newCart[existingIndex].quantity + item.quantity
+            }
+          } else {
+            newCart = [...state.cart, item]
           }
-        } else {
-          newCart = [...state.cart, item]
-        }
 
-        const cartTotal = newCart.reduce((sum, i) => sum + i.price * i.quantity, 0)
-        return { cart: newCart, cartTotal }
-      }),
+          const cartTotal = newCart.reduce((sum, i) => sum + i.price * i.quantity, 0)
+          return { cart: newCart, cartTotal }
+        })
+      },
 
       removeFromCart: (productId, variantId) => set((state) => {
         const newCart = state.cart.filter(

@@ -158,27 +158,58 @@ const InventoryProductCard = ({ product, onUpdate }: { product: Product; onUpdat
                 product.deliveryKeys.map((key: any) => (
                   <div
                     key={key.id}
-                    className={`flex items-center justify-between p-3 rounded-lg ${
+                    className={`flex items-start gap-3 p-3 rounded-lg ${
                       key.isUsed ? 'bg-[#0f1117] opacity-60' : 'bg-[#0f1117]'
                     }`}
                   >
-                    <div className="flex-1 min-w-0 mr-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-mono ${key.isUsed ? 'text-gray-500' : 'text-white'}`}>
-                          {key.isUsed ? '***используется***' : key.key}
-                        </span>
+                    {/* Image preview for image type */}
+                    {key.type === 'image' && key.fileUrl && (
+                      <img
+                        src={key.fileUrl}
+                        alt={key.fileName || 'Image'}
+                        className="w-12 h-12 rounded object-cover flex-shrink-0"
+                      />
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        {/* Type badge */}
+                        {key.type && (
+                          <span className={`px-1.5 py-0.5 text-[10px] rounded ${
+                            key.type === 'text' ? 'bg-blue-500/20 text-blue-400' :
+                            key.type === 'file' ? 'bg-purple-500/20 text-purple-400' :
+                            'bg-green-500/20 text-green-400'
+                          }`}>
+                            {key.type === 'text' ? '📝 Текст' :
+                             key.type === 'file' ? '📁 Файл' :
+                             '🖼️ Фото'}
+                          </span>
+                        )}
+
                         {key.isUsed && (
                           <span className="px-1.5 py-0.5 bg-gray-700 text-gray-400 text-[10px] rounded">
                             Использован
                           </span>
                         )}
                       </div>
+
+                      <div className={`text-xs mb-1 ${key.isUsed ? 'text-gray-500' : 'text-white'}`}>
+                        {key.isUsed ? (
+                          <span className="font-mono">***используется***</span>
+                        ) : key.type === 'file' || key.type === 'image' ? (
+                          <span>{key.fileName || key.key}</span>
+                        ) : (
+                          <span className="font-mono break-all">{key.key}</span>
+                        )}
+                      </div>
+
                       <div className="text-[10px] text-gray-500">
                         Добавлен: {new Date(key.addedAt).toLocaleDateString('ru-RU')}
                         {key.usedAt && ` • Использован: ${new Date(key.usedAt).toLocaleDateString('ru-RU')}`}
                         {key.usedByOrderId && ` • Заказ: ${key.usedByOrderId}`}
                       </div>
                     </div>
+
                     {!key.isUsed && (
                       <button
                         onClick={() => handleDeleteKey(key.id)}
@@ -460,14 +491,26 @@ function DeliveryKeysManager({ productId }: { productId: string }) {
       for (const file of Array.from(files)) {
         const reader = new FileReader()
         reader.onload = async (event) => {
-          const fileUrl = event.target?.result as string
-          await adminApi.addDeliveryKeys(productId, [{
-            key: file.name,
-            type: 'file',
-            fileUrl: fileUrl,
-            fileName: file.name
-          }])
-          await loadStats()
+          const fileData = event.target?.result as string
+
+          // Upload file to backend first
+          const uploadResult = await adminApi.uploadFile({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            data: fileData
+          })
+
+          if (uploadResult.success && uploadResult.file) {
+            // Add delivery key with file URL from backend
+            await adminApi.addDeliveryKeys(productId, [{
+              key: `Файл: ${file.name}`,
+              type: 'file',
+              fileUrl: uploadResult.file.data, // Using base64 data from backend
+              fileName: file.name
+            }])
+            await loadStats()
+          }
         }
         reader.readAsDataURL(file)
       }
@@ -485,14 +528,26 @@ function DeliveryKeysManager({ productId }: { productId: string }) {
       for (const file of Array.from(files)) {
         const reader = new FileReader()
         reader.onload = async (event) => {
-          const fileUrl = event.target?.result as string
-          await adminApi.addDeliveryKeys(productId, [{
-            key: file.name,
-            type: 'image',
-            fileUrl: fileUrl,
-            fileName: file.name
-          }])
-          await loadStats()
+          const fileData = event.target?.result as string
+
+          // Upload file to backend first
+          const uploadResult = await adminApi.uploadFile({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            data: fileData
+          })
+
+          if (uploadResult.success && uploadResult.file) {
+            // Add delivery key with image URL from backend
+            await adminApi.addDeliveryKeys(productId, [{
+              key: `Изображение: ${file.name}`,
+              type: 'image',
+              fileUrl: uploadResult.file.data, // Using base64 data from backend
+              fileName: file.name
+            }])
+            await loadStats()
+          }
         }
         reader.readAsDataURL(file)
       }
@@ -660,6 +715,83 @@ function DeliveryKeysManager({ productId }: { productId: string }) {
             />
           </div>
         )}
+
+        {/* Keys List */}
+        {stats?.keys && stats.keys.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-[#2a2d37]">
+            <h4 className="text-sm font-medium text-white mb-3">Список ключей ({stats.keys.length})</h4>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {stats.keys.map((key: any) => (
+                <div
+                  key={key.id}
+                  className={`flex items-start gap-3 p-3 rounded-lg ${
+                    key.isUsed ? 'bg-[#0f1117] opacity-60' : 'bg-[#0f1117]'
+                  }`}
+                >
+                  {/* Image preview for image type */}
+                  {key.type === 'image' && key.fileUrl && (
+                    <img
+                      src={key.fileUrl}
+                      alt={key.fileName || 'Image'}
+                      className="w-12 h-12 rounded object-cover flex-shrink-0"
+                    />
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      {/* Type badge */}
+                      {key.type && (
+                        <span className={`px-1.5 py-0.5 text-[10px] rounded ${
+                          key.type === 'text' ? 'bg-blue-500/20 text-blue-400' :
+                          key.type === 'file' ? 'bg-purple-500/20 text-purple-400' :
+                          'bg-green-500/20 text-green-400'
+                        }`}>
+                          {key.type === 'text' ? '📝 Текст' :
+                           key.type === 'file' ? '📁 Файл' :
+                           '🖼️ Фото'}
+                        </span>
+                      )}
+
+                      {key.isUsed && (
+                        <span className="px-1.5 py-0.5 bg-gray-700 text-gray-400 text-[10px] rounded">
+                          Использован
+                        </span>
+                      )}
+                    </div>
+
+                    <div className={`text-xs mb-1 ${key.isUsed ? 'text-gray-500' : 'text-white'}`}>
+                      {key.isUsed ? (
+                        <span className="font-mono">***используется***</span>
+                      ) : key.type === 'file' || key.type === 'image' ? (
+                        <span>{key.fileName || key.key}</span>
+                      ) : (
+                        <span className="font-mono break-all">{key.key}</span>
+                      )}
+                    </div>
+
+                    <div className="text-[10px] text-gray-500">
+                      Добавлен: {new Date(key.addedAt).toLocaleDateString('ru-RU')}
+                      {key.usedAt && ` • Использован: ${new Date(key.usedAt).toLocaleDateString('ru-RU')}`}
+                      {key.usedByOrderId && ` • Заказ: ${key.usedByOrderId}`}
+                    </div>
+                  </div>
+
+                  {!key.isUsed && (
+                    <button
+                      onClick={() => handleRemoveKey(key.id)}
+                      className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0"
+                      title="Удалить ключ"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -703,6 +835,9 @@ export default function MyShopPage() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [analyticsPeriod, setAnalyticsPeriod] = useState('30d')
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
+  const [selectedProductForAnalytics, setSelectedProductForAnalytics] = useState<string | null>(null)
+  const [productAnalytics, setProductAnalytics] = useState<any>(null)
+  const [loadingProductAnalytics, setLoadingProductAnalytics] = useState(false)
 
   // Reviews
   const [reviews, setReviews] = useState<SellerReview[]>([])
@@ -928,6 +1063,20 @@ export default function MyShopPage() {
       console.error('Error loading analytics:', error)
     } finally {
       setLoadingAnalytics(false)
+    }
+  }
+
+  const loadProductAnalytics = async (productId: string) => {
+    setLoadingProductAnalytics(true)
+    try {
+      const result = await adminApi.getProductAnalytics(productId, { limit: 50 })
+      if (result.success) {
+        setProductAnalytics(result)
+      }
+    } catch (error) {
+      console.error('Error loading product analytics:', error)
+    } finally {
+      setLoadingProductAnalytics(false)
     }
   }
 
@@ -2239,6 +2388,126 @@ export default function MyShopPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Product User Analytics */}
+                <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+                  <h3 className="text-sm font-medium text-white mb-3">Аналитика товаров</h3>
+
+                  {/* Product Selector */}
+                  <div className="mb-4">
+                    <select
+                      value={selectedProductForAnalytics || ''}
+                      onChange={(e) => {
+                        const productId = e.target.value
+                        setSelectedProductForAnalytics(productId)
+                        if (productId) {
+                          loadProductAnalytics(productId)
+                        } else {
+                          setProductAnalytics(null)
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm"
+                    >
+                      <option value="">Выберите товар</option>
+                      {products.map(p => (
+                        <option key={p._id} value={p._id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {loadingProductAnalytics ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : productAnalytics ? (
+                    <>
+                      {/* Stats by Action */}
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="bg-[#0f1117] rounded-lg p-3 border border-[#2a2d37]">
+                          <p className="text-xs text-gray-400">Просмотры</p>
+                          <p className="text-lg font-bold text-white">{productAnalytics.stats.view || 0}</p>
+                        </div>
+                        <div className="bg-[#0f1117] rounded-lg p-3 border border-[#2a2d37]">
+                          <p className="text-xs text-gray-400">В избранное</p>
+                          <p className="text-lg font-bold text-amber-400">{productAnalytics.stats.favorite || 0}</p>
+                        </div>
+                        <div className="bg-[#0f1117] rounded-lg p-3 border border-[#2a2d37]">
+                          <p className="text-xs text-gray-400">В корзину</p>
+                          <p className="text-lg font-bold text-blue-400">{productAnalytics.stats.cart || 0}</p>
+                        </div>
+                        <div className="bg-[#0f1117] rounded-lg p-3 border border-[#2a2d37]">
+                          <p className="text-xs text-gray-400">Попытки оплаты</p>
+                          <p className="text-lg font-bold text-green-400">{productAnalytics.stats.purchase_attempt || 0}</p>
+                        </div>
+                      </div>
+
+                      {/* User Activity Log */}
+                      {productAnalytics.analytics && productAnalytics.analytics.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-medium text-gray-400 mb-2">Последняя активность</h4>
+                          <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {productAnalytics.analytics.map((event: any) => (
+                              <div key={event.id} className="bg-[#0f1117] rounded-lg p-3 border border-[#2a2d37]">
+                                <div className="flex items-center gap-3">
+                                  {/* User Avatar */}
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                    {event.userAvatar ? (
+                                      <img src={event.userAvatar} alt={event.userName} className="w-full h-full rounded-full object-cover" />
+                                    ) : (
+                                      <span className="text-white text-sm font-medium">{event.userName.charAt(0)}</span>
+                                    )}
+                                  </div>
+
+                                  {/* Event Details */}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      {event.userUsername ? (
+                                        <a
+                                          href={`https://t.me/${event.userUsername}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-sm font-medium text-white hover:text-blue-400 transition-colors"
+                                        >
+                                          @{event.userUsername}
+                                        </a>
+                                      ) : (
+                                        <span className="text-sm font-medium text-white">{event.userName}</span>
+                                      )}
+                                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                        event.action === 'view' ? 'bg-gray-700 text-gray-300' :
+                                        event.action === 'favorite' ? 'bg-amber-900/30 text-amber-400' :
+                                        event.action === 'cart' ? 'bg-blue-900/30 text-blue-400' :
+                                        'bg-green-900/30 text-green-400'
+                                      }`}>
+                                        {event.action === 'view' ? 'Просмотр' :
+                                         event.action === 'favorite' ? 'Избранное' :
+                                         event.action === 'cart' ? 'Корзина' :
+                                         'Оплата'}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-gray-400">
+                                      {new Date(event.createdAt).toLocaleString('ru-RU', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : selectedProductForAnalytics ? (
+                    <div className="text-center py-8 text-gray-400">Нет данных</div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">Выберите товар для просмотра аналитики</div>
+                  )}
+                </div>
               </>
             ) : (
               <div className="text-center py-12 text-gray-400">Нет данных</div>

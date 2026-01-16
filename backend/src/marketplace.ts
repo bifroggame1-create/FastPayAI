@@ -803,17 +803,85 @@ export async function onOrderRefunded(orderId: string): Promise<void> {
 }
 
 // ============================================
+// CLEANUP OLD PENDING ORDERS
+// ============================================
+
+/**
+ * Delete pending orders older than 15 minutes
+ * Prevents clutter in Orders section from abandoned checkouts
+ */
+export async function cleanupOldPendingOrders(): Promise<number> {
+  const orders = getOrdersCollection()
+
+  // Calculate cutoff time: 15 minutes ago
+  const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+
+  try {
+    // Find and delete orders that are:
+    // - status = 'pending'
+    // - createdAt < 15 minutes ago
+    const result = await orders.deleteMany({
+      status: 'pending',
+      createdAt: { $lt: fifteenMinutesAgo }
+    })
+
+    if (result.deletedCount > 0) {
+      console.log(`[Order Cleanup] Deleted ${result.deletedCount} old pending orders`)
+    }
+
+    return result.deletedCount
+  } catch (error) {
+    console.error('[Order Cleanup] Error:', error)
+    return 0
+  }
+}
+
+// Auto-cleanup interval
+let cleanupInterval: NodeJS.Timeout | null = null
+
+/**
+ * Initialize automatic cleanup of old pending orders
+ * Runs every 5 minutes
+ */
+export function initOrderCleanup(): void {
+  if (!cleanupInterval) {
+    // Run immediately on startup
+    cleanupOldPendingOrders().catch(console.error)
+
+    // Then run every 5 minutes
+    cleanupInterval = setInterval(() => {
+      cleanupOldPendingOrders().catch(console.error)
+    }, 5 * 60 * 1000) // 5 minutes
+
+    console.log('[Order Cleanup] Auto-cleanup started (runs every 5 minutes)')
+  }
+}
+
+/**
+ * Stop automatic cleanup
+ */
+export function stopOrderCleanup(): void {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval)
+    cleanupInterval = null
+    console.log('[Order Cleanup] Auto-cleanup stopped')
+  }
+}
+
+// ============================================
 // SCHEDULED JOBS (call via cron)
 // ============================================
 
 export async function runScheduledTasks(): Promise<{
   escrowReleased: number
   disputesAutoResolved: number
+  pendingOrdersDeleted: number
 }> {
   const escrowReleased = await processScheduledReleases()
   const disputesAutoResolved = await processAutoResolveDisputes()
+  const pendingOrdersDeleted = await cleanupOldPendingOrders()
 
-  return { escrowReleased, disputesAutoResolved }
+  return { escrowReleased, disputesAutoResolved, pendingOrdersDeleted }
 }
 
 console.log('[Marketplace] Module loaded')

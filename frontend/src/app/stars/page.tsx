@@ -370,7 +370,9 @@ export default function StarsPage() {
                   {language === 'ru' ? 'Выберите пакет' : 'Choose package'}
                 </p>
                 <p className="text-xs text-tg-hint">
-                  {language === 'ru' ? 'Выберите количество Stars' : 'Select Stars amount'}
+                  {activeTab === 'premium'
+                    ? (language === 'ru' ? 'Выберите нужную подписку' : 'Select subscription period')
+                    : (language === 'ru' ? 'Выберите количество Stars' : 'Select Stars amount')}
                 </p>
               </div>
             </div>

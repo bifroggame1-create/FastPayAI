@@ -636,6 +636,26 @@ export interface ActivityLog extends TenantScoped {
 }
 
 // ============================================
+// PRODUCT ANALYTICS
+// ============================================
+
+export type ProductAnalyticsAction = 'view' | 'favorite' | 'cart' | 'purchase_attempt'
+
+export interface ProductAnalytics extends TenantScoped {
+  _id?: string | ObjectId
+  id: string
+  productId: string
+  productName: string
+  sellerId: string
+  userId: string
+  userName: string
+  userUsername: string
+  userAvatar?: string
+  action: ProductAnalyticsAction
+  createdAt: string
+}
+
+// ============================================
 // STARS & PREMIUM ORDERS
 // ============================================
 
@@ -803,6 +823,12 @@ async function createIndexes(database: Db): Promise<void> {
     await database.collection('stars_orders').createIndex({ tenantId: 1, userId: 1 })
     await database.collection('stars_orders').createIndex({ tenantId: 1, status: 1 })
     await database.collection('stars_orders').createIndex({ paymentId: 1 }) // For webhook lookup
+
+    // Product Analytics
+    await database.collection('product_analytics').createIndex({ tenantId: 1, productId: 1, createdAt: -1 })
+    await database.collection('product_analytics').createIndex({ tenantId: 1, sellerId: 1 })
+    await database.collection('product_analytics').createIndex({ tenantId: 1, userId: 1 })
+    await database.collection('product_analytics').createIndex({ tenantId: 1, action: 1 })
 
     console.log('Database indexes created')
   } catch (error) {
@@ -986,6 +1012,10 @@ export function getSellerApplicationsCollection(): Collection<SellerApplication>
 
 export function getActivityLogsCollection(): Collection<ActivityLog> {
   return getDB().collection<ActivityLog>('activity_logs')
+}
+
+export function getProductAnalyticsCollection(): Collection<ProductAnalytics> {
+  return getDB().collection<ProductAnalytics>('product_analytics')
 }
 
 export function getStarsOrdersCollection(): Collection<StarsOrder> {

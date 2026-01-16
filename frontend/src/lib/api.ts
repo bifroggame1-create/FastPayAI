@@ -205,6 +205,24 @@ export const productsApi = {
     const { data } = await api.post<Product[]>('/products/favorites', { favoriteIds })
     return data
   },
+
+  // Track product analytics
+  track: async (productId: string, params: {
+    userId: string
+    userName: string
+    userUsername: string
+    userAvatar?: string
+    action: 'view' | 'favorite' | 'cart' | 'purchase_attempt'
+  }) => {
+    try {
+      const { data } = await api.post(`/products/${productId}/track`, params)
+      return data
+    } catch (error) {
+      console.error('Error tracking product analytics:', error)
+      // Don't throw - tracking should be non-blocking
+      return { success: false }
+    }
+  },
 }
 
 export const reviewsApi = {
@@ -943,6 +961,12 @@ export const adminApi = {
   // Delete key from product inventory
   deleteProductKey: async (productId: string, keyId: string) => {
     const { data } = await adminApiInstance.delete(`/inventory/${productId}/keys/${keyId}`)
+    return data
+  },
+
+  // Product Analytics
+  getProductAnalytics: async (productId: string, params?: { action?: string; limit?: number; offset?: number }) => {
+    const { data } = await adminApiInstance.get(`/admin/products/${productId}/analytics`, { params })
     return data
   },
 }

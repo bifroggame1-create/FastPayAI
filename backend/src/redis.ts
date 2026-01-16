@@ -45,7 +45,7 @@ class RedisCache {
       // Configure TLS for Upstash (rediss://) or regular Redis
       const redisOptions: any = {
         maxRetriesPerRequest: 3,
-        retryStrategy: (times) => {
+        retryStrategy: (times: number) => {
           if (times > 3) {
             console.warn('⚠️ Redis connection failed after 3 retries, disabling cache')
             return null
