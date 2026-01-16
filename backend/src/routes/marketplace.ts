@@ -25,6 +25,7 @@ import {
   getKeyReplacementsCollection,
   getSellersCollection,
   getSellerApplicationsCollection,
+  getProductsCollection,
   DisputeReason,
   DisputeResolution
 } from '../database'
@@ -635,7 +636,7 @@ export async function marketplaceRoutes(fastify: FastifyInstance) {
         .toArray()
 
       // Map products with stock information
-      const inventory = products.map(product => ({
+      const inventory = products.map((product: any) => ({
         _id: product._id,
         name: product.name,
         images: product.images,
@@ -643,8 +644,8 @@ export async function marketplaceRoutes(fastify: FastifyInstance) {
         category: product.category,
         deliveryKeys: product.deliveryKeys || [],
         totalKeys: (product.deliveryKeys || []).length,
-        availableKeys: (product.deliveryKeys || []).filter(k => !k.isUsed).length,
-        usedKeys: (product.deliveryKeys || []).filter(k => k.isUsed).length
+        availableKeys: (product.deliveryKeys || []).filter((k: any) => !k.isUsed).length,
+        usedKeys: (product.deliveryKeys || []).filter((k: any) => k.isUsed).length
       }))
 
       return { inventory }
@@ -683,8 +684,8 @@ export async function marketplaceRoutes(fastify: FastifyInstance) {
         keys: product.deliveryKeys || [],
         stats: {
           total: (product.deliveryKeys || []).length,
-          available: (product.deliveryKeys || []).filter(k => !k.isUsed).length,
-          used: (product.deliveryKeys || []).filter(k => k.isUsed).length
+          available: (product.deliveryKeys || []).filter((k: any) => !k.isUsed).length,
+          used: (product.deliveryKeys || []).filter((k: any) => k.isUsed).length
         }
       }
     } catch (error: any) {
@@ -727,7 +728,7 @@ export async function marketplaceRoutes(fastify: FastifyInstance) {
       }
 
       // Add keys to product
-      const addedKeys = await addDeliveryKeys(new ObjectId(productId), keys as any, variantId)
+      const addedKeys = await addDeliveryKeys(productId, keys as any, variantId)
 
       console.log(`✅ Added ${addedKeys.length} keys to product ${product.name} by seller ${user.userId}`)
 
@@ -780,14 +781,14 @@ export async function marketplaceRoutes(fastify: FastifyInstance) {
       }
 
       // Check if key is already used
-      const key = product.deliveryKeys?.find(k => k.id === keyId)
+      const key = product.deliveryKeys?.find((k: any) => k.id === keyId)
       if (key?.isUsed) {
         reply.code(400)
         return { error: 'Cannot delete a key that has been used' }
       }
 
       // Remove key
-      const deleted = await removeDeliveryKey(new ObjectId(productId), keyId)
+      const deleted = await removeDeliveryKey(productId, keyId)
 
       if (!deleted) {
         reply.code(404)

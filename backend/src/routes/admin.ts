@@ -3324,7 +3324,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // Get all users (admin only)
   fastify.get('/admin/users', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
-      const tenantId = requireTenantId(request)
+      const tenantId = reqTenantId(request)
       const { limit = 100, offset = 0, search = '' } = request.query as { limit?: number; offset?: number; search?: string }
 
       // Build filter with optional search
