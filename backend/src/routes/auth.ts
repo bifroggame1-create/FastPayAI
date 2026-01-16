@@ -19,9 +19,9 @@ const BOOTSTRAP_ADMIN_IDS = (process.env.ADMIN_IDS || '1301598469').split(',').m
 const authAttempts = new Map<string, { count: number; resetAt: number }>()
 
 const RATE_LIMIT = {
-  MAX_ATTEMPTS: 10,    // max attempts per window
+  MAX_ATTEMPTS: 50,    // max attempts per window (increased for SPA with multiple auth checks)
   WINDOW_MS: 60000,    // 1 minute window
-  BLOCK_MS: 300000     // 5 minute block after exceeded
+  BLOCK_MS: 120000     // 2 minute block after exceeded (reduced from 5 minutes)
 }
 
 function getClientId(request: FastifyRequest): string {
@@ -256,8 +256,10 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   }
 
-  fastify.get('/auth/verify', { preHandler: [rateLimitMiddleware, authMiddleware] }, verifyHandler)
-  fastify.post('/auth/verify', { preHandler: [rateLimitMiddleware, authMiddleware] }, verifyHandler)
+  // FIX: Removed rate limiting from /auth/verify - it's just token validation, not a security risk
+  // Rate limiting here was causing users to be blocked after normal SPA navigation
+  fastify.get('/auth/verify', { preHandler: authMiddleware }, verifyHandler)
+  fastify.post('/auth/verify', { preHandler: authMiddleware }, verifyHandler)
 
   // Force refresh authentication - SECURED: requires valid JWT token
   // Only returns admin status for the authenticated user (prevents enumeration)
