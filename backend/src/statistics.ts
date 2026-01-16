@@ -84,8 +84,8 @@ export async function getDashboardStats(period: Period = '30d'): Promise<Dashboa
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-  const newToday = users.filter(u => new Date(u.createdAt) >= todayStart).length
-  const newThisWeek = users.filter(u => new Date(u.createdAt) >= weekStart).length
+  const newToday = users.filter(u => u.createdAt && new Date(u.createdAt) >= todayStart).length
+  const newThisWeek = users.filter(u => u.createdAt && new Date(u.createdAt) >= weekStart).length
 
   // Reviews
   const avgRating = reviews.length > 0
@@ -307,6 +307,7 @@ export async function getUserGrowthChart(period: Period = '30d', groupBy: 'day' 
   const grouped: Record<string, number> = {}
 
   users.forEach(user => {
+    if (!user.createdAt) return // Skip users without createdAt
     const date = new Date(user.createdAt)
     let key: string
 
