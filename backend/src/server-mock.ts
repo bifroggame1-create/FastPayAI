@@ -18,6 +18,8 @@ import { loadProducts, saveProducts, loadPromoCodes, savePromoCodes } from './da
 import { registerRoutes } from './routes'
 import { defaultProducts, defaultPromoCodes } from './data/defaults'
 import { redis } from './redis'
+import { CRITICAL_ADMIN_IDS } from './auth'
+import jwt from 'jsonwebtoken'
 import { loggerConfig, logger } from './logger'
 import { registerSwagger } from './swagger'
 import { registerWebSocket } from './websocket'
@@ -140,12 +142,34 @@ async function start() {
     fastify.decorate('products', products)
     fastify.decorate('promoCodes', promoCodes)
 
-    // Register GLOBAL rate limiting (100 req/min per IP)
+    // Register GLOBAL rate limiting (300 req/min per IP, excluding OPTIONS and critical admins)
     await fastify.register(rateLimit, {
       global: true,
-      max: 100,
+      max: 300, // Increased from 100 to accommodate admin operations + OPTIONS preflight
       timeWindow: '1 minute',
       keyGenerator: (request) => request.ip || 'unknown',
+      skip: (request) => {
+        // Skip OPTIONS preflight requests (CORS check, not real API calls)
+        if (request.method === 'OPTIONS') return true
+
+        // Skip for CRITICAL_ADMIN_IDS (dev/owner accounts need unlimited access)
+        // Extract JWT token and check userId
+        try {
+          const authHeader = request.headers.authorization
+          if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7)
+            const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+            const decoded = jwt.verify(token, JWT_SECRET) as any
+            if (decoded && CRITICAL_ADMIN_IDS.includes(decoded.userId)) {
+              return true // Skip rate limiting for critical admins
+            }
+          }
+        } catch (e) {
+          // Invalid token or no token - apply rate limiting
+        }
+
+        return false
+      },
       errorResponseBuilder: (request, context) => ({
         success: false,
         error: 'Too many requests. Please try again later.',
