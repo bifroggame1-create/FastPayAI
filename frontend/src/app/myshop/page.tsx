@@ -9,7 +9,7 @@ import { initAuth, getUser } from '@/lib/auth'
 import { formatPrice } from '@/lib/currency'
 import BottomNav from '@/components/BottomNav'
 
-type Tab = 'dashboard' | 'analytics' | 'orders' | 'products' | 'reviews' | 'promo' | 'files' | 'settings' | 'profile'
+type Tab = 'dashboard' | 'analytics' | 'orders' | 'products' | 'reviews' | 'promo' | 'files' | 'settings' | 'profile' | 'wallet'
 type OrderStatus = 'pending' | 'paid' | 'processing' | 'delivered' | 'cancelled' | 'refunded'
 
 interface Order {
@@ -1068,6 +1068,7 @@ export default function MyShopPage() {
   const navItems = [
     { id: 'dashboard', label: 'Дашборд', icon: Icons.dashboard },
     { id: 'analytics', label: 'Аналитика', icon: Icons.analytics },
+    { id: 'wallet', label: 'Кошелёк', icon: Icons.promo },
     { id: 'orders', label: 'Заказы', icon: Icons.orders, count: stats.pendingOrders },
     { id: 'products', label: 'Товары', icon: Icons.products, count: stats.totalProducts },
     { id: 'reviews', label: 'Отзывы', icon: Icons.reviews },

@@ -349,32 +349,12 @@ export default function ProfilePage() {
           </a>
         </div>
 
-        {/* Debug: Show My Telegram ID (for adding to ADMIN_IDS) */}
-        <button
-          onClick={() => {
-            alert(`Your Telegram ID: ${user.id}\n\nTo make yourself an admin, add this ID to the ADMIN_IDS environment variable on the server.`)
-          }}
-          className="w-full bg-tg-secondary-bg rounded-xl p-3 text-left border border-tg-separator hover:bg-tg-bg transition-colors"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[13px] font-medium text-tg-text">
-                {language === 'ru' ? 'Мой Telegram ID' : 'My Telegram ID'}
-              </p>
-              <p className="text-[11px] text-tg-hint mt-0.5">
-                {language === 'ru' ? 'Для добавления в админы' : 'For adding as admin'}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-[14px] font-mono text-tg-accent font-semibold">{user.id}</p>
-            </div>
-          </div>
-        </button>
-
         {/* Footer */}
         <div className="text-center py-4">
-          <p className="text-[12px] text-tg-hint">
-            by <a href="https://t.me/cheffofgang" target="_blank" rel="noopener noreferrer" className="text-tg-accent font-medium hover:underline">@cheffofgang</a>
+          <p className="text-[12px] text-tg-hint flex items-center justify-center gap-1">
+            <span>by</span>
+            <a href="https://t.me/cheffofgang" target="_blank" rel="noopener noreferrer" className="text-tg-accent font-medium hover:underline">@cheffofgang</a>
+            <span className="text-green-400" style={{ fontSize: '10px' }}>🦆</span>
           </p>
         </div>
       </div>

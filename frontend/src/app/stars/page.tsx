@@ -23,6 +23,13 @@ interface StarPackage {
   bonus?: number
 }
 
+interface PremiumPackage {
+  id: string
+  months: number
+  price: number
+  popular?: boolean
+}
+
 const starPackages: StarPackage[] = [
   { id: '50', amount: 50, price: 90 },
   { id: '100', amount: 100, price: 180, popular: true },
@@ -31,15 +38,28 @@ const starPackages: StarPackage[] = [
   { id: '2500', amount: 2500, price: 4500, bonus: 500 }
 ]
 
+const premiumPackages: PremiumPackage[] = [
+  { id: 'premium-3', months: 3, price: 540 },
+  { id: 'premium-6', months: 6, price: 900, popular: true },
+  { id: 'premium-12', months: 12, price: 1620 }
+]
+
 export default function StarsPage() {
   const router = useRouter()
   const { user, language } = useAppStore()
+  const [activeTab, setActiveTab] = useState<'stars' | 'premium'>('stars')
   const [selectedPackage, setSelectedPackage] = useState<StarPackage>(starPackages[1])
+  const [selectedPremium, setSelectedPremium] = useState<PremiumPackage>(premiumPackages[1])
   const [username, setUsername] = useState(user?.username || '')
   const [processing, setProcessing] = useState(false)
 
   const handlePackageSelect = (pkg: StarPackage) => {
     setSelectedPackage(pkg)
+    hapticImpact('light')
+  }
+
+  const handlePremiumSelect = (pkg: PremiumPackage) => {
+    setSelectedPremium(pkg)
     hapticImpact('light')
   }
 
@@ -95,37 +115,48 @@ export default function StarsPage() {
   return (
     <div className="min-h-screen bg-tg-bg pb-24">
       <Header
-        title={language === 'ru' ? 'Купить Telegram Stars' : 'Buy Telegram Stars'}
+        title={activeTab === 'stars'
+          ? (language === 'ru' ? 'Купить Telegram Stars' : 'Buy Telegram Stars')
+          : (language === 'ru' ? 'Купить Premium' : 'Buy Premium')}
         showBack
         onBack={() => router.back()}
       />
 
-      <div className="px-4 py-6 space-y-6">
-        {/* Hero Section */}
-        <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl p-6 text-white relative overflow-hidden">
-          <div className="relative z-10 flex items-start gap-4">
-            <div className="w-24 h-24 flex-shrink-0">
-              <Lottie
-                animationData={duckHeroAnimation}
-                loop={true}
-                style={{ width: '100%', height: '100%' }}
-              />
+      <div className="px-4 py-4 space-y-4">
+        {/* Tabs */}
+        <div className="flex gap-2 bg-tg-secondary-bg p-1 rounded-xl">
+          <button
+            onClick={() => {
+              setActiveTab('stars')
+              hapticImpact('light')
+            }}
+            className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${
+              activeTab === 'stars'
+                ? 'bg-accent-cyan text-white'
+                : 'text-tg-hint hover:text-tg-text'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <span>⭐</span>
+              <span>{language === 'ru' ? 'Stars' : 'Stars'}</span>
             </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold mb-2">
-                {language === 'ru' ? 'Telegram Stars' : 'Telegram Stars'}
-              </h1>
-              <p className="text-white/90 text-sm">
-                {language === 'ru'
-                  ? 'Мгновенная доставка • Безопасная оплата'
-                  : 'Instant delivery • Secure payment'}
-              </p>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('premium')
+              hapticImpact('light')
+            }}
+            className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${
+              activeTab === 'premium'
+                ? 'bg-accent-cyan text-white'
+                : 'text-tg-hint hover:text-tg-text'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <span>👑</span>
+              <span>{language === 'ru' ? 'Premium' : 'Premium'}</span>
             </div>
-          </div>
-
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-20 -mt-20" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-16 -mb-16" />
+          </button>
         </div>
 
         {/* Username Input */}
@@ -144,20 +175,21 @@ export default function StarsPage() {
             />
           </div>
           <p className="text-xs text-tg-hint px-1">
-            {language === 'ru'
-              ? 'Stars будут отправлены на этот аккаунт'
-              : 'Stars will be sent to this account'}
+            {activeTab === 'stars'
+              ? (language === 'ru' ? 'Stars будут отправлены на этот аккаунт' : 'Stars will be sent to this account')
+              : (language === 'ru' ? 'Premium подписка будет активирована для этого аккаунта' : 'Premium subscription will be activated for this account')}
           </p>
         </div>
 
-        {/* Packages */}
-        <div className="space-y-3">
-          <h2 className="text-base font-semibold text-tg-text px-1">
-            {language === 'ru' ? 'Выберите пакет' : 'Choose package'}
-          </h2>
+        {/* Packages - Stars */}
+        {activeTab === 'stars' && (
+          <div className="space-y-3">
+            <h2 className="text-base font-semibold text-tg-text px-1">
+              {language === 'ru' ? 'Выберите количество' : 'Choose amount'}
+            </h2>
 
-          <div className="space-y-2">
-            {starPackages.map((pkg) => (
+            <div className="space-y-2">
+              {starPackages.map((pkg) => (
               <button
                 key={pkg.id}
                 onClick={() => handlePackageSelect(pkg)}
@@ -205,9 +237,68 @@ export default function StarsPage() {
                   </div>
                 </div>
               </button>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Packages - Premium */}
+        {activeTab === 'premium' && (
+          <div className="space-y-3">
+            <h2 className="text-base font-semibold text-tg-text px-1">
+              {language === 'ru' ? 'Выберите период' : 'Choose period'}
+            </h2>
+
+            <div className="space-y-2">
+              {premiumPackages.map((pkg) => (
+                <button
+                  key={pkg.id}
+                  onClick={() => handlePremiumSelect(pkg)}
+                  className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                    selectedPremium.id === pkg.id
+                      ? 'border-accent-cyan bg-accent-cyan/5'
+                      : 'border-tg-separator bg-tg-secondary-bg'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl">👑</div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-tg-text">
+                            {pkg.months} {language === 'ru'
+                              ? (pkg.months === 3 ? 'месяца' : pkg.months === 6 ? 'месяцев' : pkg.months === 12 ? 'месяцев' : 'мес')
+                              : (pkg.months === 1 ? 'month' : 'months')}
+                          </span>
+                          {pkg.popular && (
+                            <span className="text-xs px-2 py-0.5 bg-accent-cyan text-white rounded-full">
+                              {language === 'ru' ? 'Популярно' : 'Popular'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-tg-hint">
+                          {formatPrice(pkg.price, 'RUB')}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      selectedPremium.id === pkg.id
+                        ? 'border-accent-cyan bg-accent-cyan'
+                        : 'border-tg-separator'
+                    }`}>
+                      {selectedPremium.id === pkg.id && (
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* How it works */}
         <div className="bg-tg-secondary-bg rounded-2xl p-4 border border-tg-separator">
@@ -298,7 +389,7 @@ export default function StarsPage() {
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               <span>{language === 'ru' ? 'Создание...' : 'Creating...'}</span>
             </>
-          ) : (
+          ) : activeTab === 'stars' ? (
             <>
               <span>⭐</span>
               <span>
@@ -306,6 +397,16 @@ export default function StarsPage() {
               </span>
               <span className="text-sm font-normal opacity-90">
                 • {formatPrice(selectedPackage.price, 'RUB')}
+              </span>
+            </>
+          ) : (
+            <>
+              <span>👑</span>
+              <span>
+                {language === 'ru' ? 'Купить Premium' : 'Buy Premium'} {selectedPremium.months} {language === 'ru' ? 'мес' : 'mo'}
+              </span>
+              <span className="text-sm font-normal opacity-90">
+                • {formatPrice(selectedPremium.price, 'RUB')}
               </span>
             </>
           )}
