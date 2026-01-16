@@ -37,7 +37,7 @@ export default function BottomNav() {
       }
     }
     init()
-  }, [setIsAdmin])
+  }, [setIsAdmin, pathname])
 
   const isAdmin = localIsAdmin || storeIsAdmin
   const cartCount = getCartItemCount()
