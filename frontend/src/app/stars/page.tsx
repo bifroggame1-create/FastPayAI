@@ -16,13 +16,14 @@ import duckHeroAnimation from '../../../public/duck-stickers/duck-10.json'
 import duckSuccessAnimation from '../../../public/duck-stickers/duck-5.json'
 
 // Import status icons (анимированные иконки)
-import starIcon from '../../../public/status-icons/status-1.json'
-import premiumIcon from '../../../public/status-icons/status-2.json'
+import starGoldIcon from '../../../public/badge-icons/star-gold.json'
+import starFireworksIcon from '../../../public/badge-icons/star-fireworks.json'
 import successIcon from '../../../public/status-icons/status-3.json'
 
 // Import box icons for Premium packages
 import boxGreen from '../../../public/badge-icons/box-green.json'
-import boxGold from '../../../public/badge-icons/box-gold.json'
+import boxBlue from '../../../public/badge-icons/box-blue.json'
+import boxRed from '../../../public/badge-icons/box-red.json'
 
 interface PremiumPackage {
   id: string
@@ -158,7 +159,7 @@ export default function StarsPage() {
             <div className="flex items-center justify-center gap-2">
               <div className="w-5 h-5">
                 <Lottie
-                  animationData={starIcon}
+                  animationData={starGoldIcon}
                   loop={true}
                   style={{ width: '100%', height: '100%' }}
                 />
@@ -180,7 +181,7 @@ export default function StarsPage() {
             <div className="flex items-center justify-center gap-2">
               <div className="w-5 h-5">
                 <Lottie
-                  animationData={premiumIcon}
+                  animationData={starFireworksIcon}
                   loop={true}
                   style={{ width: '100%', height: '100%' }}
                 />
@@ -217,15 +218,8 @@ export default function StarsPage() {
           <div className="space-y-4">
             {/* Amount Input */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-tg-text px-1 flex items-center gap-2">
-                <div className="w-4 h-4">
-                  <Lottie
-                    animationData={starIcon}
-                    loop={true}
-                    style={{ width: '100%', height: '100%' }}
-                  />
-                </div>
-                <span>{language === 'ru' ? `Введите сумму (${MIN_STARS} - ${MAX_STARS.toLocaleString()})` : `Enter amount (${MIN_STARS} - ${MAX_STARS.toLocaleString()})`}</span>
+              <label className="text-sm font-medium text-tg-text px-1">
+                {language === 'ru' ? `Введите сумму (${MIN_STARS} - ${MAX_STARS.toLocaleString()})` : `Enter amount (${MIN_STARS} - ${MAX_STARS.toLocaleString()})`}
               </label>
               <div className="relative">
                 <input
@@ -258,26 +252,8 @@ export default function StarsPage() {
                 }}
               />
               <div className="flex items-center justify-between mt-2 text-xs text-tg-hint">
-                <span className="flex items-center gap-1">
-                  <div className="w-3 h-3">
-                    <Lottie
-                      animationData={starIcon}
-                      loop={true}
-                      style={{ width: '100%', height: '100%' }}
-                    />
-                  </div>
-                  <span>{MIN_STARS}</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <div className="w-3 h-3">
-                    <Lottie
-                      animationData={starIcon}
-                      loop={true}
-                      style={{ width: '100%', height: '100%' }}
-                    />
-                  </div>
-                  <span>{MAX_STARS.toLocaleString()}</span>
-                </span>
+                <span>{MIN_STARS}</span>
+                <span>{MAX_STARS.toLocaleString()}</span>
               </div>
             </div>
 
@@ -322,7 +298,7 @@ export default function StarsPage() {
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10">
                         <Lottie
-                          animationData={pkg.months === 3 ? boxGreen : boxGold}
+                          animationData={pkg.months === 3 ? boxGreen : pkg.months === 6 ? boxBlue : boxRed}
                           loop={true}
                           style={{ width: '100%', height: '100%' }}
                         />
@@ -427,9 +403,9 @@ export default function StarsPage() {
             </p>
           </div>
           <div className="bg-tg-secondary-bg rounded-xl p-3 text-center border border-tg-separator">
-            <div className="w-12 h-12 mx-auto mb-1">
+            <div className="w-8 h-8 mx-auto mb-1">
               <Lottie
-                animationData={duckSuccessAnimation}
+                animationData={successIcon}
                 loop={true}
                 style={{ width: '100%', height: '100%' }}
               />
@@ -457,7 +433,7 @@ export default function StarsPage() {
             <>
               <div className="w-5 h-5">
                 <Lottie
-                  animationData={starIcon}
+                  animationData={starGoldIcon}
                   loop={true}
                   style={{ width: '100%', height: '100%' }}
                 />
@@ -473,7 +449,7 @@ export default function StarsPage() {
             <>
               <div className="w-5 h-5">
                 <Lottie
-                  animationData={premiumIcon}
+                  animationData={starFireworksIcon}
                   loop={true}
                   style={{ width: '100%', height: '100%' }}
                 />

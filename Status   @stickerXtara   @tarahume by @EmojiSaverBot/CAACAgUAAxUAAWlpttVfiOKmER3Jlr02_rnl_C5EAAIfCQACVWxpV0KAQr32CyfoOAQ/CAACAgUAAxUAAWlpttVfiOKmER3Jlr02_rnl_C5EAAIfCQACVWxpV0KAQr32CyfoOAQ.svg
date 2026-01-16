@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="Comp_5" sodipodi:docname="Comp 5" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs>
+      <linearGradient x1="0" y1="665.376" x2="-6.303" y2="-507.891" id="Gradient_Fill_1" inkscape:label="Gradient Fill 1" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(236, 89, 91)" stop-opacity="1"/>
+         <stop offset="10.2%" stop-color="rgb(245, 103, 101)" stop-opacity="1"/>
+         <stop offset="20.5%" stop-color="rgb(254, 117, 111)" stop-opacity="1"/>
+         <stop offset="36.8%" stop-color="rgb(254, 94, 171)" stop-opacity="1"/>
+         <stop offset="49.0%" stop-color="rgb(254, 70, 230)" stop-opacity="1"/>
+         <stop offset="65.7%" stop-color="rgb(237, 93, 243)" stop-opacity="1"/>
+         <stop offset="82.5%" stop-color="rgb(220, 116, 255)" stop-opacity="1"/>
+      </linearGradient>
+      <linearGradient x1="0" y1="665.376" x2="-6.303" y2="-507.891" id="linearGradient_1" inkscape:label="Gradient Fill 1" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(236, 89, 91)" stop-opacity="1"/>
+         <stop offset="10.2%" stop-color="rgb(245, 103, 101)" stop-opacity="1"/>
+         <stop offset="20.5%" stop-color="rgb(254, 117, 111)" stop-opacity="1"/>
+         <stop offset="36.8%" stop-color="rgb(254, 94, 171)" stop-opacity="1"/>
+         <stop offset="49.0%" stop-color="rgb(254, 70, 230)" stop-opacity="1"/>
+         <stop offset="65.7%" stop-color="rgb(237, 93, 243)" stop-opacity="1"/>
+         <stop offset="82.5%" stop-color="rgb(220, 116, 255)" stop-opacity="1"/>
+      </linearGradient>
+      <linearGradient x1="0" y1="665.376" x2="-6.303" y2="-507.891" id="linearGradient_3" inkscape:label="Gradient Fill 1" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(236, 89, 91)" stop-opacity="1"/>
+         <stop offset="10.2%" stop-color="rgb(245, 103, 101)" stop-opacity="1"/>
+         <stop offset="20.5%" stop-color="rgb(254, 117, 111)" stop-opacity="1"/>
+         <stop offset="36.8%" stop-color="rgb(254, 94, 171)" stop-opacity="1"/>
+         <stop offset="49.0%" stop-color="rgb(254, 70, 230)" stop-opacity="1"/>
+         <stop offset="65.7%" stop-color="rgb(237, 93, 243)" stop-opacity="1"/>
+         <stop offset="82.5%" stop-color="rgb(220, 116, 255)" stop-opacity="1"/>
+      </linearGradient>
+      <linearGradient x1="0" y1="665.376" x2="-6.303" y2="-507.891" id="linearGradient_4" inkscape:label="Gradient Fill 1" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(236, 89, 91)" stop-opacity="1"/>
+         <stop offset="10.2%" stop-color="rgb(245, 103, 101)" stop-opacity="1"/>
+         <stop offset="20.5%" stop-color="rgb(254, 117, 111)" stop-opacity="1"/>
+         <stop offset="36.8%" stop-color="rgb(254, 94, 171)" stop-opacity="1"/>
+         <stop offset="49.0%" stop-color="rgb(254, 70, 230)" stop-opacity="1"/>
+         <stop offset="65.7%" stop-color="rgb(237, 93, 243)" stop-opacity="1"/>
+         <stop offset="82.5%" stop-color="rgb(220, 116, 255)" stop-opacity="1"/>
+      </linearGradient>
+   </defs>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="Null_1" inkscape:label="Null 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 206.0, 206.0)" opacity="1">
+      <g inkscape:groupmode="layer" id="Layer_1_Outlines_3" inkscape:label="Layer 1 Outlines 3" transform="matrix(0.50798, 0.0, 0.0, 0.50798, -156.874855, -204.09159599999998)" style="">
+         <g id="Group_1" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 407.25, 500.2)" style="fill-opacity:1.0;fill:url(#Gradient_Fill_1);fill-rule:nonzero">
+            <path d="M 381.1,-159.05 C 375.3,-154.55 272.9,-96.85000000000001 272.9,31.45 C 272.9,179.85 403.20000000000005,232.35 407.1,233.65 C 406.5,236.85 386.4,305.55 338.4,375.55 C 295.59999999999997,437.15000000000003 250.9,498.65 182.9,498.65 C 114.9,498.65 97.4,459.15 18.9,459.15 C -57.6,459.15 -84.8,499.95 -147,499.95 C -209.2,499.95 -252.6,442.95 -302.5,372.95 C -360.3,290.75 -407,163.05 -407,41.85 C -407,-152.55 -280.6,-255.65 -156.2,-255.65 C -90.1,-255.65 -35.0,-212.25 6.5,-212.25 C 46.0,-212.25 107.60000000000001,-258.25 182.8,-258.25 C 211.3,-258.25 313.70000000000005,-255.65 381.1,-159.05 Z" id="Path_2" inkscape:label="Path 2" style="fill-opacity:1.0;fill:url(#linearGradient_1);fill-rule:nonzero"/>
+         </g>
+      </g>
+      <g inkscape:groupmode="layer" id="Layer_1_Outlines_2" inkscape:label="Layer 1 Outlines 2" transform="matrix(0.50798, 0.0, 0.0, 0.50798, -156.874855, -204.09159599999998)" style="">
+         <g id="g_2" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 407.25, 500.2)" style="fill-opacity:1.0;fill:url(#linearGradient_3);fill-rule:nonzero">
+            <path d="M 147.1,-340.55 C 178.2,-377.45 200.2,-428.65000000000003 200.2,-479.85 C 200.2,-486.95000000000005 199.60000000000002,-494.15 198.3,-499.95 C 147.70000000000002,-498.05 87.5,-466.25 51.2,-424.15 C 22.700000000000003,-391.75 -3.9,-340.54999999999995 -3.9,-288.65 C -3.9,-280.84999999999997 -2.6,-273.05 -2,-270.55 C 1.2000000000000002,-269.95 6.3999999999999995,-269.25 11.6,-269.25 C 57.0,-269.25 114.1,-299.65000000000003 147.1,-340.55 Z" id="Path_1" inkscape:label="Path 1" style="fill-opacity:1.0;fill:url(#linearGradient_4);fill-rule:nonzero"/>
+         </g>
+      </g>
+   </g>
+</svg>

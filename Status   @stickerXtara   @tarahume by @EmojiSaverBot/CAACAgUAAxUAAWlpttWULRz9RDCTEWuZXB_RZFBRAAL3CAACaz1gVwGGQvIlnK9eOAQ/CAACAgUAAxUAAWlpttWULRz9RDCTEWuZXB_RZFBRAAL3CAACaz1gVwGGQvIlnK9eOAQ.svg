@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="Comp_1" sodipodi:docname="Comp 1" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="Null_1" inkscape:label="Null 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 206.0, 206.0)" opacity="1">
+      <g inkscape:groupmode="layer" id="Shape_Layer_1" inkscape:label="Shape Layer 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 50.0, 50.0)" style="">
+         <g id="Rectangle_1" inkscape:label="Rectangle 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(0, 30, 54);fill-rule:nonzero;stroke:rgb(49, 168, 255);stroke-opacity:1.0;stroke-width:35.0;stroke-miterlimit:0;stroke-linecap:butt;stroke-linejoin:round">
+            <rect width="475" height="475" x="-237.5" y="-237.5" rx="85.0" id="Rectangle_Path_1" inkscape:label="Rectangle Path 1" style="fill-opacity:1.0;fill:rgb(0, 30, 54);fill-rule:nonzero"/>
+         </g>
+      </g>
+      <g inkscape:groupmode="layer" id="Ps_Outlines" inkscape:label="Ps Outlines" transform="matrix(7.21312, 0.0, 0.0, 7.21312, 43.63802816, 139.06760576)" style="">
+         <g id="s" inkscape:label="s" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(49, 168, 255);fill-rule:nonzero">
+            <path d="M 5.616,-9.558 C 6.287999999999999,-8.778 7.104,-8.202 8.064,-7.83 C 9.024000000000001,-7.458 9.978,-7.140000000000001 10.926,-6.876 C 11.874,-6.612 12.684,-6.312 13.356,-5.976 C 14.028,-5.64 14.364,-5.220000000000001 14.364,-4.716 C 14.364,-3.8520000000000003 13.356,-3.42 11.34,-3.42 C 8.82,-3.42 6.624,-4.032 4.752,-5.256 C 4.752,-5.256 4.752,-1.116 4.752,-1.116 C 6.576,-0.03600000000000003 8.868,0.504 11.628,0.504 C 13.116,0.504 14.418000000000001,0.348 15.534,0.036 C 16.650000000000002,-0.276 17.586,-0.84 18.342,-1.656 C 19.098,-2.472 19.476,-3.5279999999999996 19.476,-4.824 C 19.476,-6.0 19.14,-6.984 18.468,-7.776 C 17.796,-8.568 16.986,-9.144 16.038,-9.504 C 15.09,-9.863999999999999 14.136,-10.17 13.176,-10.422 C 12.216000000000001,-10.674000000000001 11.4,-10.968 10.728,-11.304 C 10.056,-11.64 9.72,-12.072 9.72,-12.6 C 9.72,-13.512 10.524,-13.968 12.132,-13.968 C 13.14,-13.968 14.213999999999999,-13.8 15.354,-13.464 C 16.494,-13.128 17.436,-12.708 18.18,-12.204 C 18.18,-12.204 18.18,-16.308 18.18,-16.308 C 16.164,-17.292 14.04,-17.784 11.808,-17.784 C 9.744,-17.784 8.028,-17.358 6.66,-16.506 C 5.292,-15.654 4.608,-14.304 4.608,-12.456 C 4.608,-11.304 4.944,-10.338 5.616,-9.558 Z" id="path_1" inkscape:label="s" style="fill-opacity:1.0;fill:rgb(49, 168, 255);fill-rule:nonzero"/>
+         </g>
+         <g id="P" inkscape:label="P" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(49, 168, 255);fill-rule:nonzero">
+            <path d="M -17.712,0 C -17.712,0 -12.312,0 -12.312,0 C -12.312,0 -12.312,-8.28 -12.312,-8.28 C -12.312,-8.28 -8.208,-8.28 -8.208,-8.28 C -0.96,-8.28 2.664,-11.099999999999998 2.664,-16.74 C 2.664,-22.38 -0.96,-25.2 -8.208,-25.2 C -8.208,-25.2 -17.712,-25.2 -17.712,-25.2 C -17.712,-25.2 -17.712,0 -17.712,0 Z
+M -7.956,-13.032 C -7.956,-13.032 -12.312,-13.032 -12.312,-13.032 C -12.312,-13.032 -12.312,-20.448 -12.312,-20.448 C -12.312,-20.448 -7.956,-20.448 -7.956,-20.448 C -4.548,-20.448 -2.844,-19.212 -2.844,-16.74 C -2.844,-14.267999999999999 -4.548,-13.032 -7.956,-13.032 Z" id="path_2" inkscape:label="P" style="fill-opacity:1.0;fill:rgb(49, 168, 255);fill-rule:nonzero"/>
+         </g>
+      </g>
+   </g>
+</svg>

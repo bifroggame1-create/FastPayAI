@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="svg_1" sodipodi:docname="27-digits" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs>
+      <mask id="id_8" mask-type="alpha">
+         <g inkscape:groupmode="layer" id="g_10" inkscape:label="6 Outlines 2" transform="matrix(1.0, 0.0, 0.0, 1.0, 150.72199999999998, 408.29200000000003)" style="">
+            <g id="g_11" inkscape:label="5" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(235, 169, 83);fill-rule:nonzero;stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:0.01;stroke-miterlimit:4.0;stroke-linecap:butt;stroke-linejoin:miter">
+               <path d="M 32.548,-299.36 C 32.548,-299.36 32.548,-141.844 32.548,-141.844 C 32.548,-141.844 96.438,-141.844 96.438,-141.844 C 121.753,-141.844 140.237,-128.18200000000002 140.237,-96.84 C 140.237,-68.31 118.94,-52.639 91.616,-52.639 C 77.55199999999999,-52.639 64.292,-61.077000000000005 56.657,-72.73 C 56.657,-72.73 8.84,-37.772 8.84,-37.772 C 28.128,-10.849999999999998 60.274,5.224 91.616,5.224 C 152.292,5.224 199.707,-40.58500000000001 199.707,-101.662 C 199.707,-160.73000000000002 158.721,-200.109 96.438,-200.109 C 96.438,-200.109 85.991,-200.109 85.991,-200.109 C 85.991,-200.109 85.991,-246.721 85.991,-246.721 C 85.991,-246.721 165.954,-246.721 165.954,-246.721 C 165.954,-246.721 165.954,-299.36 165.954,-299.36 C 165.954,-299.36 32.548,-299.36 32.548,-299.36 Z" id="path_12" inkscape:label="5" style="fill-opacity:1.0;fill:rgb(235, 169, 83);fill-rule:nonzero"/>
+            </g>
+         </g>
+      </mask>
+   </defs>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="g_2" inkscape:label="5 Outlines" transform="matrix(1.0, 0.0, 0.0, 1.0, 152.72199999999998, 410.29200000000003)" style="">
+      <g id="g_3" inkscape:label="5" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(105, 62, 6);fill-rule:nonzero;stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:0.01;stroke-miterlimit:4.0;stroke-linecap:butt;stroke-linejoin:miter">
+         <path d="M 32.548,-299.36 C 32.548,-299.36 32.548,-141.844 32.548,-141.844 C 32.548,-141.844 96.438,-141.844 96.438,-141.844 C 121.753,-141.844 140.237,-128.18200000000002 140.237,-96.84 C 140.237,-68.31 118.94,-52.639 91.616,-52.639 C 77.55199999999999,-52.639 64.292,-61.077000000000005 56.657,-72.73 C 56.657,-72.73 8.84,-37.772 8.84,-37.772 C 28.128,-10.849999999999998 60.274,5.224 91.616,5.224 C 152.292,5.224 199.707,-40.58500000000001 199.707,-101.662 C 199.707,-160.73000000000002 158.721,-200.109 96.438,-200.109 C 96.438,-200.109 85.991,-200.109 85.991,-200.109 C 85.991,-200.109 85.991,-246.721 85.991,-246.721 C 85.991,-246.721 165.954,-246.721 165.954,-246.721 C 165.954,-246.721 165.954,-299.36 165.954,-299.36 C 165.954,-299.36 32.548,-299.36 32.548,-299.36 Z" id="path_4" inkscape:label="5" style="fill-opacity:1.0;fill:rgb(105, 62, 6);fill-rule:nonzero"/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="g_5" inkscape:label="6 Outlines" transform="matrix(1.0, 0.0, 0.0, 1.0, 150.72199999999998, 408.29200000000003)" style="">
+      <g id="g_6" inkscape:label="5" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(235, 169, 83);fill-rule:nonzero;stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:0.01;stroke-miterlimit:4.0;stroke-linecap:butt;stroke-linejoin:miter">
+         <path d="M 32.548,-299.36 C 32.548,-299.36 32.548,-141.844 32.548,-141.844 C 32.548,-141.844 96.438,-141.844 96.438,-141.844 C 121.753,-141.844 140.237,-128.18200000000002 140.237,-96.84 C 140.237,-68.31 118.94,-52.639 91.616,-52.639 C 77.55199999999999,-52.639 64.292,-61.077000000000005 56.657,-72.73 C 56.657,-72.73 8.84,-37.772 8.84,-37.772 C 28.128,-10.849999999999998 60.274,5.224 91.616,5.224 C 152.292,5.224 199.707,-40.58500000000001 199.707,-101.662 C 199.707,-160.73000000000002 158.721,-200.109 96.438,-200.109 C 96.438,-200.109 85.991,-200.109 85.991,-200.109 C 85.991,-200.109 85.991,-246.721 85.991,-246.721 C 85.991,-246.721 165.954,-246.721 165.954,-246.721 C 165.954,-246.721 165.954,-299.36 165.954,-299.36 C 165.954,-299.36 32.548,-299.36 32.548,-299.36 Z" id="path_7" inkscape:label="5" style="fill-opacity:1.0;fill:rgb(235, 169, 83);fill-rule:nonzero"/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="Shape_Layer_1" inkscape:label="Shape Layer 1" transform="matrix(0.8275907056329235, -0.8275907056329235, 0.7071067811865476, 0.7071067811865476, -44.249251328721584, 371.130023026215)" mask="url(#id_8)" style="">
+      <g id="Rectangle_2" inkscape:label="Rectangle 2" transform="matrix(1.0, 0.0, 0.0, 1.69388, -4.0, -167.5)" style="fill-opacity:1.0;fill:rgb(254, 217, 169);fill-rule:nonzero">
+         <rect width="498" height="65" x="-249.0" y="-32.5" rx="0.0" id="Rectangle_Path_1" inkscape:label="Rectangle Path 1" style="fill-opacity:1.0;fill:rgb(254, 217, 169);fill-rule:nonzero"/>
+      </g>
+      <g id="Rectangle_1" inkscape:label="Rectangle 1" transform="matrix(1.0, 0.0, 0.0, 1.0, -4.0, -167.5)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero">
+         <rect width="498" height="65" x="-249.0" y="-32.5" rx="0.0" id="rect_9" inkscape:label="Rectangle Path 1" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+      </g>
+   </g>
+</svg>

@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="svg_1" sodipodi:docname="70 - 2" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="electron" inkscape:label="electron" transform="matrix(2.2, 0.0, 0.0, 2.2, -184.00000000000006, -184.00000000000006)">
+      <g inkscape:groupmode="layer" id="st_4" inkscape:label="st 4" transform="matrix(1.0, 0.0, 0.0, 0.96, 200.0, 205.579)" style="">
+         <g id="Group_1" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(82, 200, 255);stroke-opacity:1.0;stroke-width:14.0;stroke-miterlimit:10.0;stroke-linecap:round;stroke-linejoin:miter">
+            <path d="M 105.5,0.0 C 105.5,0.0 105.4244256,0.9903168 105.275593728,1.4793361919999999 " style=""/>
+         </g>
+      </g>
+      <g inkscape:groupmode="layer" id="st_3" inkscape:label="st 3" transform="matrix(1.0, 0.0, 0.0, 0.96, 200.0, 205.579)" style="">
+         <g id="g_2" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(82, 200, 255);stroke-opacity:1.0;stroke-width:14.0;stroke-miterlimit:10.0;stroke-linecap:round;stroke-linejoin:miter">
+            <path d="M 105.5,0.0 C 105.5,0.0 105.4244256,0.9903168 105.275593728,1.4793361919999999 " style=""/>
+         </g>
+      </g>
+   </g>
+</svg>

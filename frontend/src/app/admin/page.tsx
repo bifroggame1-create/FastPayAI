@@ -99,7 +99,7 @@ interface Order {
   deliveredAt?: string
 }
 
-type SellerBadge = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky'
+type SellerBadge = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky' | 'vip' | 'busy' | 'offline' | 'on_hold'
 
 interface Seller {
   id: string
@@ -3246,6 +3246,10 @@ function SellerEditor({
     { id: 'top_seller', label: '🏆 Топ продавец', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
     { id: 'high_volume', label: '📈 Большой объём', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
     { id: 'risky', label: '⚠️ Рискованный', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+    { id: 'vip', label: '💎 VIP', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+    { id: 'busy', label: '⏳ Занят', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+    { id: 'offline', label: '🔴 Офлайн', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' },
+    { id: 'on_hold', label: '⏸️ На удержании', color: 'bg-yellow-600/20 text-yellow-600 border-yellow-600/30' },
   ]
 
   return (

@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="Megaphone_Icon_01" sodipodi:docname="Megaphone Icon 01" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs>
+      <mask id="id_1" mask-type="alpha">
+         <g inkscape:groupmode="layer" id="Alpha_01" inkscape:label="Alpha 01" transform="matrix(0.961907338741983, 0.996084208324937, -0.7193398003386511, 0.6946583704589974, 73.51498845665962, 313.01986248272874)" style="">
+            <g id="Rectangle_1" inkscape:label="Rectangle 1" transform="matrix(1.0, 0.0, 0.0, 1.0, -142.0, -132.0)" style="fill-opacity:1.0;fill:rgb(89, 243, 233);fill-rule:nonzero">
+               <rect width="228" height="272" x="-114.0" y="-136.0" rx="0.0" id="Rectangle_Path_1" inkscape:label="Rectangle Path 1" style="fill-opacity:1.0;fill:rgb(89, 243, 233);fill-rule:nonzero"/>
+            </g>
+         </g>
+      </mask>
+   </defs>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="Megaphone_2" inkscape:label="Megaphone 2" transform="matrix(1.0, 0.0, 0.0, 1.0, 167.727, 151.501)" opacity="0.0" mask="url(#id_1)" style="">
+      <g id="Group_1" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 93.303, 115.124)" style="fill-opacity:1.0;fill:rgb(255, 72, 140);fill-rule:nonzero">
+         <path d="M 87.153,21.669 C 87.153,21.669 26.555,-77.608 26.555,-77.608 C 33.803,-85.955 -60.439,8.419 -56.602,5.407 C -56.602,5.407 19.998,52.163 19.998,52.163 C 23.48,54.288 23.47,59.126000000000005 21.166,61.993 C 5.970000000000001,76.876 28.719,102.625 50.566,82.605 C 62.719,72.375 83.561,51.796 83.561,51.796 C 91.569,43.787 93.054,31.336 87.153,21.669 Z" id="Path_1" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(255, 72, 140);fill-rule:nonzero"/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="Shape_01" inkscape:label="Shape 01" transform="matrix(1.0, 0.0, 0.0, 1.0, 256.0, 256.0)" style="">
+      <g id="Shape_1" inkscape:label="Shape 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="">
+         <path d="M 20,105.25 C 20,105.25 20.0058,105.244175 20.0058,105.244175 " style=""/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="Shape_02" inkscape:label="Shape 02" transform="matrix(1.0, 0.0, 0.0, 1.0, 174.5, 136.0)" style="">
+      <g id="g_2" inkscape:label="Shape 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 100.0, 100.0)" style="">
+         <path d="M 50.419,74.20625 C 50.419,74.20625 50.49999999999999,74.125 50.49999999999999,74.125 " style=""/>
+      </g>
+   </g>
+</svg>

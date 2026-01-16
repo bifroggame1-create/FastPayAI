@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="svg_1" sodipodi:docname="06_OUT_CLOCK_color" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs>
+      <linearGradient x1="-1" y1="-287.041" x2="-1" y2="224.207" id="asdfqqqwe" inkscape:label="asdfqqqwe" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(241, 248, 255)" stop-opacity="1"/>
+         <stop offset="49.9%" stop-color="rgb(181, 198, 216)" stop-opacity="1"/>
+         <stop offset="99.7%" stop-color="rgb(121, 148, 178)" stop-opacity="1"/>
+      </linearGradient>
+      <linearGradient x1="-1" y1="-287.041" x2="-1" y2="224.207" id="linearGradient_2" inkscape:label="asdfqqqwe" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(241, 248, 255)" stop-opacity="1"/>
+         <stop offset="49.9%" stop-color="rgb(181, 198, 216)" stop-opacity="1"/>
+         <stop offset="99.7%" stop-color="rgb(121, 148, 178)" stop-opacity="1"/>
+      </linearGradient>
+   </defs>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="Null_32" inkscape:label="Null 32" transform="matrix(0.84, 0.0, 0.0, 0.84, 256.0, 245.0)" opacity="1">
+      <g inkscape:groupmode="layer" id="Layer_7" inkscape:label="Layer 7" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="">
+         <g id="Group_1" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:url(#asdfqqqwe);fill-rule:nonzero;stroke:rgb(65, 83, 101);stroke-opacity:1.0;stroke-width:8;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round">
+            <path d="M 0,-201.735 C -117.357,-201.735 -212.835,-106.257 -212.835,11.1 C -212.835,128.457 -117.357,223.935 0,223.935 C 117.357,223.935 212.835,128.457 212.835,11.1 C 212.835,-106.257 117.357,-201.735 0,-201.735 Z" id="Path_1" inkscape:label="Path 1" style="fill-opacity:1.0;fill:url(#linearGradient_2);fill-rule:nonzero"/>
+         </g>
+      </g>
+      <g inkscape:groupmode="layer" id="NULL_CONTROL" inkscape:label="NULL CONTROL" transform="matrix(1.0, 0.0, 0.0, 1.0, -60.0, 1.1000000000000014)" opacity="1">
+         <g inkscape:groupmode="layer" id="hour_2" inkscape:label="hour 2" transform="matrix(-0.42261826174069933, 0.90630778703665, -0.90630778703665, -0.42261826174069933, 410.2650849231083, -59.133455770441614)" style="">
+            <g inkscape:groupmode="layer" id="hour" inkscape:label="hour" transform="matrix(1.0, -2.4492935982947064e-16, 2.4492935982947064e-16, 1.0, -5.684341886080802e-14, 5.684341886080802e-14)" style="">
+               <g id="g_3" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 256.0, 196.776)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero;stroke:rgb(65, 83, 101);stroke-opacity:1.0;stroke-width:16;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round">
+                  <path d="M 1.628,-77.893 C -8.461,-77.893 -15.5,-69.649 -16.639,-59.625 C -20.341,-27.046999999999997 -27.701999999999998,37.126000000000005 -31.372,69.629 C -33.417,87.74000000000001 -16.598,102.629 1.628,102.629 C 19.854,102.629 36.673,87.74000000000001 34.628,69.629 C 31.028,37.74000000000001 23.591,-27.354 19.896,-59.625 C 18.748,-69.648 11.717,-77.893 1.628,-77.893 Z" id="path_4" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+               </g>
+            </g>
+            <g id="g_5" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 256.0, 196.776)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero">
+               <path d="M 1.628,-77.893 C -8.461,-77.893 -15.5,-69.649 -16.639,-59.625 C -20.341,-27.046999999999997 -27.701999999999998,37.126000000000005 -31.372,69.629 C -33.417,87.74000000000001 -16.598,102.629 1.628,102.629 C 19.854,102.629 36.673,87.74000000000001 34.628,69.629 C 31.028,37.74000000000001 23.591,-27.354 19.896,-59.625 C 18.748,-69.648 11.717,-77.893 1.628,-77.893 Z" id="path_6" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+            </g>
+         </g>
+         <g inkscape:groupmode="layer" id="minute_2" inkscape:label="minute 2" transform="matrix(1.0, 0.0, 0.0, 1.0, -196.0, -207.10000000000002)" style="">
+            <g inkscape:groupmode="layer" id="minute" inkscape:label="minute" transform="matrix(1.0, -7.347880794884119e-16, 7.347880794884119e-16, 1.0, -1.7053025658242404e-13, 1.7053025658242404e-13)" style="">
+               <g id="g_7" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 256.0, 196.776)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero;stroke:rgb(65, 83, 101);stroke-opacity:1.0;stroke-width:16;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round">
+                  <path d="M -0.638,-136.836 C -10.727,-136.836 -17.766000000000002,-128.59199999999998 -18.905,-118.568 C -22.607,-85.99 -29.967999999999996,38.182 -33.638,70.685 C -35.683,88.796 -18.864,103.685 -0.638,103.685 C 17.587999999999997,103.685 34.407000000000004,88.796 32.362,70.685 C 28.762,38.79600000000001 21.325,-86.297 17.63,-118.568 C 16.482,-128.591 9.451,-136.836 -0.638,-136.836 Z" id="path_8" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+               </g>
+            </g>
+            <g id="g_9" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 256.0, 196.776)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero">
+               <path d="M -0.638,-136.836 C -10.727,-136.836 -17.766000000000002,-128.59199999999998 -18.905,-118.568 C -22.607,-85.99 -29.967999999999996,38.182 -33.638,70.685 C -35.683,88.796 -18.864,103.685 -0.638,103.685 C 17.587999999999997,103.685 34.407000000000004,88.796 32.362,70.685 C 28.762,38.79600000000001 21.325,-86.297 17.63,-118.568 C 16.482,-128.591 9.451,-136.836 -0.638,-136.836 Z" id="path_10" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+            </g>
+         </g>
+      </g>
+   </g>
+</svg>

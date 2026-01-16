@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="EFFECT_4" sodipodi:docname="EFFECT_4" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="NULL_2" inkscape:label="NULL 2" transform="matrix(1.01478, 0.0, 0.0, 1.01478, 142.3003, 138.3003)" opacity="1"/>
+   <g inkscape:groupmode="layer" id="NULL" inkscape:label="NULL" transform="matrix(1.3043500000000001, 0.0, 0.0, 1.3043500000000001, 108.99974999999998, 104.99974999999998)" opacity="1"/>
+   <g inkscape:groupmode="layer" id="g_1" inkscape:label="NULL" transform="matrix(0.98, 0.0, 0.0, 0.98, 146.3, 142.3)" opacity="1"/>
+   <g inkscape:groupmode="layer" id="Circle_3" inkscape:label="Circle 3" transform="matrix(0.28, 0.0, 0.0, 0.28, 257.57372, 252.75056)" opacity="0.2" style="">
+      <g id="Group_1" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(255, 223, 32);stroke-opacity:1.0;stroke-width:112.5828140553046;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round">
+         <path d="M 65.92776357980073,6.248 C 65.92776357980073,43.790355540029445 35.49335554002945,74.22476357980074 -2.049,74.22476357980074 C -39.59135554002945,74.22476357980074 -70.02576357980072,43.790355540029445 -70.02576357980072,6.248 C -70.02576357980072,-31.294355540029446 -39.59135554002945,-61.72876357980073 -2.049,-61.72876357980073 C 35.49335554002945,-61.72876357980073 65.92776357980073,-31.294355540029446 65.92776357980073,6.248 Z" id="Path_1" inkscape:label="Path 1" style=""/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="placeholder_2" inkscape:label="placeholder_2" transform="matrix(-0.08, 0.0, 0.0, 0.08, 253.09199999999998, 221.83200000000002)"/>
+   <g inkscape:groupmode="layer" id="placeholder_1" inkscape:label="placeholder_1" transform="matrix(0.12, 0.0, 0.0, 0.12, 221.371, 206.895)"/>
+   <g inkscape:groupmode="layer" id="NULL_CONTROL_7" inkscape:label="NULL CONTROL 7" transform="matrix(0.42548, 0.0, 0.0, 0.42548, 208.13579999999996, 222.89779999999996)" opacity="1"/>
+</svg>

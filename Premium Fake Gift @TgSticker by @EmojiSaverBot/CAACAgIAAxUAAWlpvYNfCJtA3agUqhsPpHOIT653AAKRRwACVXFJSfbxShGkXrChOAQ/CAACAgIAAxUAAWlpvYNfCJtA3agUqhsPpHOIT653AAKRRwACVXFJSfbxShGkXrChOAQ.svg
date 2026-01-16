@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="svg_1" sodipodi:docname="Gift_@DMJ_Stickers" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs>
+      <linearGradient x1="0" y1="0" x2="5.5" y2="-3.5" id="Riempimento_sfumatura_1" inkscape:label="Riempimento sfumatura 1" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(84, 110, 255)" stop-opacity="1"/>
+         <stop offset="100%" stop-color="rgb(237, 61, 219)" stop-opacity="1"/>
+      </linearGradient>
+      <linearGradient x1="0" y1="0" x2="5.5" y2="-3.5" id="linearGradient_2" inkscape:label="Riempimento sfumatura 1" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(84, 110, 255)" stop-opacity="1"/>
+         <stop offset="100%" stop-color="rgb(237, 61, 219)" stop-opacity="1"/>
+      </linearGradient>
+   </defs>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="Ellipse" inkscape:label="Ellipse" transform="matrix(3.6, 0.0, 0.0, 3.6, 256.0, 258.0)" style="">
+      <g id="Ellipse_3" inkscape:label="Ellipse 3" transform="matrix(7.0, 0.0, 0.0, 7.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:url(#Riempimento_sfumatura_1);fill-rule:nonzero">
+         <ellipse rx="10.0" ry="10.0" cx="0" cy="0" id="Контур_эллипса_1" inkscape:label="Контур эллипса 1" style="fill-opacity:1.0;fill:url(#linearGradient_2);fill-rule:nonzero"/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="g_3" inkscape:label="512x512" transform="matrix(2.5, 0.0, 0.0, 2.5, 30.0, 50.0)">
+      <g inkscape:groupmode="layer" id="Rectangle_2" inkscape:label="Rectangle 2" transform="matrix(1.0, 0.0, 0.0, 1.0, 90.0, 120.0)" style="">
+         <g id="g_4" inkscape:label="Rectangle 2" transform="matrix(10.0, 0.0, 0.0, 10.0, 0.0, 0.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter">
+            <path d="M 5.25,-3 C 5.25,-3 5.25,0.6 5.25,0.6 C 5.25,1.44 5.087,2.181 5.087,2.181 C 5.087,2.181 4.431,2.837 4.431,2.837 C 4.431,2.837 3.69,3 2.85,3 C 2.85,3 -2.85,3 -2.85,3 C -3.69,3 -4.431,2.837 -4.431,2.837 C -4.431,2.837 -5.087,2.181 -5.087,2.181 C -5.087,2.181 -5.25,1.44 -5.25,0.6 C -5.25,0.6 -5.25,-3 -5.25,-3 " id="Path_1" inkscape:label="Path 1" style=""/>
+         </g>
+         <g inkscape:groupmode="layer" id="Rectangle_3" inkscape:label="Rectangle 3" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, -52.5)" style="">
+            <g id="g_5" inkscape:label="Rectangle 3" transform="matrix(10.0, 0.0, 0.0, 10.0, 0.0, 0.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter">
+               <path d="M 4.5,1.875 C 4.5,1.875 4.594,1.875 4.594,1.875 C 4.594,1.875 5.485,1.789 5.485,1.789 C 5.485,1.789 5.914,1.36 5.914,1.36 C 5.914,1.36 6,0.469 6,0.469 C 6,-0.31800000000000006 5.856,-1.016 5.856,-1.016 C 5.856,-1.016 5.141,-1.731 5.141,-1.731 C 5.141,-1.731 4.4430000000000005,-1.875 3.656,-1.875 C 3.656,-1.875 -3.656,-1.875 -3.656,-1.875 C -4.4430000000000005,-1.875 -5.141,-1.731 -5.141,-1.731 C -5.141,-1.731 -5.856,-1.016 -5.856,-1.016 C -5.856,-1.016 -6,-0.31800000000000006 -6,0.469 C -6,0.469 -5.914,1.36 -5.914,1.36 C -5.914,1.36 -5.485,1.789 -5.485,1.789 C -5.485,1.789 -4.594,1.875 -4.594,1.875 C -4.594,1.875 -4.5,1.875 -4.5,1.875 " id="path_6" inkscape:label="Path 1" style=""/>
+            </g>
+         </g>
+         <g inkscape:groupmode="layer" id="Rectangle_29" inkscape:label="Rectangle 29" transform="matrix(1.0, 0.0, 0.0, 1.0, -15.0, -86.25)" style="">
+            <g id="g_7" inkscape:label="Rectangle 29" transform="matrix(10.0, 0.0, 0.0, 10.0, 0.0, 0.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.0;stroke-miterlimit:4.0;stroke-linecap:butt;stroke-linejoin:miter">
+               <path d="M 0,-1.5 C -0.828,-1.5 -1.5,-0.828 -1.5,0 C -1.5,0.828 -0.828,1.5 0,1.5 C 0,1.5 1.5,1.5 1.5,1.5 C 1.5,1.5 1.5,0 1.5,0 C 1.5,-0.828 0.828,-1.5 0,-1.5 Z" id="path_8" inkscape:label="Path 1" style=""/>
+            </g>
+         </g>
+         <g inkscape:groupmode="layer" id="Rectangle_30" inkscape:label="Rectangle 30" transform="matrix(1.0, 0.0, 0.0, 1.0, 15.0, -86.25)" style="">
+            <g id="g_9" inkscape:label="Rectangle 30" transform="matrix(10.0, 0.0, 0.0, 10.0, 0.0, 0.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.0;stroke-miterlimit:4.0;stroke-linecap:butt;stroke-linejoin:miter">
+               <path d="M 0,-1.5 C -0.828,-1.5 -1.5,-0.828 -1.5,0 C -1.5,0 -1.5,1.5 -1.5,1.5 C -1.5,1.5 0,1.5 0,1.5 C 0.828,1.5 1.5,0.828 1.5,0 C 1.5,-0.828 0.828,-1.5 0,-1.5 Z" id="path_10" inkscape:label="Path 1" style=""/>
+            </g>
+         </g>
+         <g inkscape:groupmode="layer" id="Vector_45" inkscape:label="Vector 45" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 18.749999999999996)" style="">
+            <g id="g_11" inkscape:label="Vector 45" transform="matrix(10.0, 0.0, 0.0, 10.0, 0.0, 0.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter">
+               <path d="M 0,0.75 C 0,0.75 0,-0.75 0,-0.75 " id="path_12" inkscape:label="Path 1" style=""/>
+            </g>
+         </g>
+         <g inkscape:groupmode="layer" id="Star" inkscape:label="Star" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.056, -28.669)" style="">
+            <g id="g_13" inkscape:label="Star" transform="matrix(10.0, 0.0, 0.0, 10.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero">
+               <path d="M -1.516,2.829 C -1.516,2.829 -0.161,1.999 -0.161,1.999 C -0.161,1.999 0.152,1.999 0.152,1.999 C 0.152,1.999 1.518,2.836 1.518,2.836 C 1.518,2.836 1.745,2.872 1.745,2.872 C 1.745,2.872 1.966,2.511 1.966,2.511 C 1.966,2.511 1.591,0.955 1.591,0.955 C 1.591,0.955 1.688,0.657 1.688,0.657 C 1.688,0.657 2.906,-0.381 2.906,-0.381 C 2.906,-0.381 3.011,-0.586 3.011,-0.586 C 3.011,-0.586 2.736,-0.907 2.736,-0.907 C 2.736,-0.907 1.138,-1.032 1.138,-1.032 C 1.138,-1.032 0.885,-1.216 0.885,-1.216 C 0.885,-1.216 0.272,-2.696 0.272,-2.696 C 0.272,-2.696 0.11,-2.858 0.11,-2.858 C 0.11,-2.858 -0.281,-2.696 -0.281,-2.696 C -0.281,-2.696 -0.894,-1.216 -0.894,-1.216 C -0.894,-1.216 -1.147,-1.032 -1.147,-1.032 C -1.147,-1.032 -2.736,-0.908 -2.736,-0.908 C -2.736,-0.908 -2.942,-0.802 -2.942,-0.802 C -2.942,-0.802 -2.904,-0.38 -2.904,-0.38 C -2.904,-0.38 -2.384,0.056 -2.384,0.056 C -2.384,0.056 -1.446,0.308 -1.446,0.308 C -1.446,0.308 0.199,0.023 0.199,0.023 C 0.199,0.023 0.348,0.1 0.348,0.1 C 0.348,0.1 0.283,0.284 0.283,0.284 C 0.283,0.284 -1.196,0.994 -1.196,0.994 C -1.196,0.994 -1.753,1.675 -1.753,1.675 C -1.753,1.675 -1.962,2.501 -1.962,2.501 C -1.962,2.501 -1.928,2.731 -1.928,2.731 C -1.928,2.731 -1.516,2.829 -1.516,2.829 Z" id="path_14" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+            </g>
+         </g>
+      </g>
+   </g>
+</svg>

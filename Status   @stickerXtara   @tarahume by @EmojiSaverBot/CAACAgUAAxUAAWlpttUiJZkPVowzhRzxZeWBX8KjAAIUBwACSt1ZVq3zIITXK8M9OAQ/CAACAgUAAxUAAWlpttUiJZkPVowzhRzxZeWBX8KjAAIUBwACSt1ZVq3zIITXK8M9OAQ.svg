@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="svg_1" sodipodi:docname="5-verified" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="Shape_Layer_2" inkscape:label="Shape Layer 2" transform="matrix(1.0, 0.0, 0.0, 1.0, 260.0, 260.0)" style="">
+      <g id="Rectangle_1" inkscape:label="Rectangle 1" transform="matrix(1.02888, 0.0, 0.0, 1.02888, -4.0, -4.0)" style="fill-opacity:1.0;fill:rgb(27, 27, 27);fill-rule:nonzero">
+         <rect width="276" height="276" x="-138.0" y="-138.0" rx="20.0" id="Rectangle_Path_1" inkscape:label="Rectangle Path 1" style="fill-opacity:1.0;fill:rgb(27, 27, 27);fill-rule:nonzero"/>
+      </g>
+      <g id="Rectangle_2" inkscape:label="Rectangle 2" transform="matrix(0.727528025027215, 0.727528025027215, -0.727528025027215, 0.727528025027215, -4.0, -4.0)" style="fill-opacity:1.0;fill:rgb(27, 27, 27);fill-rule:nonzero">
+         <rect width="276" height="276" x="-138.0" y="-138.0" rx="20.0" id="rect_2" inkscape:label="Rectangle Path 1" style="fill-opacity:1.0;fill:rgb(27, 27, 27);fill-rule:nonzero"/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="Shape_Layer_3" inkscape:label="Shape Layer 3" transform="matrix(1.0, 0.0, 0.0, 1.0, 256.0, 256.0)" style="">
+      <g id="Shape_1" inkscape:label="Shape 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:33.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter">
+         <path d="M -64,16.5 C -52.135,27.066000000000003 -28.405,48.198 -25.347,50.859 C -25.347,50.859 -24.456,51.604 -23.625,51.625 C -22.917,51.643 -22.173,50.941 -22.173,50.941 C -19.688,48.053000000000004 32.104,-12.815999999999999 58,-43.25 " id="Path_1" inkscape:label="Path 1" style=""/>
+      </g>
+   </g>
+</svg>

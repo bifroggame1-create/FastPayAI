@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="MasterCard" sodipodi:docname="MasterCard" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="Shape_Layer_1" inkscape:label="Shape Layer 1" transform="matrix(0.8, 0.0, 0.0, 0.8, 249.60000000000002, 256.0)" style="">
+      <g id="Ellipse_1" inkscape:label="Ellipse 1" transform="matrix(1.17476, 0.0, 0.0, 1.12422, 128.5, 7.0)" style="fill-opacity:1.0;fill:rgb(80, 227, 194);fill-rule:nonzero;stroke:rgb(80, 227, 194);stroke-opacity:1.0;stroke-width:2.0;stroke-miterlimit:4.0;stroke-linecap:butt;stroke-linejoin:miter">
+         <path d="M 0,-157 C -85.328,-157 -154.5,-86.709 -154.5,0 C -154.5,86.709 -85.328,157 0,157 C 85.328,157 154.5,86.709 154.5,0 C 154.5,-86.709 85.328,-157 0,-157 Z" id="Path_1" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(80, 227, 194);fill-rule:nonzero"/>
+      </g>
+      <g inkscape:groupmode="layer" id="Shape_Layer_2" inkscape:label="Shape Layer 2" transform="matrix(1.0, 0.0, 0.0, 1.0, -240.0, 0.0)" style="">
+         <g id="g_1" inkscape:label="Ellipse 1" transform="matrix(1.17476, 0.0, 0.0, 1.12422, 128.5, 7.0)" style="fill-opacity:1.0;fill:rgb(74, 144, 226);fill-rule:nonzero;stroke:rgb(74, 144, 226);stroke-opacity:1.0;stroke-width:2.0;stroke-miterlimit:4.0;stroke-linecap:butt;stroke-linejoin:miter">
+            <path d="M 0,-157 C -85.328,-157 -154.5,-86.709 -154.5,0 C -154.5,86.709 -85.328,157 0,157 C 85.328,157 154.5,86.709 154.5,0 C 154.5,-86.709 85.328,-157 0,-157 Z" id="path_2" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(74, 144, 226);fill-rule:nonzero"/>
+         </g>
+      </g>
+   </g>
+</svg>

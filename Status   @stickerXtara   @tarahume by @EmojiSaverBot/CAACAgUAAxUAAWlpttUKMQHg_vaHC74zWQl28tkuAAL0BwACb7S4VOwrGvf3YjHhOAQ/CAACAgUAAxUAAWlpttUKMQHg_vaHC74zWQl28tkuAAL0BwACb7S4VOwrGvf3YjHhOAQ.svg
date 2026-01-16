@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="svg_1" sodipodi:docname="37 Expressionless Face" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="NULL_CONTROL" inkscape:label="NULL CONTROL" transform="matrix(1.0, 0.0, 0.0, 1.0, 196.0, 244.813)" opacity="1">
+      <g inkscape:groupmode="layer" id="g_2" inkscape:label="NULL CONTROL" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" opacity="1">
+         <g inkscape:groupmode="layer" id="mouth" inkscape:label="mouth" transform="matrix(1.0, 0.0, 0.0, 1.0, 60.0, 125.936)" style="">
+            <g id="Path_Copy_4" inkscape:label="Path Copy 4" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero">
+               <path d="M 105.603,22.127 C 105.603,9.501 105.603,-3.2490000000000006 105.603,-17.123 C 87.75,-17.123 -87.75,-17.123 -105.607,-17.123 C -105.607,-3.7490000000000006 -105.607,8.001 -105.607,22.127 C -80.5,22.127 79.25,22.127 105.603,22.127 Z" id="Path_1" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero"/>
+            </g>
+         </g>
+         <g inkscape:groupmode="layer" id="Eye_right" inkscape:label="Eye_right" transform="matrix(-1.0, 0.0, 0.0, 1.0, 218.157, -5.936)" style="">
+            <g id="Path_Copy_3" inkscape:label="Path Copy 3" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero">
+               <path d="M 70.603,22.174 C 70.603,8.42 70.603,-4.377000000000001 70.603,-17.123 C 52.407,-17.123 -51.093,-17.123 -70.607,-17.123 C -70.607,-5.127000000000001 -70.607,11.67 -70.607,22.174 C -32.592999999999996,22.174 35.157,22.174 70.603,22.174 Z" id="path_3" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero"/>
+            </g>
+         </g>
+         <g inkscape:groupmode="layer" id="Eye_left" inkscape:label="Eye_left" transform="matrix(1.0, 0.0, 0.0, 1.0, -98.157, -5.936)" style="">
+            <g id="Path_Copy_2" inkscape:label="Path Copy 2" transform="matrix(0.9934099999999999, 0.0, 0.0, 0.99059, 0.203, 0.255)" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero">
+               <path d="M 70.603,22.174 C 70.603,8.42 70.603,-4.377000000000001 70.603,-17.123 C 52.407,-17.123 -51.093,-17.123 -70.607,-17.123 C -70.607,-5.127000000000001 -70.607,11.67 -70.607,22.174 C -32.592999999999996,22.174 35.157,22.174 70.603,22.174 Z" id="path_4" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero"/>
+            </g>
+         </g>
+      </g>
+   </g>
+</svg>

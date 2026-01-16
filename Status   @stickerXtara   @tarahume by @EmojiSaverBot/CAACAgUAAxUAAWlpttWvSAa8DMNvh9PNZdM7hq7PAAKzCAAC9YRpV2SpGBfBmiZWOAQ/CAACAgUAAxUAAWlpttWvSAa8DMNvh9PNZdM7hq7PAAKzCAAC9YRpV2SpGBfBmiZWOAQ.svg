@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs>
+      <radialGradient cx="19.38" cy="42.035" r="44.899" fx="19.38" fy="42.035" id="radialGradient_4" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(255, 221, 85)" stop-opacity="1"/>
+         <stop offset="32.800000000000004%" stop-color="rgb(255, 84, 63)" stop-opacity="1"/>
+         <stop offset="34.8%" stop-color="rgb(252, 82, 69)" stop-opacity="1"/>
+         <stop offset="50.4%" stop-color="rgb(230, 71, 113)" stop-opacity="1"/>
+         <stop offset="64.3%" stop-color="rgb(213, 62, 145)" stop-opacity="1"/>
+         <stop offset="76.1%" stop-color="rgb(204, 57, 164)" stop-opacity="1"/>
+         <stop offset="84.1%" stop-color="rgb(200, 55, 171)" stop-opacity="1"/>
+      </radialGradient>
+      <radialGradient cx="19.38" cy="42.035" r="44.899" fx="19.38" fy="42.035" id="radialGradient_5" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(255, 221, 85)" stop-opacity="1"/>
+         <stop offset="32.800000000000004%" stop-color="rgb(255, 84, 63)" stop-opacity="1"/>
+         <stop offset="34.8%" stop-color="rgb(252, 82, 69)" stop-opacity="1"/>
+         <stop offset="50.4%" stop-color="rgb(230, 71, 113)" stop-opacity="1"/>
+         <stop offset="64.3%" stop-color="rgb(213, 62, 145)" stop-opacity="1"/>
+         <stop offset="76.1%" stop-color="rgb(204, 57, 164)" stop-opacity="1"/>
+         <stop offset="84.1%" stop-color="rgb(200, 55, 171)" stop-opacity="1"/>
+      </radialGradient>
+      <radialGradient cx="11.786" cy="5.54" r="29.812999999999995" fx="11.786" fy="5.54" id="radialGradient_7" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(65, 104, 201)" stop-opacity="1"/>
+         <stop offset="99.9%" stop-color="rgb(65, 104, 201)" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient cx="11.786" cy="5.54" r="29.812999999999995" fx="11.786" fy="5.54" id="radialGradient_8" gradientUnits="userSpaceOnUse">
+         <stop offset="0%" stop-color="rgb(65, 104, 201)" stop-opacity="1"/>
+         <stop offset="99.9%" stop-color="rgb(65, 104, 201)" stop-opacity="0"/>
+      </radialGradient>
+   </defs>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="g_1" transform="matrix(2.1333333333333333, 0.0, 0.0, 2.1333333333333333, 0.0, 0.0)" inkscape:label="PreCompLayer">
+      <g inkscape:groupmode="layer" id="g_2" transform="matrix(5.0, 0.0, 0.0, 5.0, 0.0, 0.0)" inkscape:label="ShapeLayer" style="">
+         <g id="g_3" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:url(#radialGradient_4)">
+            <path d="M 34.017,41.99 C 34.017,41.99 14.017,42.009 14.017,42.009 C 9.616999999999999,42.013 6.014,38.417 6.009,34.017 C 6.009,34.017 5.99,14.017 5.99,14.017 C 5.986000000000001,9.616999999999999 9.581999999999999,6.014 13.982,6.009 C 13.982,6.009 33.982,5.99 33.982,5.99 C 38.382,5.986000000000001 41.985,9.581999999999999 41.99,13.982 C 41.99,13.982 42.009,33.982 42.009,33.982 C 42.014,38.382999999999996 38.417,41.986000000000004 34.017,41.99 C 34.017,41.99 34.017,41.99 34.017,41.99 Z" style="fill-opacity:1.0;fill:url(#radialGradient_5)"/>
+         </g>
+         <g id="g_6" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:url(#radialGradient_7)">
+            <path d="M 34.017,41.99 C 34.017,41.99 14.017,42.009 14.017,42.009 C 9.616999999999999,42.013 6.014,38.417 6.009,34.017 C 6.009,34.017 5.99,14.017 5.99,14.017 C 5.986000000000001,9.616999999999999 9.581999999999999,6.014 13.982,6.009 C 13.982,6.009 33.982,5.99 33.982,5.99 C 38.382,5.986000000000001 41.985,9.581999999999999 41.99,13.982 C 41.99,13.982 42.009,33.982 42.009,33.982 C 42.014,38.382999999999996 38.417,41.986000000000004 34.017,41.99 C 34.017,41.99 34.017,41.99 34.017,41.99 Z" style="fill-opacity:1.0;fill:url(#radialGradient_8)"/>
+         </g>
+         <g id="g_9" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(255, 255, 255)">
+            <path d="M 24,31 C 20.141,31 17,27.86 17,24 C 17,20.14 20.141,17 24,17 C 27.859,17 31,20.14 31,24 C 31,27.86 27.859,31 24,31 C 24,31 24,31 24,31 Z
+M 24,19 C 21.243,19 19,21.243 19,24 C 19,26.757 21.243,29 24,29 C 26.757,29 29,26.757 29,24 C 29,21.243 26.757,19 24,19 C 24,19 24,19 24,19 Z" style="fill-opacity:1.0;fill:rgb(255, 255, 255)"/>
+         </g>
+         <g id="g_10" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(255, 255, 255)">
+            <ellipse rx="1.5" ry="1.5" cx="31.5" cy="16.5" id="ellipse_11" style="fill-opacity:1.0;fill:rgb(255, 255, 255)"/>
+         </g>
+         <g id="g_12" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(255, 255, 255)">
+            <path d="M 30,37 C 30,37 18,37 18,37 C 14.141,37 11,33.86 11,30 C 11,30 11,18 11,18 C 11,14.14 14.141,11 18,11 C 18,11 30,11 30,11 C 33.859,11 37,14.14 37,18 C 37,18 37,30 37,30 C 37,33.86 33.859,37 30,37 C 30,37 30,37 30,37 Z
+M 18,13 C 15.243,13 13,15.243 13,18 C 13,18 13,30 13,30 C 13,32.757 15.243,35 18,35 C 18,35 30,35 30,35 C 32.757,35 35,32.757 35,30 C 35,30 35,18 35,18 C 35,15.243 32.757,13 30,13 C 30,13 18,13 18,13 C 18,13 18,13 18,13 Z" style="fill-opacity:1.0;fill:rgb(255, 255, 255)"/>
+         </g>
+      </g>
+   </g>
+</svg>

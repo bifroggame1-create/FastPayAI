@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="svg_1" sodipodi:docname="addone--@DMJ_Stickers--re-edit" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs>
+      <mask id="id_4" mask-type="alpha">
+         <g inkscape:groupmode="layer" id="g_7" inkscape:label="+2" transform="matrix(1.0, 0.0, 0.0, 1.0, -24.0, 0.0)" style="">
+            <g id="Vector_79" inkscape:label="Vector 79" transform="matrix(6.0, 0.0, 0.0, 6.0, 54.0, 24.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.66;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round">
+               <path d="M 2,0 C 2,0 -2,0 -2,0 " style=""/>
+            </g>
+            <g id="Vector_78" inkscape:label="Vector 78" transform="matrix(6.0, 0.0, 0.0, 6.0, 48.0, 0.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.66;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round">
+               <path d="M 1,4 C 1,4 1,-4 1,-4 C 1,-4 -1,-2 -1,-2 " style=""/>
+            </g>
+            <g id="Vector_80" inkscape:label="Vector 80" transform="matrix(3.6739403974420594e-16, -6.0, 6.0, 3.6739403974420594e-16, 0.0, 0.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.66;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round"/>
+            <g id="Vector_76" inkscape:label="Vector 76" transform="matrix(6.0, 0.0, 0.0, 6.0, 0.0, 0.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.66;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round">
+               <path d="M 3,0 C 3,0 -3,0 -3,0 " style=""/>
+            </g>
+         </g>
+      </mask>
+      <mask id="id_11" mask-type="alpha">
+         <g inkscape:groupmode="layer" id="g_14" inkscape:label="+1" transform="matrix(1.0, 0.0, 0.0, 1.0, -24.0, 0.0)" style="">
+            <g id="g_15" inkscape:label="Vector 79" transform="matrix(6.0, 0.0, 0.0, 6.0, 54.0, 24.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.66;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round"/>
+            <g id="g_16" inkscape:label="Vector 78" transform="matrix(6.0, 0.0, 0.0, 6.0, 48.0, 0.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.66;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round"/>
+            <g id="g_17" inkscape:label="Vector 80" transform="matrix(3.6739403974420594e-16, -6.0, 6.0, 3.6739403974420594e-16, 0.0, 0.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.66;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round"/>
+            <g id="g_18" inkscape:label="Vector 76" transform="matrix(6.0, 0.0, 0.0, 6.0, 0.0, 0.0)" style="stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:1.66;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round">
+               <path d="M 3,0 C 3,0 -3,0 -3,0 " style=""/>
+            </g>
+         </g>
+      </mask>
+   </defs>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="g_2" inkscape:label="+1" transform="matrix(17.0, 0.0, 0.0, 17.0, 0.0, 0.0)">
+      <g inkscape:groupmode="layer" id="block_2" inkscape:label="block 2" transform="matrix(0.16667, 0.0, 0.0, 0.16667, 14.999759999999998, 15.0)" style="">
+         <g id="Rectangle_111" inkscape:label="Rectangle 111" transform="matrix(6.0, 0.0, 0.0, 6.0, 0.0, 0.0)" style="fill-opacity:0.6;fill:rgb(255, 255, 255);fill-rule:nonzero">
+            <path d="M 12,-5 C 12,-5 12,5 12,5 C 12,7.209 10.209,9 8,9 C 8,9 -8,9 -8,9 C -10.209,9 -12,7.209 -12,5 C -12,5 -12,-5 -12,-5 C -12,-7.209 -10.209,-9 -8,-9 C -8,-9 8,-9 8,-9 C 10.209,-9 12,-7.209 12,-5 Z" id="Path_1" inkscape:label="Path 1" style="fill-opacity:0.6;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+         </g>
+      </g>
+      <g inkscape:groupmode="layer" id="g_3" inkscape:label="block 2" transform="matrix(0.16667, 0.0, 0.0, 0.16667, 14.999759999999998, 15.0)" mask="url(#id_4)" style="">
+         <g id="g_5" inkscape:label="Rectangle 111" transform="matrix(6.0, 0.0, 0.0, 6.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero">
+            <path d="M 12,-5 C 12,-5 12,5 12,5 C 12,7.209 10.209,9 8,9 C 8,9 -8,9 -8,9 C -10.209,9 -12,7.209 -12,5 C -12,5 -12,-5 -12,-5 C -12,-7.209 -10.209,-9 -8,-9 C -8,-9 8,-9 8,-9 C 10.209,-9 12,-7.209 12,-5 Z" id="path_6" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero"/>
+         </g>
+      </g>
+      <g inkscape:groupmode="layer" id="block" inkscape:label="block" transform="matrix(0.0, 0.0, 0.0, 0.0, 3.0, 15.0)" style="">
+         <g id="g_8" inkscape:label="Rectangle 111" transform="matrix(6.0, 0.0, 0.0, 6.0, 0.0, 0.0)" style="fill-opacity:0.6;fill:rgb(255, 255, 255);fill-rule:nonzero">
+            <path d="M 12,-5 C 12,-5 12,5 12,5 C 12,7.209 10.209,9 8,9 C 8,9 -8,9 -8,9 C -10.209,9 -12,7.209 -12,5 C -12,5 -12,-5 -12,-5 C -12,-7.209 -10.209,-9 -8,-9 C -8,-9 8,-9 8,-9 C 10.209,-9 12,-7.209 12,-5 Z" id="path_9" inkscape:label="Path 1" style="fill-opacity:0.6;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+         </g>
+      </g>
+      <g inkscape:groupmode="layer" id="g_10" inkscape:label="block" transform="matrix(0.0, 0.0, 0.0, 0.0, 3.0, 15.0)" mask="url(#id_11)" style="">
+         <g id="stroke">
+            <use xlink:href="#g_12" style="stroke:rgb(255, 255, 255);stroke-opacity:0.5;stroke-width:0.5;stroke-miterlimit:0;stroke-linecap:round;stroke-linejoin:round"/>
+            <g id="g_12" inkscape:label="Rectangle 111" transform="matrix(6.0, 0.0, 0.0, 6.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero">
+               <path d="M 12,-5 C 12,-5 12,5 12,5 C 12,7.209 10.209,9 8,9 C 8,9 -8,9 -8,9 C -10.209,9 -12,7.209 -12,5 C -12,5 -12,-5 -12,-5 C -12,-7.209 -10.209,-9 -8,-9 C -8,-9 8,-9 8,-9 C 10.209,-9 12,-7.209 12,-5 Z" id="path_13" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero"/>
+            </g>
+         </g>
+      </g>
+   </g>
+</svg>

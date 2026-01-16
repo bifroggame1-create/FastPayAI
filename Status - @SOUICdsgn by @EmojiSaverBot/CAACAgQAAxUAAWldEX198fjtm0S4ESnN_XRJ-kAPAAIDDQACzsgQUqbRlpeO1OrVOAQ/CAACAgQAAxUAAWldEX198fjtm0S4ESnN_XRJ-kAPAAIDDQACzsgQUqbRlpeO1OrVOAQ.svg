@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs>
+      <linearGradient x1="320.25" y1="34.5" x2="93.84" y2="318.21" id="linearGradient_3" gradientUnits="userSpaceOnUse">
+         <stop offset="28.999999999999996%" stop-color="rgb(245, 130, 125)" stop-opacity="1"/>
+         <stop offset="46.0%" stop-color="rgb(250, 94, 214)" stop-opacity="1"/>
+         <stop offset="72.0%" stop-color="rgb(173, 107, 255)" stop-opacity="1"/>
+         <stop offset="100%" stop-color="rgb(105, 143, 255)" stop-opacity="1"/>
+      </linearGradient>
+      <linearGradient x1="320.25" y1="34.5" x2="93.84" y2="318.21" id="linearGradient_4" gradientUnits="userSpaceOnUse">
+         <stop offset="28.999999999999996%" stop-color="rgb(245, 130, 125)" stop-opacity="1"/>
+         <stop offset="46.0%" stop-color="rgb(250, 94, 214)" stop-opacity="1"/>
+         <stop offset="72.0%" stop-color="rgb(173, 107, 255)" stop-opacity="1"/>
+         <stop offset="100%" stop-color="rgb(105, 143, 255)" stop-opacity="1"/>
+      </linearGradient>
+   </defs>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="surface1045" inkscape:label="surface1045" transform="matrix(1.3307009746588696, 0.0, 0.0, 1.3307009746588696, 0.0, 0.0)" style="">
+      <g id="g_1" inkscape:label="surface1045" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="">
+         <g id="g_2" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:url(#linearGradient_3)">
+            <path d="M 185.41,275.99 C 185.41,275.99 130.37,310.59 130.37,310.59 C 124.65,314.17999999999995 117.1,312.47 113.5,306.75 C 111.73,303.94 111.18,300.52000000000004 111.98,297.3 C 111.98,297.3 120.91,261.27 120.91,261.27 C 123.84,249.42999999999998 131.72,239.43 142.54,233.81 C 142.54,233.81 193.95,207.11 193.95,207.11 C 196.72,205.67000000000002 197.8,202.25 196.36,199.48 C 195.24,197.32 192.85999999999999,196.12 190.45,196.5 C 190.45,196.5 133.18,205.56 133.18,205.56 C 119.5,207.72 105.57,203.76 95.07,194.73 C 95.07,194.73 73.03,175.78 73.03,175.78 C 67.91,171.37 67.32000000000001,163.66 71.73,158.54 C 73.83,156.09 76.81,154.57999999999998 80.02,154.32 C 80.02,154.32 145.26,149.08 145.26,149.08 C 149.88,148.71 153.89000000000001,145.75 155.62,141.46 C 155.62,141.46 180.57,79.66 180.57,79.66 C 183.1,73.39 190.22,70.36 196.49,72.89 C 199.57000000000002,74.14 202.01,76.58 203.25,79.66 C 203.25,79.66 228.2,141.46 228.2,141.46 C 229.92999999999998,145.75 233.95,148.71 238.57,149.08 C 238.57,149.08 304.15,154.34 304.15,154.34 C 310.88,154.88 315.90000000000003,160.79000000000002 315.36,167.52 C 315.11,170.70000000000002 313.62,173.64000000000001 311.23,175.74 C 311.23,175.74 260.74,219.91 260.74,219.91 C 257.33,222.89 255.85999999999999,227.5 256.89,231.91 C 256.89,231.91 272.32,297.73 272.32,297.73 C 273.86,304.31 269.78,310.89 263.21,312.43 C 260.03,313.18 256.68,312.62 253.91,310.88 C 253.91,310.88 198.42,275.99 198.42,275.99 C 194.44,273.49 189.39,273.49 185.41,275.99 C 185.41,275.99 185.41,275.99 185.41,275.99 Z" style="fill-opacity:1.0;fill:url(#linearGradient_4)"/>
+         </g>
+      </g>
+   </g>
+</svg>

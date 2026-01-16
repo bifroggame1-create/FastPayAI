@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="surface6" inkscape:label="surface6" transform="matrix(1.3333000000000002, 0.0, 0.0, 1.3333000000000002, 0.0, 0.0)" style="">
+      <g id="g_1" inkscape:label="surface6" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="">
+         <g id="g_2" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:0.0;fill:rgb(255, 0, 0)"/>
+         <g id="g_3" transform="matrix(0.75, 0.0, 0.0, 0.75, 0.0, 0.0)" style="stroke:rgb(255, 0, 0);stroke-opacity:1.0;stroke-width:20.0;stroke-miterlimit:4.0;stroke-linecap:butt;stroke-linejoin:miter"/>
+      </g>
+   </g>
+</svg>

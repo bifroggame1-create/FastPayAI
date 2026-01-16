@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="brujula" sodipodi:docname="brujula" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="Calque_26_Silhouettes" inkscape:label="Calque 26 Silhouettes" transform="matrix(0.0, 0.0, 0.0, 0.0, 240.285, 248.392)" style="">
+      <g id="Groupe_1" inkscape:label="Groupe 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 170.276, 164.948)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero">
+         <path d="M 4.928,-164.577 C 4.02,-164.658 3.0820000000000003,-164.697 2.111,-164.681 C 1.1680000000000001,-164.696 0.257,-164.66199999999998 -0.626,-164.587 C -66.43100000000001,-162.469 -124.655,-121.352 -147.38,-59.132 C -170.027,2.8730000000000047 -149.492,75.64200000000001 -98.122,116.927 C -46.446,158.46 27.487000000000002,164.697 84.486,129.74 C 141.39000000000001,94.84 170.02700000000002,27.940999999999995 157.68,-37.338 C 143.872,-110.34 77.77,-162.156 4.928,-164.577 Z" id="Tracé_1" inkscape:label="Tracé 1" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="Calque_25_Silhouettes" inkscape:label="Calque 25 Silhouettes" transform="matrix(0.0, 0.0, 0.0, 0.0, 242.397, 242.463)" style="">
+      <g id="Groupe_2" inkscape:label="Groupe 2" transform="matrix(1.0, 0.0, 0.0, 1.0, 135.841, 135.842)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero">
+         <path d="M 131.265,0 C 131.265,72.496 72.495,131.265 0,131.265 C -72.496,131.265 -131.265,72.496 -131.265,0 C -131.265,-72.496 -72.496,-131.265 0,-131.265 C 72.495,-131.265 131.265,-72.496 131.265,0 Z" id="path_1" inkscape:label="Tracé 1" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+      </g>
+      <g id="g_2" inkscape:label="Groupe 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 135.841, 135.843)" style="fill-opacity:1.0;fill:rgb(70, 43, 23);fill-rule:nonzero">
+         <path d="M -0.001,-126.938 C -69.992,-126.938 -126.936,-69.994 -126.936,-0.001 C -126.936,69.993 -69.992,126.937 -0.001,126.937 C 69.994,126.937 126.938,69.993 126.938,-0.001 C 126.938,-69.994 69.994,-126.938 -0.001,-126.938 Z
+M -0.001,135.593 C -74.765,135.593 -135.591,74.76599999999999 -135.591,-0.001 C -135.591,-74.766 -74.765,-135.593 -0.001,-135.593 C 74.76599999999999,-135.593 135.591,-74.766 135.591,-0.001 C 135.591,74.76599999999999 74.76599999999999,135.593 -0.001,135.593 Z" id="path_3" inkscape:label="Tracé 1" style="fill-opacity:1.0;fill:rgb(70, 43, 23);fill-rule:nonzero"/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="Calque_24_Silhouettes" inkscape:label="Calque 24 Silhouettes" transform="matrix(0.0, 0.0, 0.0, 0.0, 242.397, 242.462)" style="">
+      <g id="g_4" inkscape:label="Groupe 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 102.63, 102.63)" style="fill-opacity:1.0;fill:rgb(246, 212, 54);fill-rule:nonzero">
+         <path d="M 102.38,0 C 102.38,56.542 56.543,102.379 0,102.379 C -56.543,102.379 -102.38,56.542 -102.38,0 C -102.38,-56.543 -56.543,-102.379 0,-102.379 C 56.543,-102.379 102.38,-56.543 102.38,0 Z" id="path_5" inkscape:label="Tracé 1" style="fill-opacity:1.0;fill:rgb(246, 212, 54);fill-rule:nonzero"/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="Calque_22_Silhouettes" inkscape:label="Calque 22 Silhouettes" transform="matrix(0.0, 0.0, 0.0, 0.0, 242.397, 242.463)" style="">
+      <g id="g_6" inkscape:label="Groupe 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 106.958, 106.957)" style="fill-opacity:1.0;fill:rgb(70, 43, 23);fill-rule:nonzero">
+         <path d="M -0.001,-98.053 C -54.065,-98.053 -98.053,-54.068 -98.053,-0.001 C -98.053,54.065000000000005 -54.065,98.053 -0.001,98.053 C 54.067,98.053 98.054,54.065000000000005 98.054,-0.001 C 98.054,-54.068 54.067,-98.053 -0.001,-98.053 Z
+M -0.001,106.708 C -58.838,106.708 -106.708,58.838 -106.708,-0.001 C -106.708,-58.839999999999996 -58.838,-106.708 -0.001,-106.708 C 58.839000000000006,-106.708 106.708,-58.839999999999996 106.708,-0.001 C 106.708,58.838 58.839000000000006,106.708 -0.001,106.708 Z" id="path_7" inkscape:label="Tracé 1" style="fill-opacity:1.0;fill:rgb(70, 43, 23);fill-rule:nonzero"/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="Calque_21_Silhouettes" inkscape:label="Calque 21 Silhouettes" transform="matrix(0.0, 0.0, 0.0, 0.0, 242.398, 242.181)" opacity="0.7" style="">
+      <g id="Groupe_6" inkscape:label="Groupe 6" transform="matrix(1.0, 0.0, 0.0, 1.0, 88.864, 88.863)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero">
+         <path d="M -83.455,-81.403 C -83.455,-81.403 -17.288,17.288 -17.288,17.288 C -17.288,17.288 81.403,83.455 81.403,83.455 C 82.75,84.359 84.358,82.74900000000001 83.456,81.403 C 83.456,81.403 17.288,-17.288 17.288,-17.288 C 17.288,-17.288 -81.402,-83.455 -81.402,-83.455 C -82.749,-84.359 -84.358,-82.75 -83.455,-81.403 Z" id="path_8" inkscape:label="Tracé 1" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+      </g>
+      <g id="Groupe_5" inkscape:label="Groupe 5" transform="matrix(1.0, 0.0, 0.0, 1.0, 88.865, 88.582)" style="fill-opacity:1.0;fill:rgb(70, 43, 23);fill-rule:nonzero">
+         <path d="M -79.862,-83.532 C -79.862,-83.532 -79.859,-83.525 -79.859,-83.525 C -79.859,-83.525 -79.862,-83.529 -79.862,-83.529 C -79.862,-83.529 -79.862,-83.532 -79.862,-83.532 Z
+M -14.17,14.451 C -14.17,14.451 71.818,72.1 71.818,72.1 C 71.818,72.1 14.17,-13.889 14.17,-13.889 C 14.17,-13.889 -71.824,-71.543 -71.824,-71.543 C -71.824,-71.543 -14.17,14.451 -14.17,14.451 Z
+M 82.24,88.332 C 81.121,88.332 79.991,88.002 78.991,87.329 C 78.991,87.329 -20.407,20.688 -20.407,20.688 C -20.407,20.688 -87.051,-78.715 -87.051,-78.715 C -88.61500000000001,-81.049 -88.32000000000001,-84.068 -86.331,-86.053 C -84.34700000000001,-88.03699999999999 -81.327,-88.33200000000001 -78.994,-86.769 C -78.994,-86.769 20.407,-20.127 20.407,-20.127 C 20.407,-20.127 87.049,79.274 87.049,79.274 C 88.61500000000001,81.607 88.319,84.62700000000001 86.334,86.614 C 85.19800000000001,87.75 83.72699999999999,88.332 82.24,88.332 Z" id="path_9" inkscape:label="Tracé 1" style="fill-opacity:1.0;fill:rgb(70, 43, 23);fill-rule:nonzero"/>
+      </g>
+      <g id="Groupe_4" inkscape:label="Groupe 4" transform="matrix(1.0, 0.0, 0.0, 1.0, 88.864, 88.863)" style="fill-opacity:1.0;fill:rgb(251, 121, 107);fill-rule:nonzero">
+         <path d="M -83.455,-81.403 C -83.455,-81.403 -17.288,17.288 -17.288,17.288 C -17.288,17.288 81.403,83.455 81.403,83.455 C 82.75,84.359 84.358,82.74900000000001 83.456,81.403 C 83.456,81.403 17.288,-17.288 17.288,-17.288 C 17.288,-17.288 -81.402,-83.455 -81.402,-83.455 C -82.749,-84.359 -84.358,-82.75 -83.455,-81.403 Z" id="path_10" inkscape:label="Tracé 1" style="fill-opacity:1.0;fill:rgb(251, 121, 107);fill-rule:nonzero"/>
+      </g>
+      <g id="Groupe_3" inkscape:label="Groupe 3" transform="matrix(1.0, 0.0, 0.0, 1.0, 88.865, 88.582)" style="fill-opacity:1.0;fill:rgb(70, 43, 23);fill-rule:nonzero">
+         <path d="M -79.862,-83.532 C -79.862,-83.532 -79.859,-83.525 -79.859,-83.525 C -79.859,-83.525 -79.862,-83.529 -79.862,-83.529 C -79.862,-83.529 -79.862,-83.532 -79.862,-83.532 Z
+M -14.17,14.451 C -14.17,14.451 14.17,-13.889 14.17,-13.889 C 14.17,-13.889 -71.824,-71.543 -71.824,-71.543 C -71.824,-71.543 -14.17,14.451 -14.17,14.451 Z
+M 82.24,88.332 C 81.121,88.332 79.991,88.002 78.991,87.329 C 78.991,87.329 -20.407,20.688 -20.407,20.688 C -20.407,20.688 -87.051,-78.715 -87.051,-78.715 C -88.61500000000001,-81.049 -88.32000000000001,-84.068 -86.331,-86.053 C -84.34700000000001,-88.03699999999999 -81.327,-88.33200000000001 -78.994,-86.769 C -78.994,-86.769 20.407,-20.127 20.407,-20.127 C 20.407,-20.127 87.049,79.274 87.049,79.274 C 88.61500000000001,81.607 88.319,84.62700000000001 86.334,86.614 C 85.19800000000001,87.75 83.72699999999999,88.332 82.24,88.332 Z" id="path_11" inkscape:label="Tracé 1" style="fill-opacity:1.0;fill:rgb(70, 43, 23);fill-rule:nonzero"/>
+      </g>
+      <g id="g_12" inkscape:label="Groupe 2" transform="matrix(1.0, 0.0, 0.0, 1.0, 88.864, 88.864)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero">
+         <path d="M -17.288,17.288 C -17.288,17.288 17.288,-17.288 17.288,-17.288 " id="path_13" inkscape:label="Tracé 1" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero"/>
+      </g>
+      <g id="g_14" inkscape:label="Groupe 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 88.865, 88.863)" style="fill-opacity:1.0;fill:rgb(70, 43, 23);fill-rule:nonzero">
+         <path d="M -14.229,20.348 C -14.229,20.348 -20.348,14.23 -20.348,14.23 C -20.348,14.23 14.229,-20.348 14.229,-20.348 C 14.229,-20.348 20.348,-14.23 20.348,-14.23 C 20.348,-14.23 -14.229,20.348 -14.229,20.348 Z" id="path_15" inkscape:label="Tracé 1" style="fill-opacity:1.0;fill:rgb(70, 43, 23);fill-rule:nonzero"/>
+      </g>
+   </g>
+</svg>

@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="surface2447" inkscape:label="surface2447" transform="matrix(6.758906930693071, 0.0, 0.0, 6.758906930693071, 0.0, 0.0)" style="">
+      <g id="g_1" inkscape:label="surface2447" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="">
+         <g id="g_2" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(20, 201, 163)">
+            <path d="M 11.7,56.44 C 11.7,55.4 12.74,54.56 13.58,54.56 C 13.58,54.56 62.61,54.56 62.61,54.56 C 63.65,54.56 64.48,55.4 64.48,56.44 C 64.48,57.48 63.45,58.31 62.61,58.31 C 62.61,58.31 13.58,58.31 13.58,58.31 C 12.54,58.31 11.7,57.48 11.7,56.44 C 11.7,56.44 11.7,56.44 11.7,56.44 Z" style="fill-opacity:1.0;fill:rgb(20, 201, 163)"/>
+         </g>
+         <g id="g_3" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="">
+            <g id="g_4" transform="matrix(4.592425496802574e-17, -0.75, 0.75, 4.592425496802574e-17, -31.83, 66.61)" style="stroke:rgb(20, 201, 163);stroke-opacity:1.0;stroke-width:5.0;stroke-miterlimit:4.0;stroke-linecap:butt;stroke-linejoin:miter">
+               <path d="M 28.69,65.63 C 28.69,65.63 55.05,65.63 55.05,65.63 C 58.089999999999996,65.63 60.55,68.67 60.55,71.13 C 60.55,71.13 60.55,115.31 60.55,115.31 C 60.55,118.35000000000001 58.089999999999996,120.81 55.05,120.81 C 55.05,120.81 28.69,120.81 28.69,120.81 C 25.650000000000002,120.81 23.19,117.77 23.19,115.31 C 23.19,115.31 23.19,71.13 23.19,71.13 C 23.19,68.08999999999999 25.650000000000002,65.63 28.69,65.63 C 28.69,65.63 28.69,65.63 28.69,65.63 Z" style=""/>
+            </g>
+         </g>
+      </g>
+   </g>
+</svg>

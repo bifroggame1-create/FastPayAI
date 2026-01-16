@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="surface1905" inkscape:label="surface1905" transform="matrix(1.3333000000000002, 0.0, 0.0, 1.3333000000000002, 0.0, 0.0)" style="">
+      <g id="g_1" inkscape:label="surface1905" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="">
+         <g id="g_2" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(250, 168, 26)">
+            <path d="M 132.57,228.23 C 185.39999999999998,228.23 228.23,185.39999999999998 228.23,132.57 C 228.23,108.08 219.01999999999998,85.73 203.88,68.81 C 266.36,74.93 315.19,127.60999999999999 315.19,191.7 C 315.19,259.9 259.9,315.19 191.7,315.19 C 127.60999999999999,315.19 74.93,266.36 68.81,203.88 C 85.73,219.01999999999998 108.08,228.23 132.57,228.23 C 132.57,228.23 132.57,228.23 132.57,228.23 Z" style="fill-opacity:1.0;fill:rgb(250, 168, 26)"/>
+         </g>
+      </g>
+   </g>
+</svg>

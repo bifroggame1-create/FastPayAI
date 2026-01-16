@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="svg_1" sodipodi:docname="22 Man Dancing" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="all" inkscape:label="all" transform="matrix(0.8, 0.0, 0.0, 0.8, 164.0, 302.0)" opacity="1">
+      <g inkscape:groupmode="layer" id="Shape" inkscape:label="Shape" transform="matrix(1.0, 0.0, 0.0, 1.0, 115.0, -6.069000000000003)" style="">
+         <g id="g_2" inkscape:label="Shape" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero">
+            <path d="M -0.001,-136.503 C 75.09899999999999,-136.503 121.579,-84.883 121.579,-0.003 C 121.579,84.637 75.09899999999999,136.507 -0.001,136.507 C -75.101,136.507 -121.581,84.637 -121.581,-0.003 C -121.581,-84.883 -75.101,-136.503 -0.001,-136.503 Z
+M 0.003,-94.585 C -49.907,-94.585 -78.037,-62.625 -78.037,0.005 C -78.037,62.385000000000005 -49.907,94.585 0.003,94.585 C 49.903,94.585 78.033,62.385000000000005 78.033,0.005 C 78.033,-62.625 49.903,-94.585 0.003,-94.585 Z" id="Path_1" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero"/>
+         </g>
+      </g>
+      <g inkscape:groupmode="layer" id="g_3" inkscape:label="/" transform="matrix(1.0, 0.0, 0.0, 1.0, 313.076, -56.155)" style="">
+         <g id="g_4" inkscape:label="/" transform="matrix(1.0, 0.0, 0.0, 0.99641, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero">
+            <path d="M -41.738,221.754 C -26.831,169.905 62.675,-134.667 87.922,-221.756 C 72.544,-221.97 52.544,-221.97 41.732,-221.756 C 16.919,-135.095 -70.25500000000001,151.103 -87.918,221.754 C -71.831,222.405 -55.581,222.405 -41.738,221.754 Z" id="path_5" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero"/>
+         </g>
+      </g>
+      <g inkscape:groupmode="layer" id="g_6" inkscape:label="\" transform="matrix(-1.0, 0.0, 0.0, 1.0, -83.081, -56.155)" style="">
+         <g id="g_7" inkscape:label="/ copy" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero">
+            <path d="M -41.738,221.754 C -26.831,169.905 62.675,-134.667 87.922,-221.756 C 72.544,-221.97 52.544,-221.97 41.732,-221.756 C 16.919,-135.095 -70.25500000000001,151.103 -87.918,221.754 C -71.831,222.405 -55.581,222.405 -41.738,221.754 Z" id="path_8" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(0, 0, 0);fill-rule:nonzero"/>
+         </g>
+      </g>
+   </g>
+</svg>

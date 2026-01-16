@@ -1,0 +1,72 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" version="1.1" id="svg_1" sodipodi:docname="8-expert" inkscape:export-xdpi="96" inkscape:export-ydpi="96" style="fill: none; stroke: none">
+   <defs/>
+   <sodipodi:namedview inkscape:pagecheckerboard="true" borderlayer="true" bordercolor="#666666" pagecolor="#ffffff"/>
+   <g inkscape:groupmode="layer" id="BG" inkscape:label="BG" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="">
+      <g id="Group_1" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 256.0, 256.0)" style="fill-opacity:1.0;fill:rgb(31, 31, 31);fill-rule:nonzero">
+         <path d="M 213.362,0 C 213.362,117.837 117.836,213.363 -0.001,213.363 C -117.83800000000001,213.363 -213.363,117.837 -213.363,0 C -213.363,-117.837 -117.83800000000001,-213.363 -0.001,-213.363 C 117.836,-213.363 213.362,-117.837 213.362,0 Z" id="Path_1" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(31, 31, 31);fill-rule:nonzero"/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="SUN" inkscape:label="SUN" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="">
+      <g id="Group_3" inkscape:label="Group 3" transform="matrix(1.0, 0.0, 0.0, 1.0, 279.89, 254.033)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:10.0;stroke-linecap:round;stroke-linejoin:miter">
+         <path d="M 3.393,97.678 C 2.267,97.716 1.135,97.736 -0.001,97.736 C -53.979,97.736 -97.737,53.979 -97.737,0.001 C -97.737,-53.978 -53.979,-97.736 -0.001,-97.736 C 53.978,-97.736 97.736,-53.978 97.736,0.001 C 97.736,46.056999999999995 65.879,84.673 22.998,95.015 " id="path_2" inkscape:label="Path 1" style=""/>
+      </g>
+      <g id="Group_2" inkscape:label="Group 2" transform="matrix(1.0, 0.0, 0.0, 1.0, 280.879, 255.187)" style="fill-opacity:1.0;fill:rgb(31, 31, 31);fill-rule:nonzero;stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:10.0;stroke-linecap:butt;stroke-linejoin:miter">
+         <path d="M 25.912,0 C 25.912,14.311 14.311,25.912 0,25.912 C -14.311,25.912 -25.912,14.311 -25.912,0 C -25.912,-14.311 -14.311,-25.912 0,-25.912 C 14.311,-25.912 25.912,-14.311 25.912,0 Z" id="path_3" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(31, 31, 31);fill-rule:nonzero"/>
+      </g>
+      <g id="g_4" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 262.517, 350.341)" style="fill-opacity:1.0;fill:rgb(31, 31, 31);fill-rule:nonzero;stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:10.0;stroke-linecap:butt;stroke-linejoin:miter">
+         <path d="M 20.769,0 C 20.769,-11.471 11.47,-20.769 0,-20.769 C -11.471,-20.769 -20.769,-11.471 -20.769,0 C -20.769,11.471 -11.471,20.769 0,20.769 C 11.47,20.769 20.769,11.471 20.769,0 Z" id="path_5" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(31, 31, 31);fill-rule:nonzero"/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="SATURN" inkscape:label="SATURN" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="">
+      <g id="g_6" inkscape:label="Group 2" transform="matrix(1.0, 0.0, 0.0, 1.0, 93.495, 260.835)" style="fill-opacity:1.0;fill:rgb(31, 31, 31);fill-rule:nonzero;stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:10.0;stroke-linecap:butt;stroke-linejoin:miter">
+         <path d="M 35.307,0 C 35.307,19.5 19.499,35.308 -0.001,35.308 C -19.501,35.308 -35.308,19.5 -35.308,0 C -35.308,-19.5 -19.501,-35.308 -0.001,-35.308 C 19.499,-35.308 35.307,-19.5 35.307,0 Z" id="path_7" inkscape:label="Path 1" style="fill-opacity:1.0;fill:rgb(31, 31, 31);fill-rule:nonzero"/>
+      </g>
+      <g id="g_8" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 91.333, 258.282)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:10.0;stroke-linecap:butt;stroke-linejoin:miter">
+         <path d="M 35.201,-9.913 C 50.322,-2.449 59.407,6.313 57.668,13.273 C 54.967999999999996,24.084 27.175,26.451999999999998 -4.409,18.564 C -35.993,10.675 -59.408,-4.4830000000000005 -56.708,-15.294 C -54.772999999999996,-23.04 -39.953,-26.452 -20.087,-24.861 " id="path_9" inkscape:label="Path 1" style=""/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="PLANET" inkscape:label="PLANET" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="fill-opacity:1.0;fill:rgb(31, 31, 31);fill-rule:nonzero">
+      <g id="g_10" inkscape:label="Group 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 383.176, 144.231)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:10.0;stroke-linecap:butt;stroke-linejoin:miter">
+         <path d="M 15.627,0 C 15.627,8.63 8.631,15.626 0.001,15.626 C -8.63,15.626 -15.626,8.63 -15.626,0 C -15.626,-8.63 -8.63,-15.626 0.001,-15.626 C 8.631,-15.626 15.627,-8.63 15.627,0 Z" id="path_11" inkscape:label="Path 1" style=""/>
+      </g>
+   </g>
+   <g inkscape:groupmode="layer" id="ray" inkscape:label="ray" transform="matrix(1.0, 0.0, 0.0, 1.0, 256.0, 256.0)" style="">
+      <g id="Shape_1" inkscape:label="Shape 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+   </g>
+   <g inkscape:groupmode="layer" id="ray_3" inkscape:label="ray 3" transform="matrix(6.123233995736766e-17, 1.0, -1.0, 6.123233995736766e-17, 280.879, 231.121)" style="">
+      <g id="g_12" inkscape:label="Shape 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+   </g>
+   <g inkscape:groupmode="layer" id="ray_4" inkscape:label="ray 4" transform="matrix(-0.7071067811865475, 0.7071067811865476, -0.7071067811865476, -0.7071067811865475, 298.4711096091401, 238.40789039085988)" style="">
+      <g id="g_13" inkscape:label="Shape 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+   </g>
+   <g inkscape:groupmode="layer" id="ray_5" inkscape:label="ray 5" transform="matrix(-1.0, 1.2246467991473532e-16, -1.2246467991473532e-16, -1.0, 305.75800000000004, 256.0)" style="">
+      <g id="g_14" inkscape:label="Shape 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+   </g>
+   <g inkscape:groupmode="layer" id="ray_6" inkscape:label="ray 6" transform="matrix(-0.7071067811865477, -0.7071067811865475, 0.7071067811865475, -0.7071067811865477, 298.4711096091401, 273.5921096091401)" style="">
+      <g id="g_15" inkscape:label="Shape 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+   </g>
+   <g inkscape:groupmode="layer" id="ray_7" inkscape:label="ray 7" transform="matrix(-1.8369701987210297e-16, -1.0, 1.0, -1.8369701987210297e-16, 280.879, 280.879)" style="">
+      <g id="g_16" inkscape:label="Shape 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+   </g>
+   <g inkscape:groupmode="layer" id="ray_8" inkscape:label="ray 8" transform="matrix(0.7071067811865474, -0.7071067811865477, 0.7071067811865477, 0.7071067811865474, 263.2868903908599, 273.5921096091401)" style="">
+      <g id="g_17" inkscape:label="Shape 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+   </g>
+   <g inkscape:groupmode="layer" id="ray_2" inkscape:label="ray 2" transform="matrix(0.7071067811865476, 0.7071067811865476, -0.7071067811865476, 0.7071067811865476, 263.2868903908599, 238.40789039085988)" style="">
+      <g id="g_18" inkscape:label="Shape 1" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" style="stroke:rgb(222, 194, 127);stroke-opacity:1.0;stroke-width:10.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+   </g>
+   <g inkscape:groupmode="layer" id="blik" inkscape:label="blik" transform="matrix(0.5, 0.0, 0.0, 0.5, 93.0, 241.0)">
+      <g inkscape:groupmode="layer" id="Shape_Layer_2" inkscape:label="Shape Layer 2" transform="matrix(1.0, 0.0, 0.0, 1.0, 289.0, 201.5)" style="">
+         <g id="g_19" inkscape:label="Shape 1" transform="matrix(0.92246, 0.0, 0.0, 0.92246, -0.0007937400000059824, -0.00029048000000031493)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero;stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:20.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+      </g>
+      <g inkscape:groupmode="layer" id="Shape_Layer_3" inkscape:label="Shape Layer 3" transform="matrix(6.123233995736766e-17, 1.0, -1.0, 6.123233995736766e-17, 69.915, 357.85699999999997)" style="">
+         <g id="g_20" inkscape:label="Shape 1" transform="matrix(0.92246, 0.0, 0.0, 0.92246, -0.0007937400000059824, -0.00029048000000031493)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero;stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:20.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+      </g>
+      <g inkscape:groupmode="layer" id="Shape_Layer_4" inkscape:label="Shape Layer 4" transform="matrix(-1.0, 1.2246467991473532e-16, -1.2246467991473532e-16, -1.0, -86.44200000000001, 138.77200000000002)" style="">
+         <g id="g_21" inkscape:label="Shape 1" transform="matrix(0.92246, 0.0, 0.0, 0.92246, -0.0007937400000059824, -0.00029048000000031493)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero;stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:20.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+      </g>
+      <g inkscape:groupmode="layer" id="Shape_Layer_5" inkscape:label="Shape Layer 5" transform="matrix(-1.8369701987210297e-16, -1.0, 1.0, -1.8369701987210297e-16, 132.64299999999997, -17.585000000000008)" style="">
+         <g id="g_22" inkscape:label="Shape 1" transform="matrix(0.92246, 0.0, 0.0, 0.92246, -0.0007937400000059824, -0.00029048000000031493)" style="fill-opacity:1.0;fill:rgb(255, 255, 255);fill-rule:nonzero;stroke:rgb(255, 255, 255);stroke-opacity:1.0;stroke-width:20.0;stroke-miterlimit:4.0;stroke-linecap:round;stroke-linejoin:miter"/>
+      </g>
+   </g>
+</svg>
