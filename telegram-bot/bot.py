@@ -43,13 +43,7 @@ async def cmd_start(message: types.Message):
 
     welcome_text = (
         f"👋 Привет, {message.from_user.first_name}!\n\n"
-        "🚀 Добро пожаловать в FastPay - магазин цифровых товаров!\n\n"
-        "🤖 AI Подписки (Claude, ChatGPT, Gemini, Midjourney)\n"
-        "🔐 VPN Сервисы (NordVPN)\n"
-        "🎵 Стриминг (Spotify Premium)\n"
-        "🎮 Игры и валюта (Roblox, игровые ключи)\n"
-        "💻 Программное обеспечение (Adobe)\n"
-        "📚 Образование (Coursera)\n\n"
+        "🚀 Добро пожаловать в FastPay - магазин цифровых товаров!\n"
         "✨ Мгновенная доставка • Гарантия • Лучшие цены\n\n"
         "Нажмите на кнопку ниже, чтобы открыть каталог 👇"
     )
@@ -141,13 +135,8 @@ async def callback_back_to_start(callback: CallbackQuery):
 
     welcome_text = (
         f"👋 Привет, {callback.from_user.first_name}!\n\n"
-        "🚀 Добро пожаловать в FastPay - магазин цифровых товаров!\n\n"
-        "🤖 AI Подписки (Claude, ChatGPT, Gemini, Midjourney)\n"
-        "🔐 VPN Сервисы (NordVPN)\n"
-        "🎵 Стриминг (Spotify Premium)\n"
-        "🎮 Игры и валюта (Roblox, игровые ключи)\n"
-        "💻 Программное обеспечение (Adobe)\n"
-        "📚 Образование (Coursera)\n\n"
+        "🚀 Добро пожаловать в FastPay - магазин цифровых товаров!\n"
+        "✨ Мгновенная доставка • Гарантия • Лучшие цены\n\n"
         "✨ Мгновенная доставка • Гарантия • Лучшие цены\n\n"
         "Нажмите на кнопку ниже, чтобы открыть каталог 👇"
     )

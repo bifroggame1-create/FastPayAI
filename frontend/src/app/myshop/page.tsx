@@ -488,7 +488,8 @@ export default function MyShopPage() {
   const [savingCredentials, setSavingCredentials] = useState(false)
 
   // Wallet
-  const [wallet, setWallet] = useState({ balance: 0, pendingBalance: 0 })
+  const [wallet, setWallet] = useState({ balance: 0, pendingBalance: 0, totalEarned: 0, totalWithdrawn: 0 })
+  const [walletTransactions, setWalletTransactions] = useState<any[]>([])
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [withdrawMethod, setWithdrawMethod] = useState('bank_card')
@@ -517,6 +518,9 @@ export default function MyShopPage() {
     contacts: { telegram: '', email: '', phone: '' },
     workingHours: ''
   })
+  const [previewAvatar, setPreviewAvatar] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   // Notifications
   const [notifications, setNotifications] = useState<NotificationSettings>({
@@ -748,6 +752,52 @@ export default function MyShopPage() {
     }
   }
 
+  // Handle avatar file selection and upload
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Пожалуйста, выберите изображение')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Размер изображения не должен превышать 5 МБ')
+      return
+    }
+
+    // Show preview
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setPreviewAvatar(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+
+    // Upload to server
+    setUploadingAvatar(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const result = await adminApi.uploadShopImage(formData)
+      if (result.url) {
+        setProfileForm({ ...profileForm, avatar: result.url })
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      alert('Ошибка при загрузке аватара')
+      setPreviewAvatar(null)
+    } finally {
+      setUploadingAvatar(false)
+      // Reset input
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = ''
+      }
+    }
+  }
+
   // Save profile
   const handleSaveProfile = async () => {
     try {
@@ -755,6 +805,7 @@ export default function MyShopPage() {
       if (result.success) {
         setShopProfile({ ...shopProfile, ...profileForm } as ShopProfile)
         setEditingProfile(false)
+        setPreviewAvatar(null)
         alert('Профиль сохранён')
       }
     } catch (error) {
@@ -781,7 +832,19 @@ export default function MyShopPage() {
     if (activeTab === 'reviews' && reviews.length === 0) {
       loadReviews()
     }
+    if (activeTab === 'wallet' && walletTransactions.length === 0) {
+      loadWalletTransactions()
+    }
   }, [activeTab])
+
+  const loadWalletTransactions = async () => {
+    try {
+      const transactions = await adminApi.getWalletTransactions()
+      setWalletTransactions(transactions.transactions || [])
+    } catch (error) {
+      console.error('Error loading wallet transactions:', error)
+    }
+  }
 
   const handleCreatePromo = async () => {
     if (!newPromo.code.trim()) {
@@ -1036,6 +1099,8 @@ export default function MyShopPage() {
         setShowWithdrawModal(false)
         setWithdrawAmount('')
         setWithdrawDetails('')
+        // Reload wallet data after successful withdrawal
+        await loadWalletTransactions()
         alert('Заявка на вывод создана!')
       } else {
         alert(result.error || 'Ошибка при создании заявки')
@@ -2029,6 +2094,103 @@ export default function MyShopPage() {
           </div>
         )}
 
+        {/* Wallet Tab */}
+        {activeTab === 'wallet' && (
+          <div className="space-y-4">
+            {/* Header with Refresh Button */}
+            <div className="flex items-center justify-between">
+              <h1 className="text-lg font-semibold text-white">Кошелёк</h1>
+              <button
+                onClick={async () => {
+                  try {
+                    const wallet = await adminApi.getWallet()
+                    setWallet(wallet.wallet)
+                    await loadWalletTransactions()
+                  } catch (e: any) {
+                    console.error('Failed to load wallet:', e)
+                    alert('Ошибка загрузки кошелька: ' + (e.response?.data?.error || e.message))
+                  }
+                }}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors"
+              >
+                Обновить
+              </button>
+            </div>
+
+            {/* Balance Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-xl p-4 border border-emerald-500/20">
+                <p className="text-xs text-emerald-400 mb-1">Доступно для вывода</p>
+                <p className="text-2xl font-bold text-white">{formatPrice(wallet.balance, currency)}</p>
+              </div>
+              <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 rounded-xl p-4 border border-yellow-500/20">
+                <p className="text-xs text-yellow-400 mb-1">В обработке</p>
+                <p className="text-2xl font-bold text-white">{formatPrice(wallet.pendingBalance, currency)}</p>
+              </div>
+              <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl p-4 border border-blue-500/20">
+                <p className="text-xs text-blue-400 mb-1">Всего заработано</p>
+                <p className="text-2xl font-bold text-white">{formatPrice(wallet.totalEarned || 0, currency)}</p>
+              </div>
+              <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-xl p-4 border border-purple-500/20">
+                <p className="text-xs text-purple-400 mb-1">Всего выведено</p>
+                <p className="text-2xl font-bold text-white">{formatPrice(wallet.totalWithdrawn || 0, currency)}</p>
+              </div>
+            </div>
+
+            {/* Request Withdrawal Button */}
+            <button
+              onClick={() => setShowWithdrawModal(true)}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors"
+            >
+              Вывести средства
+            </button>
+
+            {/* Transaction History */}
+            <div className="bg-[#1a1d27] rounded-xl p-4 border border-[#2a2d37]">
+              <h2 className="text-sm font-medium text-white mb-3">История транзакций</h2>
+              {walletTransactions.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <p className="text-sm">Нет транзакций</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {walletTransactions.map((tx: any) => (
+                    <div key={tx._id || tx.id} className="flex items-center justify-between p-3 bg-[#0f1117] rounded-lg border border-[#2a2d37]">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          {tx.type === 'withdrawal_request' && (
+                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                          )}
+                          {tx.type === 'withdrawal_completed' && (
+                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                          )}
+                          {tx.type === 'sale' && (
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                          )}
+                          <div>
+                            <p className="text-sm text-white font-medium">{formatPrice(Math.abs(tx.amount), currency)}</p>
+                            <p className="text-xs text-gray-400">
+                              {tx.type === 'withdrawal_request' && 'Заявка на вывод'}
+                              {tx.type === 'withdrawal_completed' && 'Выплата выведена'}
+                              {tx.type === 'sale' && 'Продажа'}
+                              {tx.type === 'refund' && 'Возврат'}
+                              {' • '}
+                              {new Date(tx.createdAt || tx.date).toLocaleDateString('ru-RU')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`text-sm font-medium ${tx.amount > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {tx.amount > 0 ? '+' : ''}{formatPrice(tx.amount, currency)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Profile Tab */}
         {activeTab === 'profile' && (
           <div className="space-y-4">
@@ -2045,6 +2207,91 @@ export default function MyShopPage() {
               </div>
 
               <div className="space-y-3">
+                {/* Avatar Section */}
+                {editingProfile && (
+                  <div>
+                    <label className="text-xs text-gray-400 mb-2 block">Аватар магазина</label>
+                    <div className="flex gap-4 items-start">
+                      {/* Current Avatar Display */}
+                      <div className="flex-shrink-0">
+                        <div className="w-24 h-24 bg-[#0f1117] rounded-lg border-2 border-[#2a2d37] flex items-center justify-center overflow-hidden">
+                          {previewAvatar || profileForm.avatar ? (
+                            <img
+                              src={previewAvatar || profileForm.avatar}
+                              alt="Avatar preview"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Upload Input */}
+                      <div className="flex-1">
+                        <label className="block">
+                          <input
+                            ref={avatarInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarChange}
+                            disabled={uploadingAvatar}
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => avatarInputRef.current?.click()}
+                            disabled={uploadingAvatar}
+                            className="w-full px-4 py-2 bg-[#0f1117] hover:bg-[#1a1e2e] border border-[#2a2d37] rounded-lg text-sm text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {uploadingAvatar ? (
+                              <span className="flex items-center justify-center">
+                                <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Загрузка...
+                              </span>
+                            ) : previewAvatar || profileForm.avatar ? (
+                              'Изменить аватар'
+                            ) : (
+                              'Выбрать аватар'
+                            )}
+                          </button>
+                        </label>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Допускаются: JPG, PNG, GIF. Максимум 5 МБ
+                        </p>
+                        {previewAvatar && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewAvatar(null)}
+                            className="mt-2 text-xs text-gray-400 hover:text-gray-300 underline"
+                          >
+                            Отменить изменение
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Display Avatar (when not editing) */}
+                {!editingProfile && profileForm.avatar && (
+                  <div>
+                    <label className="text-xs text-gray-400 mb-2 block">Аватар магазина</label>
+                    <div className="w-24 h-24 bg-[#0f1117] rounded-lg border border-[#2a2d37] overflow-hidden">
+                      <img
+                        src={profileForm.avatar}
+                        alt="Shop avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Название магазина</label>
                   <input

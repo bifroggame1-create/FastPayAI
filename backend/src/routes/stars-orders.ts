@@ -20,7 +20,7 @@ export async function starsOrderRoutes(fastify: FastifyInstance) {
   // CREATE STARS ORDER
   // ============================================
 
-  fastify.post('/api/stars/create-order', async (request, reply) => {
+  fastify.post('/create-order', async (request, reply) => {
     try {
       const { username, stars, price, userId, userName, userUsername } = request.body as any
 
@@ -92,7 +92,7 @@ export async function starsOrderRoutes(fastify: FastifyInstance) {
   // CREATE PREMIUM ORDER
   // ============================================
 
-  fastify.post('/api/stars/create-premium-order', async (request, reply) => {
+  fastify.post('/create-premium-order', async (request, reply) => {
     try {
       const { username, months, price, userId, userName, userUsername } = request.body as any
 
@@ -181,7 +181,7 @@ export async function starsOrderRoutes(fastify: FastifyInstance) {
   // PROCESS PAYMENT (after payment confirmed)
   // ============================================
 
-  fastify.post('/api/stars/process-payment', async (request, reply) => {
+  fastify.post('/process-payment', async (request, reply) => {
     try {
       const { orderId, paymentId, paymentMethod } = request.body as any
 
@@ -304,7 +304,7 @@ export async function starsOrderRoutes(fastify: FastifyInstance) {
   // GET ORDER STATUS
   // ============================================
 
-  fastify.get('/api/stars/order/:orderId', async (request, reply) => {
+  fastify.get('/order/:orderId', async (request, reply) => {
     try {
       const { orderId } = request.params as any
 
@@ -336,7 +336,7 @@ export async function starsOrderRoutes(fastify: FastifyInstance) {
   // GET USER ORDERS
   // ============================================
 
-  fastify.get('/api/stars/orders/user/:userId', async (request, reply) => {
+  fastify.get('/orders/user/:userId', async (request, reply) => {
     try {
       const { userId } = request.params as any
 

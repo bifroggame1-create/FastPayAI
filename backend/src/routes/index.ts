@@ -38,7 +38,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(productRoutes)
   await fastify.register(adminRoutes)
   await fastify.register(paymentRoutes)
-  await fastify.register(starsOrderRoutes)
+  await fastify.register(starsOrderRoutes, { prefix: '/api/stars' })
   await fastify.register(userRoutes)
   await fastify.register(promoRoutes)
   await fastify.register(chatRoutes)

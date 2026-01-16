@@ -870,6 +870,13 @@ export const adminApi = {
     return data
   },
 
+  uploadShopImage: async (formData: FormData) => {
+    const { data } = await adminApiInstance.post('/admin/my-shop/upload-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return data
+  },
+
   updateMyShopProfile: async (profile: {
     name?: string
     description?: string

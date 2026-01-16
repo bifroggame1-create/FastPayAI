@@ -8,6 +8,8 @@ import { hapticImpact } from '@/lib/telegram'
 import { formatPrice } from '@/lib/currency'
 import dynamic from 'next/dynamic'
 
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
+
 // Dynamically import Lottie to avoid SSR issues
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
@@ -81,8 +83,8 @@ export default function StarsPage() {
     try {
       // Create order in database first
       const createOrderEndpoint = activeTab === 'stars'
-        ? '/api/stars/create-order'
-        : '/api/stars/create-premium-order'
+        ? `${API_URL}/api/stars/create-order`
+        : `${API_URL}/api/stars/create-premium-order`
 
       const orderBody = activeTab === 'stars'
         ? {

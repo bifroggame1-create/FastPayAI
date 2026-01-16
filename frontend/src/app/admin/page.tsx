@@ -3233,10 +3233,62 @@ function SellerEditor({
 }) {
   const [form, setForm] = useState(seller)
   const [showFilePicker, setShowFilePicker] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const selectImage = (url: string) => {
     setForm({ ...form, avatar: url })
     setShowFilePicker(false)
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      alert('Пожалуйста, выберите изображение')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Файл слишком большой. Максимум 5MB')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const reader = new FileReader()
+      reader.onload = async () => {
+        try {
+          const result = await adminApi.uploadFile({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            data: reader.result as string
+          })
+          if (result.success) {
+            setForm({ ...form, avatar: result.file.data })
+            setShowFilePicker(false)
+          } else {
+            alert('Ошибка при загрузке файла')
+          }
+        } catch (error) {
+          console.error('Error uploading avatar:', error)
+          alert('Ошибка при загрузке файла')
+        } finally {
+          setUploading(false)
+        }
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Error reading file:', error)
+      alert('Ошибка при чтении файла')
+      setUploading(false)
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const badgeOptions: { id: SellerBadge; label: string; color: string }[] = [
@@ -3264,12 +3316,29 @@ function SellerEditor({
           {/* Avatar */}
           <div className="flex items-center gap-4">
             <img src={form.avatar || '/default-avatar.png'} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
-            <button
-              onClick={() => setShowFilePicker(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
-            >
-              Изменить аватар
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm transition-colors"
+              >
+                {uploading ? 'Загрузка...' : 'Загрузить аватар'}
+              </button>
+              <button
+                onClick={() => setShowFilePicker(true)}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors"
+              >
+                Из файлов
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                onChange={handleAvatarUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+            </div>
           </div>
 
           <div>
