@@ -278,6 +278,7 @@ export interface TelegramWebApp {
   showPopup?: (params: { title?: string; message: string; buttons?: Array<{ type: string; text?: string }> }) => void
   showAlert?: (message: string) => void
   showConfirm?: (message: string, callback?: (confirmed: boolean) => void) => void
+  openInvoice?: (url: string, callback?: (status: 'paid' | 'cancelled' | 'failed' | 'pending') => void) => void
   MainButton: {
     text: string
     color: string
