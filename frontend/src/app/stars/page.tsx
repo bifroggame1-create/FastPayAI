@@ -16,9 +16,10 @@ import duckHeroAnimation from '../../../public/duck-stickers/duck-10.json'
 import duckSuccessAnimation from '../../../public/duck-stickers/duck-5.json'
 
 // Import status icons (анимированные иконки)
-import starGoldIcon from '../../../public/badge-icons/star-gold.json'
-import starFireworksIcon from '../../../public/badge-icons/star-fireworks.json'
+import telegramStarsIcon from '../../../public/badge-icons/star-simple.json'
+import telegramPremiumIcon from '../../../public/badge-icons/box-red.json'
 import successIcon from '../../../public/status-icons/status-3.json'
+import duckButtonIcon from '../../../public/duck-stickers/duck-42.json'
 
 // Import box icons for Premium packages
 import boxGreen from '../../../public/badge-icons/box-green.json'
@@ -159,7 +160,7 @@ export default function StarsPage() {
             <div className="flex items-center justify-center gap-2">
               <div className="w-5 h-5">
                 <Lottie
-                  animationData={starGoldIcon}
+                  animationData={telegramStarsIcon}
                   loop={true}
                   style={{ width: '100%', height: '100%' }}
                 />
@@ -181,7 +182,7 @@ export default function StarsPage() {
             <div className="flex items-center justify-center gap-2">
               <div className="w-5 h-5">
                 <Lottie
-                  animationData={starFireworksIcon}
+                  animationData={telegramPremiumIcon}
                   loop={true}
                   style={{ width: '100%', height: '100%' }}
                 />
@@ -433,7 +434,7 @@ export default function StarsPage() {
             <>
               <div className="w-5 h-5">
                 <Lottie
-                  animationData={starGoldIcon}
+                  animationData={duckButtonIcon}
                   loop={true}
                   style={{ width: '100%', height: '100%' }}
                 />
@@ -449,7 +450,7 @@ export default function StarsPage() {
             <>
               <div className="w-5 h-5">
                 <Lottie
-                  animationData={starFireworksIcon}
+                  animationData={duckButtonIcon}
                   loop={true}
                   style={{ width: '100%', height: '100%' }}
                 />
