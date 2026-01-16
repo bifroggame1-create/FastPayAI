@@ -154,7 +154,7 @@ export class FragmentAPI {
 
       if (response.data && response.data.token) {
         this.token = response.data.token
-        this.saveToken(this.token)
+        this.saveToken(response.data.token)
         console.log('✅ Fragment API authenticated successfully')
         return true
       } else {

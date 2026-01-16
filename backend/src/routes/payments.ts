@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest } from 'fastify'
 import { cryptoBot, CryptoBotAPI } from '../cryptobot'
 import { xRocket, XRocketAPI } from '../xrocket'
 import { telegramStars, rubToStars } from '../telegram-stars'
-import { fragmentAPI, getStarsPackagePrice } from '../fragment'
+import { fragmentAPI, getStarsPackagePrice, getPremiumPackagePrice } from '../fragment'
 import { getSellerById } from '../dataStore'
 
 // Default tenant ID for fallback
@@ -1893,7 +1893,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
           // Buy Stars from Fragment and send to user
           const result = await fragmentAPI.buyStars({
             username: username.startsWith('@') ? username : `@${username}`,
-            amount: stars
+            quantity: stars
           })
 
           if (result.success) {
@@ -1904,7 +1904,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
             try {
               await telegramStars['makeRequest']('sendMessage', {
                 chat_id: chatId,
-                text: `✅ ${stars} ⭐ Stars delivered to @${username}!\n\nTransaction ID: ${result.transactionId || 'N/A'}`,
+                text: `✅ ${stars} ⭐ Stars delivered to @${username}!\n\nOrder ID: ${result.data?.orderId || 'N/A'}`,
                 parse_mode: 'HTML'
               })
             } catch (msgError) {
@@ -1975,6 +1975,199 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       { id: '500', amount: 500, price: getStarsPackagePrice(500) },
       { id: '1000', amount: 1000, price: getStarsPackagePrice(1000) },
       { id: '2500', amount: 2500, price: getStarsPackagePrice(2500) }
+    ]
+
+    return {
+      success: true,
+      packages,
+      configured: fragmentAPI.isConfigured()
+    }
+  })
+
+  // =============================================================================
+  // Premium Subscription Endpoints (Fragment API Integration)
+  // =============================================================================
+
+  // Create invoice for buying Premium via Fragment
+  fastify.post('/api/premium/create-invoice', async (request, reply) => {
+    try {
+      const { username, months, price, userId } = request.body as any
+
+      if (!username || !months || !price) {
+        reply.code(400)
+        return {
+          success: false,
+          error: 'Missing required fields: username, months, price'
+        }
+      }
+
+      // Validate months (must be 3, 6, or 12)
+      if (![3, 6, 12].includes(months)) {
+        reply.code(400)
+        return {
+          success: false,
+          error: 'Invalid subscription period. Must be 3, 6, or 12 months'
+        }
+      }
+
+      // Check if Fragment API is configured
+      if (!fragmentAPI.isConfigured()) {
+        reply.code(503)
+        return {
+          success: false,
+          error: 'Premium service is temporarily unavailable. Fragment API not configured.'
+        }
+      }
+
+      // Validate username with Fragment API
+      try {
+        const validation = await fragmentAPI.validateUsername(username)
+        if (!validation.exists) {
+          reply.code(400)
+          return {
+            success: false,
+            error: `Username @${username} not found on Telegram`
+          }
+        }
+      } catch (error: any) {
+        console.error('Username validation error:', error)
+        reply.code(400)
+        return {
+          success: false,
+          error: 'Failed to validate username. Please check and try again.'
+        }
+      }
+
+      // Create Telegram Stars invoice for user to pay
+      const invoiceLink = await telegramStars.createInvoiceLink({
+        title: `Telegram Premium ${months} months`,
+        description: `Premium subscription for ${months} months for @${username.replace('@', '')}`,
+        payload: JSON.stringify({
+          type: 'premium_resell',
+          username: username.replace('@', ''),
+          months,
+          userId
+        }),
+        prices: [{ label: 'Premium Subscription', amount: rubToStars(price) }]
+      })
+
+      console.log('Premium invoice created:', { username, months, price, invoiceLink })
+
+      return {
+        success: true,
+        invoiceUrl: invoiceLink,
+        months,
+        price
+      }
+    } catch (error: any) {
+      console.error('Premium invoice creation error:', error)
+      reply.code(500)
+      return {
+        success: false,
+        error: error.message || 'Failed to create Premium invoice'
+      }
+    }
+  })
+
+  // Webhook handler for Premium subscriptions
+  fastify.post('/api/premium/webhook', async (request, reply) => {
+    try {
+      const update = request.body as any
+      console.log('Premium webhook received:', update)
+
+      // Handle successful payment
+      if (update.message && update.message.successful_payment) {
+        const payment = update.message.successful_payment
+        const payload = JSON.parse(payment.invoice_payload)
+
+        if (payload.type === 'premium_resell') {
+          const { username, months } = payload
+
+          console.log(`Processing Premium purchase: ${months} months for @${username}`)
+
+          // Buy Premium from Fragment and send to user
+          const result = await fragmentAPI.buyPremium({
+            username: username.startsWith('@') ? username : `@${username}`,
+            months
+          })
+
+          if (result.success) {
+            console.log(`✅ Successfully sent ${months} months Premium to @${username}`)
+
+            // Send confirmation message to user
+            const chatId = update.message.chat.id
+            try {
+              await telegramStars['makeRequest']('sendMessage', {
+                chat_id: chatId,
+                text: `✅ Telegram Premium ${months} months delivered to @${username}!\n\nOrder ID: ${result.data?.orderId || 'N/A'}`,
+                parse_mode: 'HTML'
+              })
+            } catch (msgError) {
+              console.error('Failed to send confirmation message:', msgError)
+            }
+
+            return { success: true, message: 'Premium delivered successfully' }
+          } else {
+            console.error(`❌ Failed to send Premium: ${result.error}`)
+
+            // Refund the payment
+            try {
+              await telegramStars.refundStarPayment(
+                update.message.from.id,
+                payment.telegram_payment_charge_id
+              )
+              console.log('✅ Payment refunded')
+            } catch (refundError) {
+              console.error('Failed to refund payment:', refundError)
+            }
+
+            return {
+              success: false,
+              error: result.error || 'Failed to deliver Premium'
+            }
+          }
+        }
+      }
+
+      // Handle pre-checkout query
+      if (update.pre_checkout_query) {
+        const preCheckoutQuery = update.pre_checkout_query
+        const payload = JSON.parse(preCheckoutQuery.invoice_payload)
+
+        if (payload.type === 'premium_resell') {
+          // Validate before accepting payment
+          if (!fragmentAPI.isConfigured()) {
+            await telegramStars.answerPreCheckoutQuery(
+              preCheckoutQuery.id,
+              false,
+              'Service temporarily unavailable'
+            )
+            return { success: false, error: 'Fragment API not configured' }
+          }
+
+          // Accept the payment
+          await telegramStars.answerPreCheckoutQuery(preCheckoutQuery.id, true)
+          return { success: true, message: 'Pre-checkout accepted' }
+        }
+      }
+
+      return { success: true, message: 'Webhook processed' }
+    } catch (error: any) {
+      console.error('Premium webhook error:', error)
+      reply.code(500)
+      return {
+        success: false,
+        error: error.message || 'Webhook processing failed'
+      }
+    }
+  })
+
+  // Get Premium package prices
+  fastify.get('/api/premium/packages', async (request, reply) => {
+    const packages = [
+      { id: 'premium-3', months: 3, price: getPremiumPackagePrice(3) },
+      { id: 'premium-6', months: 6, price: getPremiumPackagePrice(6) },
+      { id: 'premium-12', months: 12, price: getPremiumPackagePrice(12) }
     ]
 
     return {

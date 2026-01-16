@@ -20,6 +20,10 @@ import starIcon from '../../../public/status-icons/status-1.json'
 import premiumIcon from '../../../public/status-icons/status-2.json'
 import successIcon from '../../../public/status-icons/status-3.json'
 
+// Import box icons for Premium packages
+import boxGreen from '../../../public/badge-icons/box-green.json'
+import boxGold from '../../../public/badge-icons/box-gold.json'
+
 interface PremiumPackage {
   id: string
   months: number
@@ -73,16 +77,28 @@ export default function StarsPage() {
     hapticImpact('medium')
 
     try {
-      // TODO: API integration with Fragment + Telegram Bot Payments
-      const response = await fetch('/api/stars/create-invoice', {
+      // Choose endpoint based on active tab
+      const endpoint = activeTab === 'stars' ? '/api/stars/create-invoice' : '/api/premium/create-invoice'
+
+      // Prepare request body based on tab
+      const requestBody = activeTab === 'stars'
+        ? {
+            username: username.startsWith('@') ? username : `@${username}`,
+            stars: starsAmount,
+            price: calculateStarsPrice(starsAmount),
+            userId: user?.id
+          }
+        : {
+            username: username.startsWith('@') ? username : `@${username}`,
+            months: selectedPremium.months,
+            price: selectedPremium.price,
+            userId: user?.id
+          }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: username.startsWith('@') ? username : `@${username}`,
-          stars: starsAmount,
-          price: calculateStarsPrice(starsAmount),
-          userId: user?.id
-        })
+        body: JSON.stringify(requestBody)
       })
 
       const data = await response.json()
@@ -92,9 +108,11 @@ export default function StarsPage() {
         if (window.Telegram?.WebApp?.openInvoice) {
           window.Telegram.WebApp.openInvoice(data.invoiceUrl, (status) => {
             if (status === 'paid') {
-              alert(language === 'ru'
-                ? `${starsAmount} ⭐ Stars доставлены!`
-                : `${starsAmount} ⭐ Stars delivered!`)
+              const successMessage = activeTab === 'stars'
+                ? (language === 'ru' ? `${starsAmount} ⭐ Stars доставлены!` : `${starsAmount} ⭐ Stars delivered!`)
+                : (language === 'ru' ? `Premium ${selectedPremium.months} мес. активирован!` : `Premium ${selectedPremium.months} mo activated!`)
+
+              alert(successMessage)
               router.push('/')
             }
           })
@@ -102,10 +120,11 @@ export default function StarsPage() {
           window.open(data.invoiceUrl, '_blank')
         }
       } else {
-        alert(language === 'ru' ? 'Ошибка создания платежа' : 'Payment creation error')
+        const errorMessage = data.error || (language === 'ru' ? 'Ошибка создания платежа' : 'Payment creation error')
+        alert(errorMessage)
       }
     } catch (error) {
-      console.error('Stars purchase error:', error)
+      console.error('Purchase error:', error)
       alert(language === 'ru' ? 'Произошла ошибка' : 'An error occurred')
     } finally {
       setProcessing(false)
@@ -303,7 +322,7 @@ export default function StarsPage() {
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10">
                         <Lottie
-                          animationData={premiumIcon}
+                          animationData={pkg.months === 3 ? boxGreen : boxGold}
                           loop={true}
                           style={{ width: '100%', height: '100%' }}
                         />
