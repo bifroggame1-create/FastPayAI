@@ -305,6 +305,8 @@ export default function AdminPage() {
   const [paymentMethods, setPaymentMethods] = useState<string[]>(['cryptobot'])
   const [shopBranding, setShopBranding] = useState<any>({})
   const [platformFeePercent, setPlatformFeePercent] = useState<number>(5)
+  const [starsMarkup, setStarsMarkup] = useState<number>(20)
+  const [premiumMarkup, setPremiumMarkup] = useState<number>(20)
 
   // My Shop state
   const [myShopStats, setMyShopStats] = useState<any>(null)
@@ -2239,6 +2241,81 @@ export default function AdminPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Fragment Stars/Premium Markup */}
+              <div className="bg-[#1a1d27] rounded-lg p-5 border border-[#2a2d37]">
+                <h2 className="text-lg font-medium text-white mb-4">Наценка на Stars/Premium</h2>
+                <p className="text-sm text-gray-400 mb-4">Процент наценки при перепродаже Telegram Stars и Premium подписок через Fragment API</p>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Stars Markup */}
+                  <div className="space-y-2">
+                    <label className="block text-sm text-gray-400">Наценка на Stars</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={starsMarkup}
+                        className="w-32 px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0
+                          if (value >= 0 && value <= 100) {
+                            setStarsMarkup(value)
+                            // TODO: Save to backend
+                            console.log('Stars markup updated:', value)
+                          }
+                        }}
+                      />
+                      <span className="text-sm text-gray-400">%</span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Пример: 100 Stars × 1.5₽ × (1 + {starsMarkup}%) = {Math.ceil(100 * 1.5 * (1 + starsMarkup / 100))}₽
+                    </p>
+                  </div>
+
+                  {/* Premium Markup */}
+                  <div className="space-y-2">
+                    <label className="block text-sm text-gray-400">Наценка на Premium</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={premiumMarkup}
+                        className="w-32 px-3 py-2 bg-[#0f1117] border border-[#2a2d37] rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50"
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0
+                          if (value >= 0 && value <= 100) {
+                            setPremiumMarkup(value)
+                            // TODO: Save to backend
+                            console.log('Premium markup updated:', value)
+                          }
+                        }}
+                      />
+                      <span className="text-sm text-gray-400">%</span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Пример: 3 мес. × 450₽ × (1 + {premiumMarkup}%) = {Math.ceil(450 * (1 + premiumMarkup / 100))}₽
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 bg-[#0f1117] rounded-lg p-4 border border-[#2a2d37]">
+                  <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                    <span>ℹ️</span>
+                    <span>Как это работает</span>
+                  </h3>
+                  <ul className="space-y-1 text-xs text-gray-400">
+                    <li>• Вы покупаете Stars/Premium на Fragment по базовой цене</li>
+                    <li>• Продаёте пользователям с наценкой (базовая цена + {starsMarkup}%)</li>
+                    <li>• Разница — ваша прибыль</li>
+                    <li>• Рекомендуемая наценка: 15-30%</li>
+                  </ul>
                 </div>
               </div>
 

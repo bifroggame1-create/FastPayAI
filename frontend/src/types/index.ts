@@ -47,7 +47,7 @@ export interface Seller {
 }
 
 // Extended seller profile from marketplace API
-export type SellerBadge = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky'
+export type SellerBadge = 'new' | 'trusted' | 'verified' | 'top_seller' | 'high_volume' | 'risky' | 'vip' | 'busy' | 'offline' | 'on_hold'
 
 export interface SellerProfile {
   id: string
