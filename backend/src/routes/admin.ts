@@ -3501,7 +3501,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const { getTenantsCollection } = await import('../database')
 
       const tenant = await getTenantsCollection().findOne({ id: tenantId })
-      const settings = tenant?.settings || {}
+      const settings = (tenant?.settings || {}) as any
 
       return {
         success: true,
