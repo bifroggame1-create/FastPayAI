@@ -1,8 +1,8 @@
 import Redis from 'ioredis'
 import { logCache } from './logger'
 
-// Redis configuration from environment
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379'
+// Redis configuration from environment (support both regular Redis and Upstash REST)
+const REDIS_URL = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL || ''
 
 // Default TTL values in seconds
 export const CACHE_TTL = {
@@ -36,8 +36,8 @@ class RedisCache {
     this.connectionAttempted = true
 
     // Skip Redis if not configured
-    if (!process.env.REDIS_URL) {
-      console.log('⚠️ REDIS_URL not set, caching disabled')
+    if (!REDIS_URL) {
+      console.log('⚠️ REDIS_URL or UPSTASH_REDIS_REST_URL not set, caching disabled')
       return false
     }
 
