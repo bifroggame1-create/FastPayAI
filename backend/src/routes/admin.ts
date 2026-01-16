@@ -3489,5 +3489,41 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return { success: false, error: error.message }
     }
   })
+
+  // ============================================
+  // PUBLIC PRICING ENDPOINT (NO AUTH REQUIRED)
+  // ============================================
+
+  // Get Stars/Premium pricing - PUBLIC endpoint for /stars page
+  fastify.get('/settings/pricing', async (request) => {
+    try {
+      const tenantId = (request as any).tenantId
+      const { getTenantsCollection } = await import('../database')
+
+      const tenant = await getTenantsCollection().findOne({ id: tenantId })
+      const settings = tenant?.settings || {}
+
+      return {
+        success: true,
+        pricing: {
+          starsMarkupPerStar: settings.starsMarkupPerStar || 1.8,
+          premium3MonthsPrice: settings.premium3MonthsPrice || 540,
+          premium6MonthsPrice: settings.premium6MonthsPrice || 900,
+          premium12MonthsPrice: settings.premium12MonthsPrice || 1620
+        }
+      }
+    } catch (error: any) {
+      console.error('Error fetching pricing:', error)
+      return {
+        success: true,
+        pricing: {
+          starsMarkupPerStar: 1.8,
+          premium3MonthsPrice: 540,
+          premium6MonthsPrice: 900,
+          premium12MonthsPrice: 1620
+        }
+      }
+    }
+  })
 }
 

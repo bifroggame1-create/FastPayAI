@@ -6,7 +6,7 @@ import Header from '@/components/Header'
 import { useAppStore } from '@/lib/store'
 import { hapticImpact } from '@/lib/telegram'
 import { formatPrice } from '@/lib/currency'
-import { getTenantId, adminApi } from '@/lib/api'
+import { getTenantId, productsApi } from '@/lib/api'
 import dynamic from 'next/dynamic'
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://fastpayai.onrender.com').replace(/\/+$/, '')
@@ -66,13 +66,13 @@ export default function StarsPage() {
   useEffect(() => {
     const loadPricing = async () => {
       try {
-        const settings = await adminApi.getSettings()
-        const s = settings?.settings?.settings
-        if (s) {
-          if (s.starsMarkupPerStar) setStarsMarkupPerStar(s.starsMarkupPerStar)
-          if (s.premium3MonthsPrice) setPremium3MonthsPrice(s.premium3MonthsPrice)
-          if (s.premium6MonthsPrice) setPremium6MonthsPrice(s.premium6MonthsPrice)
-          if (s.premium12MonthsPrice) setPremium12MonthsPrice(s.premium12MonthsPrice)
+        const response = await productsApi.getPricing()
+        if (response.success && response.pricing) {
+          const p = response.pricing
+          setStarsMarkupPerStar(p.starsMarkupPerStar)
+          setPremium3MonthsPrice(p.premium3MonthsPrice)
+          setPremium6MonthsPrice(p.premium6MonthsPrice)
+          setPremium12MonthsPrice(p.premium12MonthsPrice)
         }
       } catch (error) {
         console.error('Failed to load pricing:', error)

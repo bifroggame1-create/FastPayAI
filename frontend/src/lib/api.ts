@@ -201,6 +201,20 @@ export const productsApi = {
     return data
   },
 
+  // Get Stars/Premium pricing (public endpoint)
+  getPricing: async () => {
+    const { data } = await api.get<{
+      success: boolean
+      pricing: {
+        starsMarkupPerStar: number
+        premium3MonthsPrice: number
+        premium6MonthsPrice: number
+        premium12MonthsPrice: number
+      }
+    }>('/settings/pricing')
+    return data
+  },
+
   getById: async (id: string) => {
     const { data } = await api.get<Product>(`/products/${id}`)
     return data
