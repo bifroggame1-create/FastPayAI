@@ -1,5 +1,5 @@
 {
-  "name": "ayden-market-backend",
+  "name": "fastpay-backend",
   "version": "1.0.0",
   "main": "dist/server-mock.js",
   "scripts": {

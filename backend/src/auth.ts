@@ -256,23 +256,6 @@ export async function adminMiddleware(
 }
 
 /**
- * Optional auth middleware - doesn't fail if no token
- */
-export async function optionalAuthMiddleware(
-  request: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> {
-  const token = extractToken(request.headers.authorization)
-
-  if (token) {
-    const payload = verifyToken(token)
-    if (payload) {
-      ;(request as any).user = payload
-    }
-  }
-}
-
-/**
  * Check if user ID is admin (checks both env var and database)
  */
 export async function isAdmin(userId: string, username?: string, tenantId?: string): Promise<boolean> {

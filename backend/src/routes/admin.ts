@@ -2506,7 +2506,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       // Get seller's products
       const products = await loadProducts(tenantId)
       const sellerProducts = products.filter(p => p.seller?.id === sellerId)
-      const sellerProductIds = sellerProducts.map(p => p._id)
+      const sellerProductIds = sellerProducts.map(p => p._id).filter((id): id is string => id !== undefined)
 
       // Get all orders for seller's products
       const { getOrdersCollection, getWithdrawalRequestsCollection, getTenantsCollection } = await import('../database')
@@ -2596,7 +2596,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       // Get current balance
       const products = await loadProducts(tenantId)
       const sellerProducts = products.filter(p => p.seller?.id === sellerId)
-      const sellerProductIds = sellerProducts.map(p => p._id)
+      const sellerProductIds = sellerProducts.map(p => p._id).filter((id): id is string => id !== undefined)
 
       const { getOrdersCollection, getWithdrawalRequestsCollection, getTenantsCollection } = await import('../database')
       const orders = await getOrdersCollection().find({
@@ -2768,7 +2768,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
         return { success: false, error: 'Invalid status' }
       }
 
-      const { getWithdrawalRequestsCollection, ObjectId } = await import('../database')
+      const { getWithdrawalRequestsCollection } = await import('../database')
+      const { ObjectId } = await import('mongodb')
       const updates: any = {
         status,
         processedBy: user.userId,
