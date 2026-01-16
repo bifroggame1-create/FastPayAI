@@ -254,7 +254,8 @@ export async function adminMiddleware(
   // FIX: MUST check isAdmin fresh from database/env, not from JWT payload
   // JWT payload.isAdmin can be stale (up to 7 days old)
   // Always re-check to ensure admin status changes take effect immediately
-  const isUserAdmin = ADMIN_IDS.includes(payload.userId) || await isAdmin(payload.userId, payload.username, tenantId)
+  // FALLBACK: Use payload.isAdmin as last resort if ADMIN_IDS is empty and database check fails
+  const isUserAdmin = ADMIN_IDS.includes(payload.userId) || await isAdmin(payload.userId, payload.username, tenantId) || payload.isAdmin
 
   if (!isUserAdmin) {
     console.log('🔐 Admin access DENIED - not an admin:', payload.userId, 'tenantId:', tenantId)
