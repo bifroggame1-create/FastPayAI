@@ -3,13 +3,14 @@ import {
   validateTelegramWebAppData,
   generateToken,
   authMiddleware,
-  JWTPayload
+  JWTPayload,
+  CRITICAL_ADMIN_IDS
 } from '../auth'
 import { validateBody, telegramAuthSchema } from '../validation'
 import { getAdminByUserId, getAdminByUsername, upsertUser } from '../dataStore'
 
-// Bootstrap admin IDs - can authenticate even without BOT_TOKEN
-const BOOTSTRAP_ADMIN_IDS = (process.env.ADMIN_IDS || '1301598469').split(',').map(id => id.trim())
+// Use CRITICAL_ADMIN_IDS from auth.ts for consistency
+const BOOTSTRAP_ADMIN_IDS = CRITICAL_ADMIN_IDS
 
 // ============================================
 // RATE LIMITING FOR AUTH ENDPOINTS
