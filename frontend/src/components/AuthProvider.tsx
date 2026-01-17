@@ -34,7 +34,7 @@ const parseReferrerId = (startParam: string | null): string | null => {
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const { setUser, setIsAdmin, addNotification } = useAppStore()
+  const { setUser, setIsAdmin, setIsSeller, addNotification } = useAppStore()
 
   useEffect(() => {
     const init = async () => {
@@ -53,11 +53,15 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         if (success) {
           const user = getAuthUser()
           setAuthUser(user)
-          // CRITICAL: Sync isAdmin to store immediately so BottomNav can show admin tabs
+          // CRITICAL: Sync isAdmin and isSeller to store immediately so BottomNav can show tabs
           // This ensures BottomNav doesn't have to re-authenticate
           if (user?.isAdmin !== undefined) {
             setIsAdmin(user.isAdmin)
             console.log('[AuthProvider] Synced isAdmin to store:', user.isAdmin)
+          }
+          if (user?.isSeller !== undefined) {
+            setIsSeller(user.isSeller)
+            console.log('[AuthProvider] Synced isSeller to store:', user.isSeller)
           }
         }
       } catch (e) {

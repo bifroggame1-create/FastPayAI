@@ -29,6 +29,7 @@ export interface AuthUser {
   username?: string
   avatar?: string
   isAdmin: boolean
+  isSeller?: boolean
   bonusBalance?: number
 }
 

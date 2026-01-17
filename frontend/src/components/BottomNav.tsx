@@ -10,25 +10,30 @@ import { useAuth } from './AuthProvider'
 
 export default function BottomNav() {
   const pathname = usePathname()
-  const { isAdmin, setIsAdmin, getCartItemCount } = useAppStore()
+  const { isAdmin, isSeller, setIsAdmin, setIsSeller, getCartItemCount } = useAppStore()
   const { user: authContextUser } = useAuth()
 
-  // Synchronize isAdmin from AuthProvider when it becomes available
+  // Synchronize isAdmin and isSeller from AuthProvider when it becomes available
   // This runs once when authContextUser is set by AuthProvider
   useEffect(() => {
     if (authContextUser?.isAdmin !== undefined) {
       console.log('[BottomNav] Syncing isAdmin from AuthProvider:', authContextUser.isAdmin)
       setIsAdmin(authContextUser.isAdmin)
     }
-  }, [authContextUser?.isAdmin, setIsAdmin])
+    if (authContextUser?.isSeller !== undefined) {
+      console.log('[BottomNav] Syncing isSeller from AuthProvider:', authContextUser.isSeller)
+      setIsSeller(authContextUser.isSeller)
+    }
+  }, [authContextUser?.isAdmin, authContextUser?.isSeller, setIsAdmin, setIsSeller])
 
   // Fallback: If AuthProvider didn't set user, try to get from localStorage
   // This only runs once on mount with empty dependency array
   useEffect(() => {
     const cachedUser = getUser()
     if (cachedUser && !authContextUser) {
-      console.log('[BottomNav] Using cached user:', cachedUser.isAdmin)
+      console.log('[BottomNav] Using cached user - isAdmin:', cachedUser.isAdmin, 'isSeller:', cachedUser.isSeller)
       setIsAdmin(cachedUser.isAdmin)
+      setIsSeller(cachedUser.isSeller || false)
     }
   }, [])
 
@@ -94,8 +99,8 @@ export default function BottomNav() {
     },
   ]
 
-  // Show "Мой магазин" for sellers/admins
-  if (isAdmin) {
+  // Show "Мой магазин" for sellers OR admins
+  if (isSeller || isAdmin) {
     navItems.push({
       name: 'Магазин',
       path: '/myshop',
@@ -110,8 +115,10 @@ export default function BottomNav() {
         </svg>
       ),
     })
+  }
 
-    // Show "Админ" for all admins
+  // Show "Админ" ONLY for admins
+  if (isAdmin) {
     navItems.push({
       name: 'Админ',
       path: '/admin',

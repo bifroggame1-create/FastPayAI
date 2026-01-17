@@ -7,7 +7,7 @@ import {
   CRITICAL_ADMIN_IDS
 } from '../auth'
 import { validateBody, telegramAuthSchema } from '../validation'
-import { getAdminByUserId, getAdminByUsername, upsertUser } from '../dataStore'
+import { getAdminByUserId, getAdminByUsername, upsertUser, getSellerById } from '../dataStore'
 
 // Use CRITICAL_ADMIN_IDS from auth.ts for consistency
 const BOOTSTRAP_ADMIN_IDS = CRITICAL_ADMIN_IDS
@@ -177,6 +177,11 @@ export async function authRoutes(fastify: FastifyInstance) {
       const isAdmin = await checkIsAdmin(String(validUser.id), validUser.username, tenantId)
       console.log('[AUTH] Step 2: Admin check complete:', isAdmin)
 
+      // Check if user is a seller (has seller profile)
+      const seller = await getSellerById(String(validUser.id), tenantId)
+      const isSeller = !!seller
+      console.log('[AUTH] Step 2.5: Seller check complete:', isSeller)
+
       // Pass isAdmin to generateToken to avoid duplicate check
       const token = await generateToken(validUser, tenantId, isAdmin)
       console.log('[AUTH] Step 3: Token generated')
@@ -206,6 +211,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         userId: validUser.id,
         username: validUser.username,
         isAdmin,
+        isSeller,
         tenantId,
         bootstrapAdminIds: BOOTSTRAP_ADMIN_IDS
       })
@@ -219,7 +225,8 @@ export async function authRoutes(fastify: FastifyInstance) {
           name: userName,
           username: validUser.username,
           avatar: (validUser as any).photo_url,
-          isAdmin
+          isAdmin,
+          isSeller
         }
       }
     } catch (error: any) {
@@ -244,7 +251,11 @@ export async function authRoutes(fastify: FastifyInstance) {
     // Check current admin status from database (may have changed since token was issued)
     const isAdmin = await checkIsAdmin(user.userId, user.username, tenantId)
 
-    console.log('🔐 Token verify:', { userId: user.userId, username: user.username, isAdmin, tenantId })
+    // Check if user is a seller (has seller profile)
+    const seller = await getSellerById(user.userId, tenantId)
+    const isSeller = !!seller
+
+    console.log('🔐 Token verify:', { userId: user.userId, username: user.username, isAdmin, isSeller, tenantId })
 
     return {
       success: true,
@@ -252,7 +263,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         id: user.userId,
         name: user.username || `User ${user.userId}`,
         username: user.username,
-        isAdmin
+        isAdmin,
+        isSeller
       }
     }
   }
