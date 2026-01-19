@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest } from 'fastify'
 import { validateQuery, productQuerySchema, favoriteIdsSchema } from '../validation'
 import { searchProducts, getSearchSuggestions } from '../searchUtils'
 import { loadProducts, getProductById } from '../dataStore'
-import { optionalAuthMiddleware } from '../auth'
+import { optionalAuthMiddleware, authMiddleware } from '../auth'
 import { getProductAnalyticsCollection, ProductAnalytics, ProductAnalyticsAction } from '../database'
 
 const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
@@ -93,22 +93,21 @@ export async function productRoutes(fastify: FastifyInstance) {
   })
 
   // Track product analytics (view, favorite, cart, purchase_attempt)
-  fastify.post('/products/:id/track', async (request, reply) => {
+  fastify.post('/products/:id/track', { preHandler: authMiddleware }, async (request, reply) => {
     try {
       const { id } = request.params as any
+      const authenticatedUser = (request as any).user
       const {
-        userId,
-        userName,
-        userUsername,
-        userAvatar,
         action
       } = request.body as {
-        userId: string
-        userName: string
-        userUsername: string
-        userAvatar?: string
         action: ProductAnalyticsAction
       }
+
+      // SECURITY FIX #7: Use authenticated userId from JWT instead of accepting from body
+      const userId = authenticatedUser.userId
+      const userName = authenticatedUser.username || `User ${userId}`
+      const userUsername = authenticatedUser.username
+      const userAvatar = authenticatedUser.avatar
 
       // Validate action
       const validActions: ProductAnalyticsAction[] = ['view', 'favorite', 'cart', 'purchase_attempt']

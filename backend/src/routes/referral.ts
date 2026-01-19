@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest } from 'fastify'
 import { getUsersCollection, getReferralsCollection, Referral } from '../database'
 import { logger } from '../logger'
+import { authMiddleware } from '../auth'
 
 // Default tenant ID for fallback
 const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'fastpay'
@@ -37,28 +38,32 @@ export async function referralRoutes(fastify: FastifyInstance) {
         return { success: false, error: 'Cannot refer yourself', bonusAwarded: 0 }
       }
 
-      // Check if already referred
-      const existingReferral = await referrals.findOne({ userId })
-      if (existingReferral) {
-        return { success: false, error: 'User already referred', bonusAwarded: 0 }
-      }
-
       // Check if referrer exists
       const referrer = await users.findOne({ id: referrerId })
       if (!referrer) {
         return { success: false, error: 'Referrer not found', bonusAwarded: 0 }
       }
 
-      // Create referral record
-      const referral: Referral = {
-        tenantId: reqTenantId(request),
-        userId,
-        referrerId,
-        bonusAwarded: REFERRAL_BONUS,
-        createdAt: new Date().toISOString()
-      }
+      // SECURITY FIX #8: Use atomic findOneAndUpdate to prevent race condition
+      // This prevents multiple referrals for the same user in concurrent requests
+      const upsertResult = await referrals.findOneAndUpdate(
+        { userId },
+        { $setOnInsert: {
+          tenantId: reqTenantId(request),
+          userId,
+          referrerId,
+          bonusAwarded: REFERRAL_BONUS,
+          createdAt: new Date().toISOString()
+        } },
+        { upsert: true, returnDocument: 'after' }
+      )
 
-      await referrals.insertOne(referral)
+      // Check if this was a new insert or already existed
+      // If document exists and its referrerId differs from current, someone else already referred them
+      if (upsertResult && upsertResult.referrerId && upsertResult.referrerId !== referrerId) {
+        // Already existed with different referrer - race condition prevented
+        return { success: false, error: 'User already referred', bonusAwarded: 0 }
+      }
 
       // Update referrer's stats
       await users.updateOne(
@@ -104,12 +109,20 @@ export async function referralRoutes(fastify: FastifyInstance) {
   })
 
   // Get referral stats for a user
-  fastify.get('/referral/stats/:userId', async (request, reply) => {
+  // SECURITY FIX: Added auth - users can only see their own stats
+  fastify.get('/referral/stats/:userId', { preHandler: authMiddleware }, async (request, reply) => {
     const users = getUsersCollection()
     const referrals = getReferralsCollection()
 
     try {
       const { userId } = request.params as { userId: string }
+      const authenticatedUser = (request as any).user
+
+      // SECURITY: Only allow users to see their own stats
+      if (authenticatedUser.userId !== userId) {
+        reply.code(403)
+        return { success: false, error: 'Access denied - can only view own referral stats' }
+      }
 
       const user = await users.findOne({ id: userId })
 
@@ -148,12 +161,20 @@ export async function referralRoutes(fastify: FastifyInstance) {
   })
 
   // Get list of referred users
-  fastify.get('/referral/list/:userId', async (request, reply) => {
+  // SECURITY FIX: Added auth - users can only see their own referral list
+  fastify.get('/referral/list/:userId', { preHandler: authMiddleware }, async (request, reply) => {
     const users = getUsersCollection()
     const referrals = getReferralsCollection()
 
     try {
       const { userId } = request.params as { userId: string }
+      const authenticatedUser = (request as any).user
+
+      // SECURITY: Only allow users to see their own referral list
+      if (authenticatedUser.userId !== userId) {
+        reply.code(403)
+        return { success: false, error: 'Access denied - can only view own referral list' }
+      }
 
       // Get all referrals for this user
       const referralList = await referrals
@@ -192,11 +213,19 @@ export async function referralRoutes(fastify: FastifyInstance) {
   })
 
   // Use bonus balance (for checkout)
-  fastify.post('/referral/use-bonus', async (request, reply) => {
+  // SECURITY FIX: Added auth - users can only use their own bonuses
+  fastify.post('/referral/use-bonus', { preHandler: authMiddleware }, async (request, reply) => {
     const users = getUsersCollection()
 
     try {
       const { userId, amount } = request.body as { userId: string; amount: number }
+      const authenticatedUser = (request as any).user
+
+      // SECURITY CRITICAL: Only allow users to use their own bonus balance
+      if (authenticatedUser.userId !== userId) {
+        reply.code(403)
+        return { success: false, error: 'Access denied - can only use own bonus balance' }
+      }
 
       if (!userId || !amount || amount <= 0) {
         reply.code(400)

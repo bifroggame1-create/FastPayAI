@@ -26,6 +26,7 @@ import {
   getSellersCollection,
   getSellerApplicationsCollection,
   getProductsCollection,
+  getOrdersCollection,
   DisputeReason,
   DisputeResolution
 } from '../database'
@@ -185,6 +186,19 @@ export async function marketplaceRoutes(fastify: FastifyInstance) {
     if (!user?.userId) {
       reply.code(401)
       return { error: 'Authentication required' }
+    }
+
+    // SECURITY FIX #6: Check ownership of order before allowing dispute
+    const order = await getOrdersCollection().findOne({ id: orderId })
+    if (!order) {
+      reply.code(404)
+      return { error: 'Order not found' }
+    }
+
+    const isAdmin = user?.isAdmin
+    if (order.userId !== user.userId && !isAdmin) {
+      reply.code(403)
+      return { error: 'Forbidden - only order buyer can open dispute' }
     }
 
     const result = await openDispute(

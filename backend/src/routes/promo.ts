@@ -10,7 +10,15 @@ declare module 'fastify' {
 
 export async function promoRoutes(fastify: FastifyInstance) {
   // Validate promo code
-  fastify.post('/promo/validate', async (request) => {
+  // SECURITY FIX: Added strict rate limiting to prevent brute-force enumeration
+  fastify.post('/promo/validate', {
+    config: {
+      rateLimit: {
+        max: 10, // Only 10 attempts per minute per IP
+        timeWindow: '1 minute'
+      }
+    }
+  }, async (request) => {
     try {
       const { code, orderAmount } = validateBody(validatePromoSchema, request.body)
 

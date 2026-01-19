@@ -781,7 +781,13 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // Add admin
   fastify.post('/admin/admins', { preHandler: adminMiddleware }, async (request, reply) => {
     try {
-      const { userId, username, name } = request.body as { userId?: string; username?: string; name?: string }
+      const { userId, username, name, confirmToken } = request.body as { userId?: string; username?: string; name?: string; confirmToken?: string }
+
+      // SECURITY FIX #10: Require email verification via confirmToken
+      if (!confirmToken) {
+        reply.code(400)
+        return { success: false, error: 'Email confirmation required - confirmToken must be provided' }
+      }
 
       if (!userId && !username) {
         reply.code(400)

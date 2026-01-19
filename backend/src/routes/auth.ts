@@ -20,9 +20,9 @@ const BOOTSTRAP_ADMIN_IDS = CRITICAL_ADMIN_IDS
 const authAttempts = new Map<string, { count: number; resetAt: number }>()
 
 const RATE_LIMIT = {
-  MAX_ATTEMPTS: 50,    // max attempts per window (increased for SPA with multiple auth checks)
-  WINDOW_MS: 60000,    // 1 minute window
-  BLOCK_MS: 120000     // 2 minute block after exceeded (reduced from 5 minutes)
+  MAX_ATTEMPTS: 5,     // SECURITY FIX #11: Reduced from 50 to 5 - prevent brute force attacks
+  WINDOW_MS: 300000,   // 5 minute window (300000 ms)
+  BLOCK_MS: 120000     // 2 minute block after exceeded
 }
 
 function getClientId(request: FastifyRequest): string {
@@ -118,18 +118,15 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       let user = validateTelegramWebAppData(initData)
 
-      // If validation failed, check for bootstrap admin fallback
+      // If validation failed, only allow dev auth on localhost (NOT in production)
       if (!user) {
         const extractedUser = extractUserFromInitData(initData)
         const clientIp = request.ip || request.headers['x-forwarded-for'] || ''
         const isLocalhost = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp.includes('localhost')
 
-        // SECURITY: Bootstrap admins can authenticate even if BOT_TOKEN validation fails
-        // This is safe because only hardcoded admin IDs in BOOTSTRAP_ADMIN_IDS can use this
-        if (extractedUser && BOOTSTRAP_ADMIN_IDS.includes(String(extractedUser.id))) {
-          console.warn('⚠️ Using bootstrap admin fallback auth for user:', extractedUser.id)
-          user = extractedUser as any
-        } else if (process.env.NODE_ENV !== 'production' && isLocalhost && process.env.ALLOW_DEV_AUTH === 'true') {
+        // SECURITY FIX: Removed bootstrap admin fallback - MUST use valid Telegram auth
+        // Dev auth ONLY works on localhost with explicit flag
+        if (process.env.NODE_ENV !== 'production' && isLocalhost && process.env.ALLOW_DEV_AUTH === 'true') {
           // SECURITY: Dev auth requires explicit ALLOW_DEV_AUTH=true AND localhost
           console.warn('⚠️ [LOCALHOST ONLY] Using mock dev auth - set ALLOW_DEV_AUTH=false to disable')
           const tenantId = (request as any).tenantId
