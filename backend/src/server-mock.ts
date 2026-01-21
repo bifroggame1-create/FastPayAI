@@ -8,6 +8,10 @@ import path from 'path'
 // Load environment variables FIRST
 dotenv.config({ path: path.join(__dirname, '../.env') })
 
+// Validate environment variables immediately after loading
+import { validateEnvironmentOrExit } from './env-validation'
+validateEnvironmentOrExit()
+
 // Initialize Sentry BEFORE anything else
 import { initSentry, Sentry, captureError } from './sentry'
 initSentry()
