@@ -41,9 +41,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       // Initialize Telegram WebApp
       initTelegramWebApp()
 
-      // Sync theme with Telegram/system preference
-      const detectedTheme = getTelegramColorScheme()
-      useAppStore.getState().setTheme(detectedTheme)
+      // Sync theme with Telegram/system preference ONLY on first visit
+      // If user already toggled theme manually, respect their saved preference
+      try {
+        const stored = localStorage.getItem('fastpay-storage')
+        const hasSavedTheme = stored && JSON.parse(stored)?.state?.theme
+        if (!hasSavedTheme) {
+          const detectedTheme = getTelegramColorScheme()
+          useAppStore.getState().setTheme(detectedTheme)
+        }
+      } catch {
+        // localStorage unavailable — skip
+      }
 
       // Authenticate with backend
       // This is the SINGLE SOURCE OF TRUTH for authentication
