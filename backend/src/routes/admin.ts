@@ -508,11 +508,13 @@ export async function adminRoutes(fastify: FastifyInstance) {
           tenantId
         }
         // Use upsert to handle sellers with wrong/missing tenantId
+        // $setOnInsert must not contain fields already in $set to avoid MongoDB conflict
+        const { tenantId: _t, name: _n, avatar: _a, ...insertOnly } = sellerDoc
         const result = await collection.updateOne(
           { id: sellerId },
           {
             $set: { tenantId, name: sellerDoc.name, avatar: sellerDoc.avatar },
-            $setOnInsert: sellerDoc
+            $setOnInsert: insertOnly
           },
           { upsert: true }
         )
