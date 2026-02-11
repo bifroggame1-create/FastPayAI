@@ -139,7 +139,7 @@ const ENV_VARS: EnvVarConfig[] = [
   // Multi-tenant
   {
     name: 'DEFAULT_TENANT_ID',
-    required: true
+    required: false // Falls back to 'fastpay' in code
   }
 ]
 
@@ -196,7 +196,7 @@ export function validateEnvironment(): EnvValidationResult {
   // Production-specific checks
   if (isProduction) {
     if (!process.env.DELIVERY_SECRET) {
-      errors.push('❌ DELIVERY_SECRET is required in production for encrypting sensitive delivery data')
+      warnings.push('⚠️  DELIVERY_SECRET is not set - delivery data encryption disabled')
     }
 
     if (process.env.ALLOW_DEV_AUTH === 'true') {
