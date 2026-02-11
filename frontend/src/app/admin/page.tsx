@@ -167,7 +167,8 @@ interface ActivityLog {
   userId: string
   userName?: string
   userUsername?: string
-  action: 'add_to_cart' | 'checkout' | 'add_to_favorites' | 'remove_from_favorites' | 'view_product' | 'search' | 'payment_started' | 'payment_completed' | 'payment_failed'
+  userAvatar?: string
+  action: 'add_to_cart' | 'checkout' | 'add_to_favorites' | 'remove_from_favorites' | 'view_product' | 'search' | 'payment_started' | 'payment_completed' | 'payment_failed' | 'order_created' | 'order_delivered' | 'add_to_favorite' | 'remove_from_favorite'
   productId?: string
   productName?: string
   metadata?: Record<string, any>
@@ -2068,68 +2069,76 @@ export default function AdminPage() {
                       <div key={log.id} className="px-4 py-3 hover:bg-[#1e2028] transition-colors">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-start gap-3">
-                            {/* Action Icon */}
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${log.action === 'add_to_cart' ? 'bg-blue-500/10 text-blue-400' :
-                                log.action === 'checkout' || log.action === 'payment_started' ? 'bg-amber-500/10 text-amber-400' :
-                                  log.action === 'payment_completed' ? 'bg-emerald-500/10 text-emerald-400' :
-                                    log.action === 'payment_failed' ? 'bg-red-500/10 text-red-400' :
-                                      log.action === 'add_to_favorites' ? 'bg-pink-500/10 text-pink-400' :
-                                        log.action === 'remove_from_favorites' ? 'bg-gray-500/10 text-gray-400' :
-                                          'bg-purple-500/10 text-purple-400'
+                            {/* User Avatar */}
+                            <div className="relative flex-shrink-0">
+                              {log.userAvatar ? (
+                                <img
+                                  src={log.userAvatar}
+                                  alt={log.userName || log.userUsername || 'User'}
+                                  className="w-8 h-8 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                                  {(log.userName || log.userUsername || log.userId || '?').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              {/* Action badge */}
+                              <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border border-[#1a1d27] flex items-center justify-center ${
+                                log.action === 'add_to_cart' || log.action === 'order_created' ? 'bg-blue-500' :
+                                log.action === 'checkout' || log.action === 'payment_started' ? 'bg-amber-500' :
+                                  log.action === 'payment_completed' ? 'bg-emerald-500' :
+                                    log.action === 'payment_failed' ? 'bg-red-500' :
+                                      log.action === 'add_to_favorites' || log.action === 'add_to_favorite' ? 'bg-pink-500' :
+                                        log.action === 'order_delivered' ? 'bg-green-500' :
+                                          'bg-purple-500'
                               }`}>
-                              {log.action === 'add_to_cart' && (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                              )}
-                              {(log.action === 'checkout' || log.action === 'payment_started') && (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                              )}
-                              {log.action === 'payment_completed' && (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                              )}
-                              {log.action === 'payment_failed' && (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                              )}
-                              {(log.action === 'add_to_favorites' || log.action === 'remove_from_favorites') && (
-                                <svg className="w-4 h-4" fill={log.action === 'add_to_favorites' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                </svg>
-                              )}
-                              {(log.action === 'view_product' || log.action === 'search') && (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                              )}
+                                <span className="text-white text-[6px]">
+                                  {(log.action === 'add_to_cart' || log.action === 'order_created') && '🛒'}
+                                  {(log.action === 'payment_completed' || log.action === 'order_delivered') && '✓'}
+                                  {log.action === 'payment_failed' && '✗'}
+                                  {(log.action === 'checkout' || log.action === 'payment_started') && '💳'}
+                                  {(log.action === 'add_to_favorites' || log.action === 'add_to_favorite') && '♥'}
+                                  {(log.action === 'remove_from_favorites' || log.action === 'remove_from_favorite') && '♡'}
+                                  {(log.action === 'view_product' || log.action === 'search') && '👁'}
+                                </span>
+                              </div>
                             </div>
 
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-medium text-white">
-                                  {log.userUsername ? `@${log.userUsername}` : log.userName || `ID: ${log.userId}`}
-                                </span>
-                                <span className={`text-xs px-1.5 py-0.5 rounded ${log.action === 'add_to_cart' ? 'bg-blue-500/10 text-blue-400' :
+                                {log.userUsername ? (
+                                  <a
+                                    href={`https://t.me/${log.userUsername}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm font-medium text-blue-400 hover:text-blue-300 hover:underline"
+                                  >
+                                    @{log.userUsername}
+                                  </a>
+                                ) : (
+                                  <span className="text-sm font-medium text-white">
+                                    {log.userName || (log.userId && log.userId !== 'anonymous' ? `ID: ${log.userId}` : 'Аноним')}
+                                  </span>
+                                )}
+                                <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                  log.action === 'add_to_cart' || log.action === 'order_created' ? 'bg-blue-500/10 text-blue-400' :
                                     log.action === 'checkout' || log.action === 'payment_started' ? 'bg-amber-500/10 text-amber-400' :
                                       log.action === 'payment_completed' ? 'bg-emerald-500/10 text-emerald-400' :
                                         log.action === 'payment_failed' ? 'bg-red-500/10 text-red-400' :
-                                          log.action === 'add_to_favorites' ? 'bg-pink-500/10 text-pink-400' :
-                                            log.action === 'remove_from_favorites' ? 'bg-gray-500/10 text-gray-400' :
-                                              'bg-purple-500/10 text-purple-400'
+                                          log.action === 'add_to_favorites' || log.action === 'add_to_favorite' ? 'bg-pink-500/10 text-pink-400' :
+                                            log.action === 'remove_from_favorites' || log.action === 'remove_from_favorite' ? 'bg-gray-500/10 text-gray-400' :
+                                              log.action === 'order_delivered' ? 'bg-green-500/10 text-green-400' :
+                                                'bg-purple-500/10 text-purple-400'
                                   }`}>
                                   {log.action === 'add_to_cart' && 'Добавил в корзину'}
+                                  {log.action === 'order_created' && 'Создал заказ'}
                                   {log.action === 'checkout' && 'Оформил заказ'}
                                   {log.action === 'payment_started' && 'Перешёл к оплате'}
                                   {log.action === 'payment_completed' && 'Оплатил'}
                                   {log.action === 'payment_failed' && 'Ошибка оплаты'}
-                                  {log.action === 'add_to_favorites' && 'Добавил в избранное'}
-                                  {log.action === 'remove_from_favorites' && 'Убрал из избранного'}
+                                  {log.action === 'order_delivered' && 'Доставлено'}
+                                  {(log.action === 'add_to_favorites' || log.action === 'add_to_favorite') && 'Добавил в избранное'}
+                                  {(log.action === 'remove_from_favorites' || log.action === 'remove_from_favorite') && 'Убрал из избранного'}
                                   {log.action === 'view_product' && 'Просмотр'}
                                   {log.action === 'search' && 'Поиск'}
                                 </span>
@@ -2141,7 +2150,7 @@ export default function AdminPage() {
                               )}
                               {log.metadata?.searchQuery && (
                                 <p className="text-sm text-gray-500 mt-0.5">
-                                  Запрос: "{log.metadata.searchQuery}"
+                                  Запрос: &quot;{log.metadata.searchQuery}&quot;
                                 </p>
                               )}
                               {log.metadata?.amount && (
@@ -2153,12 +2162,14 @@ export default function AdminPage() {
                           </div>
 
                           <span className="text-xs text-gray-500 whitespace-nowrap">
-                            {new Date(log.createdAt).toLocaleString('ru-RU', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {log.createdAt && !isNaN(new Date(log.createdAt).getTime())
+                              ? new Date(log.createdAt).toLocaleString('ru-RU', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                              : '—'}
                           </span>
                         </div>
                       </div>

@@ -3417,9 +3417,20 @@ export async function adminRoutes(fastify: FastifyInstance) {
         .limit(parseInt(limit))
         .toArray()
 
+      // Normalize field names for frontend compatibility
+      const normalizedLogs = logs.map((log: any) => ({
+        ...log,
+        // Map timestamp → createdAt for frontend
+        createdAt: log.timestamp || log.createdAt,
+        // Ensure userName/userUsername are available (old logs only have `username`)
+        userName: log.userName || (log.username && !log.username.startsWith('@') ? log.username : undefined),
+        userUsername: log.userUsername || (log.username?.startsWith('@') ? log.username.slice(1) : log.username) || undefined,
+        userAvatar: log.userAvatar || undefined,
+      }))
+
       return {
         success: true,
-        logs,
+        logs: normalizedLogs,
         total: await logsCollection.countDocuments(query)
       }
     } catch (error: any) {

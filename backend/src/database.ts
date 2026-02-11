@@ -635,6 +635,9 @@ export interface ActivityLog extends TenantScoped {
   timestamp: string
   userId: string
   username?: string
+  userName?: string
+  userUsername?: string
+  userAvatar?: string
   action: ActivityAction
   productId?: string
   productName?: string
@@ -1047,6 +1050,9 @@ export interface LogActivityParams {
   tenantId: string
   userId: string
   username?: string
+  userName?: string
+  userUsername?: string
+  userAvatar?: string
   action: ActivityAction
   productId?: string
   productName?: string
@@ -1063,6 +1069,9 @@ export async function logActivity(params: LogActivityParams): Promise<ActivityLo
     timestamp: new Date().toISOString(),
     userId: params.userId,
     username: params.username,
+    userName: params.userName,
+    userUsername: params.userUsername,
+    userAvatar: params.userAvatar,
     action: params.action,
     productId: params.productId,
     productName: params.productName,
