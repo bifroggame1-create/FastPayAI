@@ -137,6 +137,8 @@ interface Review {
   rating: number
   text: string
   date: string
+  status?: 'pending' | 'approved' | 'rejected'
+  rejectionReason?: string
   reply?: string
   replyDate?: string
 }
@@ -741,6 +743,19 @@ export default function AdminPage() {
     }
   }
 
+  const handleModerateReview = async (reviewId: string, action: 'approve' | 'reject') => {
+    const reason = action === 'reject' ? prompt('Причина отклонения (необязательно):') : undefined
+    try {
+      const result = await adminApi.moderateReview(reviewId, action, reason || undefined)
+      if (result.success) {
+        setReviews(reviews.map(r => r.id === reviewId ? { ...r, status: action === 'approve' ? 'approved' : 'rejected' } : r))
+      }
+    } catch (error) {
+      console.error('Error moderating review:', error)
+      alert('Ошибка модерации')
+    }
+  }
+
   const loadActivityLogs = async () => {
     setLogsLoading(true)
     try {
@@ -913,7 +928,7 @@ export default function AdminPage() {
     { id: 'products', label: 'Товары', icon: Icons.products, count: products.length },
     { id: 'sellers', label: 'Продавцы', icon: Icons.sellers, count: sellers.length },
     { id: 'users', label: 'Юзеры', icon: Icons.users, count: users.length },
-    { id: 'reviews', label: 'Отзывы', icon: Icons.reviews, count: reviews.length },
+    { id: 'reviews', label: 'Отзывы', icon: Icons.reviews, count: reviews.filter(r => r.status === 'pending').length || reviews.length },
     { id: 'promo', label: 'Промокоды', icon: Icons.promo, count: promoCodes.length },
     { id: 'admins', label: 'Админы', icon: Icons.admins, count: admins.length },
     { id: 'files', label: 'Файлы', icon: Icons.files, count: uploadedFiles.length },
@@ -1723,7 +1738,14 @@ export default function AdminPage() {
           {activeTab === 'reviews' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h1 className="text-xl font-semibold text-white">Отзывы</h1>
+                <div>
+                  <h1 className="text-xl font-semibold text-white">Отзывы</h1>
+                  {reviews.filter(r => r.status === 'pending').length > 0 && (
+                    <p className="text-sm text-amber-400 mt-1">
+                      {reviews.filter(r => r.status === 'pending').length} на модерации
+                    </p>
+                  )}
+                </div>
                 <button
                   onClick={() => setEditingReview({
                     id: '',
@@ -1741,15 +1763,41 @@ export default function AdminPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                {reviews.map(review => (
-                  <div key={review.id} className="bg-[#1a1d27] rounded-lg p-4 border border-[#2a2d37]">
+                {/* Pending reviews first, then approved, then rejected */}
+                {[...reviews].sort((a, b) => {
+                  const statusOrder = { pending: 0, approved: 1, rejected: 2 }
+                  return (statusOrder[a.status || 'approved'] || 1) - (statusOrder[b.status || 'approved'] || 1)
+                }).map(review => (
+                  <div key={review.id} className={`bg-[#1a1d27] rounded-lg p-4 border ${
+                    review.status === 'pending' ? 'border-amber-500/50' :
+                    review.status === 'rejected' ? 'border-red-500/30 opacity-60' :
+                    'border-[#2a2d37]'
+                  }`}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-sm text-white">
                           {review.userName.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-medium text-white">{review.userName}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white">{review.userName}</span>
+                            {/* Status badge */}
+                            {review.status === 'pending' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded font-medium">
+                                На модерации
+                              </span>
+                            )}
+                            {review.status === 'rejected' && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded font-medium">
+                                Отклонён
+                              </span>
+                            )}
+                            {(review.status === 'approved' || !review.status) && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded font-medium">
+                                Одобрен
+                              </span>
+                            )}
+                          </div>
                           <div className="flex gap-0.5">
                             {[1, 2, 3, 4, 5].map(star => (
                               <span key={star} className={`text-sm ${star <= review.rating ? 'text-amber-400' : 'text-gray-600'}`}>★</span>
@@ -1759,6 +1807,13 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <p className="text-sm text-gray-400 mb-3">{review.text}</p>
+
+                    {/* Rejection reason */}
+                    {review.status === 'rejected' && review.rejectionReason && (
+                      <div className="mb-3 p-2 bg-red-500/5 border-l-2 border-red-500 rounded-r-lg">
+                        <p className="text-xs text-red-400">Причина: {review.rejectionReason}</p>
+                      </div>
+                    )}
 
                     {/* Seller Reply */}
                     {review.reply && (
@@ -1795,8 +1850,25 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    <div className="flex gap-2">
-                      {!review.reply && replyingToReview !== review.id && (
+                    <div className="flex gap-2 flex-wrap">
+                      {/* Moderation buttons for pending reviews */}
+                      {review.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleModerateReview(review.id, 'approve')}
+                            className="text-xs px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors font-medium"
+                          >
+                            Одобрить
+                          </button>
+                          <button
+                            onClick={() => handleModerateReview(review.id, 'reject')}
+                            className="text-xs px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded transition-colors font-medium"
+                          >
+                            Отклонить
+                          </button>
+                        </>
+                      )}
+                      {!review.reply && replyingToReview !== review.id && review.status !== 'pending' && (
                         <button
                           onClick={() => { setReplyingToReview(review.id); setReplyText('') }}
                           className="text-xs px-2 py-1 bg-emerald-500/10 text-emerald-500 rounded hover:bg-emerald-500/20 transition-colors"

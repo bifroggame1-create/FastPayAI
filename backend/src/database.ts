@@ -380,6 +380,8 @@ export interface Referral extends TenantScoped {
   createdAt: string
 }
 
+export type ReviewStatus = 'pending' | 'approved' | 'rejected'
+
 export interface Review extends TenantScoped {
   _id?: string | ObjectId
   id: string
@@ -390,6 +392,10 @@ export interface Review extends TenantScoped {
   orderId?: string
   rating: number
   text: string
+  status: ReviewStatus
+  rejectionReason?: string
+  moderatedAt?: string
+  moderatedBy?: string
   createdAt: string
 }
 

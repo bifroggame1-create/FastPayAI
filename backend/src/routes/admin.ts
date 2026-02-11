@@ -1380,11 +1380,25 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // REVIEWS (admin management)
   // ============================================
 
-  // Get all reviews
-  fastify.get('/admin/reviews', { preHandler: adminMiddleware }, async () => {
+  // Get all reviews (with moderation status)
+  fastify.get('/admin/reviews', { preHandler: adminMiddleware }, async (request) => {
+    const { status } = request.query as { status?: string }
     const { getReviewsCollection, toClientDoc } = await import('../database')
-    const reviews = await getReviewsCollection().find({}).sort({ createdAt: -1 }).toArray()
-    return { success: true, reviews: reviews.map(r => toClientDoc(r)) }
+
+    const query: any = {}
+    if (status) query.status = status
+
+    const reviews = await getReviewsCollection().find(query).sort({ createdAt: -1 }).toArray()
+    const pendingCount = await getReviewsCollection().countDocuments({ status: 'pending' })
+
+    return {
+      success: true,
+      reviews: reviews.map(r => ({
+        ...toClientDoc(r),
+        status: r.status || 'approved', // Legacy reviews without status are treated as approved
+      })),
+      pendingCount
+    }
   })
 
   // Create review (admin can create fake reviews)
@@ -1412,6 +1426,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         userName,
         rating: Math.min(5, Math.max(1, rating)),
         text,
+        status: 'approved' as const,
         createdAt: new Date().toISOString()
       }
 
@@ -1502,6 +1517,91 @@ export async function adminRoutes(fastify: FastifyInstance) {
     })
 
     return { success: true }
+  })
+
+  // Moderate review (approve/reject)
+  fastify.post('/admin/reviews/:id/moderate', { preHandler: adminMiddleware }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const { action, reason } = request.body as { action: 'approve' | 'reject'; reason?: string }
+
+      if (!action || !['approve', 'reject'].includes(action)) {
+        reply.code(400)
+        return { success: false, error: 'Action must be approve or reject' }
+      }
+
+      const { getReviewsCollection, getProductsCollection, toClientDoc } = await import('../database')
+
+      const review = await getReviewsCollection().findOne({ id })
+      if (!review) {
+        reply.code(404)
+        return { success: false, error: 'Review not found' }
+      }
+
+      const adminUser = (request as any).user
+      const newStatus = action === 'approve' ? 'approved' : 'rejected'
+
+      const updateFields: any = {
+        status: newStatus,
+        moderatedAt: new Date().toISOString(),
+        moderatedBy: adminUser?.userId || 'admin',
+      }
+
+      if (action === 'reject' && reason) {
+        updateFields.rejectionReason = reason
+      }
+
+      const result = await getReviewsCollection().findOneAndUpdate(
+        { id },
+        { $set: updateFields },
+        { returnDocument: 'after' }
+      )
+
+      if (!result) {
+        reply.code(500)
+        return { success: false, error: 'Failed to update review' }
+      }
+
+      // If approved, recalculate product rating
+      if (action === 'approve' && review.productId) {
+        const approvedReviews = await getReviewsCollection().find({
+          productId: review.productId,
+          $or: [{ status: 'approved' }, { status: { $exists: false } }]
+        }).toArray()
+
+        if (approvedReviews.length > 0) {
+          const avgRating = approvedReviews.reduce((sum, r) => sum + r.rating, 0) / approvedReviews.length
+          await getProductsCollection().updateOne(
+            { _id: review.productId },
+            { $set: { rating: Math.round(avgRating * 10) / 10 } }
+          )
+        }
+      }
+
+      // Log the action
+      const adminInfo = getAdminInfo(request)
+      await logAdminAction({
+        ...adminInfo,
+        action: 'update',
+        entityType: 'review',
+        entityId: id,
+        changes: {
+          before: { status: review.status || 'pending' },
+          after: { status: newStatus, reason }
+        }
+      })
+
+      return {
+        success: true,
+        review: {
+          ...toClientDoc(result),
+          status: newStatus,
+        }
+      }
+    } catch (error: any) {
+      reply.code(500)
+      return { success: false, error: error.message }
+    }
   })
 
   // ============================================
@@ -3073,10 +3173,13 @@ export async function adminRoutes(fastify: FastifyInstance) {
         .map(p => p._id?.toString())
         .filter((id): id is string => !!id)
 
-      // Get reviews for seller's products
+      // Get reviews for seller's products (only approved ones)
       const { getReviewsCollection, toClientDoc } = await import('../database')
       const reviews = await getReviewsCollection()
-        .find({ productId: { $in: sellerProductIds } })
+        .find({
+          productId: { $in: sellerProductIds },
+          $or: [{ status: 'approved' }, { status: { $exists: false } }]
+        })
         .sort({ createdAt: -1 })
         .toArray()
 

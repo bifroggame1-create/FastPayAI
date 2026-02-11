@@ -613,6 +613,11 @@ export const adminApi = {
     return data
   },
 
+  moderateReview: async (id: string, action: 'approve' | 'reject', reason?: string) => {
+    const { data } = await adminApiInstance.post(`/admin/reviews/${id}/moderate`, { action, reason })
+    return data
+  },
+
   // Tags - product categorization
   getTags: async () => {
     const { data } = await adminApiInstance.get('/admin/tags')

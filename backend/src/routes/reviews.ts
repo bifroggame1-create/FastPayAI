@@ -11,7 +11,7 @@ function reqTenantId(request: FastifyRequest): string {
 }
 
 export async function reviewRoutes(fastify: FastifyInstance) {
-  // Get reviews for a product
+  // Get reviews for a product (only approved or legacy reviews without status)
   fastify.get('/reviews/product/:productId', async (request, reply) => {
     const reviews = getReviewsCollection()
 
@@ -19,7 +19,10 @@ export async function reviewRoutes(fastify: FastifyInstance) {
       const { productId } = request.params as { productId: string }
 
       const productReviews = await reviews
-        .find({ productId })
+        .find({
+          productId,
+          $or: [{ status: 'approved' }, { status: { $exists: false } }]
+        })
         .sort({ createdAt: -1 })
         .limit(100)
         .toArray()
@@ -65,6 +68,7 @@ export async function reviewRoutes(fastify: FastifyInstance) {
         userAvatar: r.userAvatar,
         rating: r.rating,
         text: r.text,
+        status: r.status || 'approved',
         createdAt: r.createdAt
       }))
 
@@ -95,7 +99,7 @@ export async function reviewRoutes(fastify: FastifyInstance) {
         return { canReview: false, reason: 'No delivered orders for this product' }
       }
 
-      // Check if user already reviewed this product
+      // Check if user already reviewed this product (any status)
       const existingReview = await reviews.findOne({
         userId,
         productId
@@ -116,11 +120,10 @@ export async function reviewRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Create a review
+  // Create a review (goes to moderation queue with status: 'pending')
   fastify.post('/reviews', async (request, reply) => {
     const reviews = getReviewsCollection()
     const orders = getOrdersCollection()
-    const products = getProductsCollection()
 
     try {
       const { productId, userId, userName, userAvatar, rating, text, orderId } = request.body as {
@@ -164,7 +167,7 @@ export async function reviewRoutes(fastify: FastifyInstance) {
         return { success: false, error: 'You have already reviewed this product' }
       }
 
-      // Create review
+      // Create review with pending status (pre-moderation)
       const review: Review = {
         tenantId: reqTenantId(request),
         id: `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -175,29 +178,26 @@ export async function reviewRoutes(fastify: FastifyInstance) {
         orderId: orderId || deliveredOrder.id,
         rating,
         text: text.trim(),
+        status: 'pending',
         createdAt: new Date().toISOString()
       }
 
       await reviews.insertOne(review)
 
-      // Update product rating
-      const productReviews = await reviews.find({ productId }).toArray()
-      const avgRating = productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length
-
-      await products.updateOne(
-        { _id: productId },
-        { $set: { rating: Math.round(avgRating * 10) / 10 } }
-      )
+      // NOTE: Product rating is NOT updated here anymore.
+      // It will be recalculated when the review is approved by admin.
 
       logger.info({
         reviewId: review.id,
         productId,
         userId,
-        rating
-      }, 'Review created')
+        rating,
+        status: 'pending'
+      }, 'Review created (pending moderation)')
 
       return {
         success: true,
+        message: 'Review submitted for moderation',
         review: {
           id: review.id,
           productId: review.productId,
@@ -206,6 +206,7 @@ export async function reviewRoutes(fastify: FastifyInstance) {
           userAvatar: review.userAvatar,
           rating: review.rating,
           text: review.text,
+          status: review.status,
           createdAt: review.createdAt
         }
       }
@@ -216,14 +217,17 @@ export async function reviewRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Get average rating for a product
+  // Get average rating for a product (only approved reviews)
   fastify.get('/reviews/product/:productId/stats', async (request, reply) => {
     const reviews = getReviewsCollection()
 
     try {
       const { productId } = request.params as { productId: string }
 
-      const productReviews = await reviews.find({ productId }).toArray()
+      const productReviews = await reviews.find({
+        productId,
+        $or: [{ status: 'approved' }, { status: { $exists: false } }]
+      }).toArray()
 
       if (productReviews.length === 0) {
         return {
