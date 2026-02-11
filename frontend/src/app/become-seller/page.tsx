@@ -195,7 +195,7 @@ export default function BecomeSellerPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-tg-bg pb-20">
+      <div className="min-h-screen bg-tg-bg pb-28">
         <Header
           title={t.title}
           showBack
@@ -228,7 +228,7 @@ export default function BecomeSellerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-tg-bg pb-20">
+    <div className="min-h-screen bg-tg-bg pb-28">
       <Header
         title={t.title}
         showBack
